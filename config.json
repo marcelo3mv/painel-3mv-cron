@@ -1,0 +1,26 @@
+{
+  "_comentario": "Configuração do alerta semanal de SALDOS DE PEDIDOS. Edite este arquivo se mudar destinatários, ano-alvo ou caminhos.",
+  "ano_alvo": 2026,
+  "api_host": "https://api.suasvendas.com/v2",
+  "credenciais_relativa": "3MV/Automações/comissoes/credenciais.json",
+  "destinatarios_email": [
+    {"nome": "Lais",            "email": "adm@3mvrepresentacao.com",    "role": "to"},
+    {"nome": "Rafaela",         "email": "adm1@3mvrepresentacao.com",   "role": "to"},
+    {"nome": "Marcelo (gestor)","email": "marcelo@3mvrepresentacao.com","role": "cc"}
+  ],
+  "gmail_creds_relativa": "3MV/Automações/gmail_credenciais.json",
+  "papel_dos_destinatarios": {
+    "adm@3mvrepresentacao.com": "responsavel_envio",
+    "adm1@3mvrepresentacao.com": "responsavel_envio",
+    "marcelo@3mvrepresentacao.com": "gestor_apenas_visibilidade"
+  },
+  "whatsapp": [
+    {"nome": "Lais/Rafaela (compartilhado)", "numero": "5531999403675"},
+    {"nome": "Marcelo", "numero": "5531988843675"}
+  ],
+  "assunto_email": "[Pedidos 3MV] Saldos a faturar — semana {data}",
+  "drive_roots": [
+    "/Users/marcelorodrigues/Library/CloudStorage/GoogleDrive-marcelo@3mvrepresentacao.com",
+    "/sessions/affectionate-bold-babbage/mnt/GoogleDrive-marcelo@3mvrepresentacao.com"
+  ]
+}

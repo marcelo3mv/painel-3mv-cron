@@ -1,0 +1,95 @@
+name: Atualizar Painel 3MV
+
+on:
+  schedule:
+    # 4×/dia em dias úteis (BR-3 = UTC). Mesmos horários do LaunchAgent do Mac:
+    - cron: '0 12 * * 1-5'   # 09:00 BRT (seg-sex)
+    - cron: '0 16 * * 1-5'   # 13:00 BRT (seg-sex)
+    - cron: '0 20 * * 1-5'   # 17:00 BRT (seg-sex)
+    - cron: '0 1 * * 2-6'    # 22:00 BRT do dia anterior (seg-sex BR)
+  workflow_dispatch:           # permite rodar manualmente pelo botão "Run workflow"
+
+permissions:
+  contents: write   # precisa pra commitar o dados.json + painel_atual.html
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests openpyxl
+
+      - name: Etapa 1 — Extrair saldos da API Suas Vendas
+        env:
+          SUAS_VENDAS_TOKEN: ${{ secrets.SUAS_VENDAS_TOKEN }}
+          SUAS_VENDAS_API_KEY: ${{ secrets.SUAS_VENDAS_API_KEY }}
+        run: |
+          mkdir -p outputs
+          python scripts/extrair_saldos.py \
+            --config config.json \
+            --output-json outputs/dados.json \
+            --output-xlsx outputs/saldos.xlsx \
+            --ano 2026
+
+      - name: Etapa 2 — Copiar dados.json para Resources/
+        run: cp outputs/dados.json dados.json
+
+      - name: Etapa 3 — Injetar Conta Corrente + NFD (planilhas snapshot)
+        run: python injetar_conta_corrente.py
+        continue-on-error: true   # se a planilha snapshot ainda não existe, segue sem
+
+      - name: Etapa 4 — Injetar Histórico
+        run: python injetar_historico.py
+
+      - name: Etapa 4b — Injetar Metas
+        run: python injetar_metas.py
+        continue-on-error: true
+
+      - name: Etapa 4c — Injetar CRM
+        run: python injetar_crm.py
+        continue-on-error: true
+
+      - name: Etapa 5 — Gerar painel HTML
+        run: python gerar_painel.py
+
+      - name: Preparar diretório de deploy Cloudflare
+        run: |
+          mkdir -p cf-deploy
+          cp painel_atual.html cf-deploy/index.html
+          cp dados.json cf-deploy/dados.json
+          # logo opcional
+          [ -f logo_3mv.png ] && cp logo_3mv.png cf-deploy/ || true
+
+      - name: Deploy to Cloudflare Workers (assets)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          cat > cf-deploy/wrangler.toml <<'EOF'
+          name = "painel-3mv"
+          compatibility_date = "2024-01-01"
+          [assets]
+          directory = "./"
+          EOF
+          cd cf-deploy
+          npx wrangler@latest deploy
+
+      - name: Commitar dados.json atualizado (snapshot pra próxima rodada)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add dados.json painel_atual.html
+          git diff --cached --quiet || git commit -m "auto: pipeline $(date -u +%Y-%m-%dT%H:%M)Z"
+          git push
+        continue-on-error: true

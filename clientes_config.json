@@ -1,0 +1,14 @@
+{
+  "_documentacao": "Configuração de clientes 3MV — quem está ativo, inativo, ou excluído. EDITE este arquivo para atualizar o painel.",
+  "_atualizado_em": "2026-05-09",
+  "_como_usar": [
+    "inativos: clientes que pararam de comprar mas o histórico fica visível no painel",
+    "excluidos: clientes que NÃO devem aparecer em nada (ex: cadastros duplicados, testes)",
+    "observacoes: livre, aparece no tooltip do cliente",
+    "grupos_inativos: nomes de grupos (de GRUPOS_CLIENTES no painel.html) que estão inativos"
+  ],
+  "inativos": [],
+  "excluidos": [],
+  "grupos_inativos": [],
+  "observacoes": {}
+}
