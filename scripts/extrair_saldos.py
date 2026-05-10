@@ -35,6 +35,7 @@ import json
 import sys
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -208,20 +209,22 @@ def fetch_pedidos_completo(host: str, headers: dict) -> list:
     if id_max_real > id_max_pag:
         faltantes = list(range(id_max_pag + 1, id_max_real + 1))
         print(f"  fase 3: baixando {len(faltantes)} pedidos individuais ({id_max_pag + 1} → {id_max_real}) ...")
+        # FASE 9.63: paralelismo (10 threads) — corta tempo de ~10min p/ ~1min
         adicionados = 0
         gaps = 0
-        for pid in faltantes:
-            if pid in ids_set:
-                continue
-            p = fetch_pedido_individual(host, headers, pid)
-            if p is None:
-                gaps += 1
-                continue
-            pedidos.append(p)
-            ids_set.add(pid)
-            adicionados += 1
-            if adicionados % 100 == 0:
-                print(f"    +{adicionados}/{len(faltantes)} (gaps {gaps})")
+        a_buscar = [pid for pid in faltantes if pid not in ids_set]
+        with ThreadPoolExecutor(max_workers=10) as ex:
+            futs = {ex.submit(fetch_pedido_individual, host, headers, pid): pid for pid in a_buscar}
+            for fut in as_completed(futs):
+                p = fut.result()
+                if p is None:
+                    gaps += 1
+                    continue
+                pedidos.append(p)
+                ids_set.add(futs[fut])
+                adicionados += 1
+                if adicionados % 100 == 0:
+                    print(f"    +{adicionados}/{len(a_buscar)} (gaps {gaps})")
         print(f"  fase 3 ok: +{adicionados} pedidos individuais (gaps {gaps})")
 
     # FIX 2026-05-04 v4: a paginação do /Pedido tem bug — alguns IDs DENTRO do
@@ -233,18 +236,21 @@ def fetch_pedidos_completo(host: str, headers: dict) -> list:
     print(f"  fase 4: completando IDs faltantes em [{busca_min}, {id_max_real}] ...")
     faltantes_dentro = [i for i in range(busca_min, id_max_real + 1) if i not in ids_set]
     print(f"  fase 4: {len(faltantes_dentro)} IDs ausentes da paginação dentro do range")
+    # FASE 9.63: paralelismo (10 threads)
     add4 = 0
     gaps4 = 0
-    for pid in faltantes_dentro:
-        p = fetch_pedido_individual(host, headers, pid)
-        if p is None:
-            gaps4 += 1
-            continue
-        pedidos.append(p)
-        ids_set.add(pid)
-        add4 += 1
-        if add4 % 200 == 0:
-            print(f"    fase 4 +{add4}/{len(faltantes_dentro)} (gaps {gaps4})")
+    with ThreadPoolExecutor(max_workers=10) as ex:
+        futs = {ex.submit(fetch_pedido_individual, host, headers, pid): pid for pid in faltantes_dentro}
+        for fut in as_completed(futs):
+            p = fut.result()
+            if p is None:
+                gaps4 += 1
+                continue
+            pedidos.append(p)
+            ids_set.add(futs[fut])
+            add4 += 1
+            if add4 % 200 == 0:
+                print(f"    fase 4 +{add4}/{len(faltantes_dentro)} (gaps {gaps4})")
     print(f"  fase 4 ok: +{add4} pedidos recuperados (gaps {gaps4})")
     return pedidos
 
