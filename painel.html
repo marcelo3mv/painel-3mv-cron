@@ -19,7 +19,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="3MV">
-<link rel="apple-touch-icon" href="/logo_3mv.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
 <script>
   // Registra service worker (cache offline)
   if ('serviceWorker' in navigator) {
@@ -120,7 +122,35 @@ h2 { font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:var(-
 h2 .small { font-size:10px; color:var(--mut); font-weight:500; text-transform:none; letter-spacing:0; }
 
 .charts-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-@media (max-width:900px) { .layout { grid-template-columns:1fr; } .sidebar { position:fixed; top:0; left:0; right:0; height:auto; flex-direction:row; overflow-x:auto; z-index:100; } .sidebar nav { display:flex; padding:0; } .sidebar .tab { white-space:nowrap; border-left:none; border-bottom:3px solid transparent; } .sidebar .tab.active { border-left:none; border-bottom-color:var(--acc); } .sidebar .logo { display:none; } .sidebar .divider, .sidebar .footer { display:none; } .main { padding-top:50px; } .charts-row { grid-template-columns:1fr; } }
+/* FASE 9.59: Mobile — hamburger menu lateral deslizante */
+@media (max-width:900px) {
+  .layout { grid-template-columns: 1fr !important; }
+  body.modo-foco .layout, body.modo-aval .layout, body.modo-cc .layout,
+  body.modo-nfd .layout, body.modo-crm .layout { grid-template-columns: 1fr !important; }
+  .sidebar { position: fixed; top: 0; left: -260px; width: 240px; height: 100vh; z-index: 1000;
+             transition: left 0.25s ease-out; box-shadow: 2px 0 12px rgba(0,0,0,0.25);
+             overflow-y: auto; flex-direction: column; }
+  body.menu-aberto .sidebar { left: 0; }
+  body.menu-aberto::after { content: ''; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; }
+  .menu-toggle { display: flex !important; position: fixed; top: 10px; left: 10px; z-index: 1001;
+                 width: 40px; height: 40px; align-items: center; justify-content: center;
+                 background: var(--azul-d); color: #fff; border: 0; border-radius: 8px;
+                 box-shadow: 0 2px 6px rgba(0,0,0,0.2); cursor: pointer; font-size: 18px; }
+  .topbar { padding-left: 60px !important; padding-right: 8px !important; flex-wrap: wrap; gap: 6px !important; }
+  .topbar > * { font-size: 11px; }
+  .main { padding: 10px !important; padding-top: 60px !important; }
+  .charts-row { grid-template-columns: 1fr !important; }
+  table { font-size: 10px !important; }
+  table th, table td { padding: 4px 5px !important; }
+  .kpis { grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+  .selector-cards { grid-template-columns: 1fr !important; }
+  .filtros { gap: 5px !important; flex-wrap: wrap !important; }
+  .filtros select, .filtros input { min-width: 0 !important; max-width: 100%; font-size: 11px; }
+  /* H1 e H2 menores */
+  h1 { font-size: 18px !important; }
+  h2 { font-size: 14px !important; }
+}
+.menu-toggle { display: none; }
 
 .chart-card { background:#fff; border:1px solid var(--linha); border-radius:var(--r); padding:12px; box-shadow:0 1px 4px rgba(5,86,173,0.05); }
 .chart-card h3 { font-size:10px; text-transform:uppercase; letter-spacing:1.1px; color:var(--mut); margin:0 0 8px; font-weight:600; }
@@ -238,6 +268,8 @@ body.modo-crm #pane-crm { display: block !important; }
 <!-- 3MV-FIX-V3 -->
 </head>
 <body>
+<!-- FASE 9.59: Botão hamburger pra abrir/fechar sidebar no mobile -->
+<button class="menu-toggle" onclick="document.body.classList.toggle('menu-aberto')" aria-label="Menu">☰</button>
 <style>
 .auth-overlay { position:fixed; inset:0; background:linear-gradient(135deg,#0A3F77,#0556AD); z-index:1000; display:flex; align-items:center; justify-content:center; }
 .auth-box { background:#fff; border-radius:14px; padding:36px 32px; max-width:380px; width:90%; box-shadow:0 10px 40px rgba(0,0,0,0.3); }
@@ -1441,6 +1473,30 @@ body.modo-crm #pane-crm { display: block !important; }
         <th class="right">Consumo médio mensal 26</th>
         <th class="right">Sugestão próximo pedido</th>
       </tr></thead><tbody></tbody></table></div>
+
+      <!-- FASE 9.64: Sugestão por ITEM (produto) que cada cliente compra -->
+      <h2 style="margin-top:28px;">📦 Sugestão de Pedido por Item — produto a produto</h2>
+      <div style="font-size:11px;color:var(--mut);margin:-4px 0 10px;">Para cada cliente, lista os produtos específicos que ele já comprou em 2026 com sugestão de qty/valor pro próximo pedido baseado no histórico do item. Use os filtros acima e selecione um cliente.</div>
+      <div class="filtros" style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+        <label>Cliente:</label>
+        <select id="f-sugestao-item-cli" onchange="renderAvaliacao()" style="min-width:280px;">
+          <option value="">— selecione um cliente —</option>
+        </select>
+        <button onclick="exportarSugestaoItem()" style="background:#16a34a;color:#fff;border:0;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;">📊 Exportar Excel</button>
+        <button onclick="enviarSugestaoItemEmail()" style="background:#1E40AF;color:#fff;border:0;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;">📧 Enviar pedido por email</button>
+        <span class="info" id="sugestao-item-info" style="margin-left:auto;color:#666;">—</span>
+      </div>
+      <div id="sugestao-item-resumo" style="display:none;background:#EFF6FF;border-left:4px solid #1E40AF;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:12px;color:#1E40AF;"></div>
+      <div class="tabwrap"><table id="t-sugestao-item"><thead><tr>
+        <th>#</th><th>Indústria</th><th>Categoria</th><th>Produto</th>
+        <th class="right">Vezes pedido</th>
+        <th class="right">Qtd média/pedido</th>
+        <th class="right">Qtd total 2026</th>
+        <th class="right">Última qtd</th>
+        <th class="right">Preço unit médio</th>
+        <th class="right">Sugestão qtd</th>
+        <th class="right">Sugestão R$</th>
+      </tr></thead><tbody></tbody></table></div>
       </div><!-- fim aval-sub-sugestao -->
 
       <!-- FASE 9.43: Sub-pane Itens com Queda (movido pra aba própria) -->
@@ -1487,7 +1543,7 @@ body.modo-crm #pane-crm { display: block !important; }
       <h2>⚠️ Clientes próximos do ciclo (ou já atrasados)</h2>
       <div style="font-size:11px;color:var(--mut);margin:-4px 0 8px;">Ordem: mais atrasados primeiro. Cores: 🔴 atrasado · 🟡 ≤7 dias · 🟢 ≤15 dias.</div>
       <div class="tabwrap"><table id="t-ciclo-prox"><thead><tr>
-        <th>Cliente</th><th>Indústria principal</th>
+        <th>Cliente</th><th>Grupo</th><th>Indústria principal</th>
         <th class="right">Última compra</th>
         <th class="right">Intervalo médio</th>
         <th class="right">Próxima esperada</th>
@@ -1498,16 +1554,30 @@ body.modo-crm #pane-crm { display: block !important; }
 
       <h2 style="margin-top:24px;">😴 Clientes que NÃO compraram em 26 (mas compravam em 25)</h2>
       <div class="tabwrap"><table id="t-ciclo-sem26"><thead><tr>
-        <th>Cliente</th><th>Indústria principal</th>
+        <th>Cliente</th><th>Grupo</th><th>Indústria principal</th>
         <th class="right">Faturado 2025</th>
         <th class="right">Última compra 25</th>
         <th class="right">Dias sem comprar</th>
       </tr></thead><tbody></tbody></table></div>
 
+      <!-- FASE 9.65: Ciclo consolidado por GRUPO × INDÚSTRIA -->
+      <h2 style="margin-top:24px;">🏢 Ciclo Consolidado por Grupo × Indústria</h2>
+      <div style="font-size:11px;color:var(--mut);margin:-4px 0 8px;">Consolida todas as filiais de cada grupo, e separa por indústria principal. Útil pra ver o ciclo de compra "agregado" do grupo todo dentro de cada fornecedor.</div>
+      <div class="tabwrap"><table id="t-ciclo-grupo-ind"><thead><tr>
+        <th>Grupo</th><th>Indústria</th>
+        <th class="right">Filiais</th>
+        <th class="right">Faturado YTD 26</th>
+        <th class="right">Faturado 25</th>
+        <th class="right">Δ % 26x25</th>
+        <th class="right">Última compra</th>
+        <th class="right">Intervalo médio</th>
+        <th>Status</th>
+      </tr></thead><tbody></tbody></table></div>
+
       <h2 style="margin-top:24px;">📈 Clientes com ciclo aumentando (espaçamento crescendo)</h2>
       <div style="font-size:11px;color:var(--mut);margin:-4px 0 8px;">Compara intervalo médio em 26 vs 25 — quando o cliente está demorando mais para repor, é sinal de risco.</div>
       <div class="tabwrap"><table id="t-ciclo-aumentando"><thead><tr>
-        <th>Cliente</th><th>Indústria principal</th>
+        <th>Cliente</th><th>Grupo</th><th>Indústria principal</th>
         <th class="right">Intervalo médio 25</th>
         <th class="right">Intervalo médio 26</th>
         <th class="right">Δ dias</th>
@@ -1599,8 +1669,35 @@ const GRUPOS_CLIENTES = {
   'GPA / Pão de Açúcar': ['gpa ', 'pao de acucar', 'pão de açúcar', 'extra '],
 };
 
+// FASE 9.65: overrides manuais para grupos que o CRM agrupa errado
+//   Big Mais ≠ BM Preço (são redes diferentes apesar do nome parecido)
+const GRUPO_OVERRIDES = {
+  // chave = padrão (uppercase, sem espaços extras) que aparece no nome do cliente
+  // valor = grupo correto a usar
+  'BM PRECO': 'BM Preço',
+  'BM PREÇO': 'BM Preço',
+};
+
 function grupoDoCliente(nomeCliente) {
   if (!nomeCliente) return null;
+  const upper = String(nomeCliente).toUpperCase().trim().replace(/\s+/g,' ');
+  // FASE 9.65: overrides manuais (precedência máxima)
+  for (const [padrao, grupo] of Object.entries(GRUPO_OVERRIDES)) {
+    if (upper.includes(padrao)) return grupo;
+  }
+  // FASE 9.64: prioridade 2 = grupo do CRM_3MV.xlsx (autoritativo)
+  try {
+    const crmCli = (window.dadosCache && dadosCache.crm && dadosCache.crm.clientes) || {};
+    const norm = (s) => String(s||'').toUpperCase().trim().replace(/\s+/g,' ');
+    if (!window.__crmIdxFiltros) {
+      window.__crmIdxFiltros = {};
+      Object.entries(crmCli).forEach(([k,v]) => { window.__crmIdxFiltros[norm(k)] = v; });
+    }
+    const reg = window.__crmIdxFiltros[norm(nomeCliente)] || crmCli[nomeCliente] || null;
+    const g = reg && reg.grupo ? String(reg.grupo).trim() : '';
+    if (g && g !== '—' && g !== '-' && !/^—\s*sem/i.test(g)) return g;
+  } catch(e) {}
+  // Fallback: lista hardcoded GRUPOS_CLIENTES (legado)
   const nome = nomeCliente.toLowerCase();
   for (const [grupo, padroes] of Object.entries(GRUPOS_CLIENTES)) {
     if (padroes.some(p => nome.includes(p))) return grupo;
@@ -1744,6 +1841,8 @@ async function carregar(force) {
 }
 
 function pos_load() {
+  // FASE 9.64: limpa cache de grupos do CRM pra forçar re-mapping com dados frescos
+  window.__crmIdxFiltros = null;
   renderHeader(dadosCache);
   popularFiltros(dadosCache);
   renderKPIs();
@@ -3549,7 +3648,15 @@ function aplicarFiltros() {
     status: document.getElementById('f-status').value
   };
   localStorage.setItem('3mv_filtros', JSON.stringify(filtros));
-  if (dadosCache) { renderKPIs(); renderTab(abaAtiva); }
+  if (dadosCache) {
+    renderKPIs();
+    renderTab(abaAtiva);
+    // FASE 9.60: re-renderiza tb sub-panes da Avaliação se estiverem visíveis
+    if (typeof renderAvaliacao === 'function') renderAvaliacao();
+    if (typeof renderCicloVendas === 'function') renderCicloVendas();
+    if (typeof renderProdutos === 'function') renderProdutos();
+    if (typeof renderHistorico === 'function') renderHistorico();
+  }
 }
 
 function limparFiltros() {
@@ -3557,6 +3664,34 @@ function limparFiltros() {
   filtros = {};
   localStorage.removeItem('3mv_filtros');
   if (dadosCache) { renderKPIs(); renderTab(abaAtiva); }
+}
+
+// FASE 9.60: helper pra novas abas obterem os filtros globais do topo
+function getFiltrosGlobais() {
+  return {
+    grupo:     (document.getElementById('f-grupo') || {}).value || '',
+    cliente:   (document.getElementById('f-cliente') || {}).value || '',
+    industria: (document.getElementById('f-industria') || {}).value || '',
+    mes:       (document.getElementById('f-mes') || {}).value || '',
+    status:    (document.getElementById('f-status') || {}).value || '',
+    busca:     ((document.getElementById('f-busca') || {}).value || '').trim().toLowerCase(),
+  };
+}
+// FASE 9.60: aplica filtros globais a um item (cliente/industria/mes/status/busca)
+function passaFiltrosGlobais(item, normalizarInd, grupoFn) {
+  const f = getFiltrosGlobais();
+  if (f.grupo && grupoFn) {
+    const g = grupoFn(item.cliente);
+    if (g !== f.grupo) return false;
+  }
+  if (f.cliente && item.cliente !== f.cliente) return false;
+  if (f.industria && (normalizarInd ? normalizarInd(item.industria) !== normalizarInd(f.industria) : item.industria !== f.industria)) return false;
+  if (f.mes && String(item.mes) !== String(f.mes)) return false;
+  if (f.busca) {
+    const blob = ((item.cliente||'')+' '+(item.industria||'')+' '+(item.produto||'')+' '+(item.produto_codigo||'')+' '+(item.ordem_compra||'')+' '+(item.pedido_id||'')).toLowerCase();
+    if (!blob.includes(f.busca)) return false;
+  }
+  return true;
 }
 
 function aplicarF(itens) {
@@ -6845,6 +6980,98 @@ function renderAvaliacao() {
   window.__abc_grupo_linhas__ = linhasGrupo2526;
 
   // ===========================================================
+  // FASE 9.64: SUGESTÃO DE PEDIDO POR ITEM (produto a produto, por cliente)
+  // ===========================================================
+  const itensSI = dadosCache.itens || [];
+  const selSI = document.getElementById('f-sugestao-item-cli');
+  if (selSI && selSI.options.length <= 1) {
+    // Lista todos clientes que têm itens em 2026 (com fat ou só pedido)
+    const cliSet = new Set();
+    itensSI.forEach(it => { if (it.cliente) cliSet.add(it.cliente); });
+    const cliOrdenados = [...cliSet].sort();
+    cliOrdenados.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      // Mostra info de classe da curva ABC se conhecida
+      const linhaABC = linhas.find(l => l.cliente === c);
+      const cls = linhaABC ? linhaABC.classe : '';
+      const fat = linhaABC ? ' · R$ ' + fmt(linhaABC.fat26) : '';
+      opt.textContent = (cls ? cls + ' · ' : '') + c + fat;
+      selSI.appendChild(opt);
+    });
+  }
+  const fSICli = (selSI || {}).value || '';
+
+  const tbSI = document.querySelector('#t-sugestao-item tbody');
+  const elSIRes = document.getElementById('sugestao-item-resumo');
+  const elSIInfo = document.getElementById('sugestao-item-info');
+  if (tbSI) {
+    tbSI.innerHTML = '';
+    if (!fSICli) {
+      if (elSIRes) elSIRes.style.display = 'none';
+      if (elSIInfo) elSIInfo.textContent = 'Selecione um cliente acima';
+      window.__sugestao_item__ = [];
+    } else {
+      // Filtra itens do cliente selecionado
+      const itCli = itensSI.filter(it => it.cliente === fSICli);
+      // Agrupa por produto
+      const prodMap = {};
+      itCli.forEach(it => {
+        const k = (it.produto_codigo || '') + '||' + (it.produto || '');
+        if (!prodMap[k]) prodMap[k] = {
+          produto: it.produto, codigo: it.produto_codigo, ind: it.industria,
+          cat: (typeof categoriaDoCodigo === 'function') ? categoriaDoCodigo(it.produto_codigo) : '—',
+          embalagem: it.embalagem,
+          n_pedidos: 0, qtd_total: 0, qtd_ultima: 0,
+          preco_soma: 0, preco_count: 0, ultima_data: '',
+        };
+        const r = prodMap[k];
+        r.n_pedidos += 1;
+        r.qtd_total += (it.qtde_pedida || 0);
+        if (it.preco_unit) { r.preco_soma += it.preco_unit; r.preco_count += 1; }
+        const dt = it.data_cadastro || '';
+        if (dt > r.ultima_data) { r.ultima_data = dt; r.qtd_ultima = (it.qtde_pedida || 0); }
+      });
+      const linhasSI = Object.values(prodMap).map(r => {
+        const qtdMedia = r.n_pedidos > 0 ? r.qtd_total / r.n_pedidos : 0;
+        const precoMedio = r.preco_count > 0 ? r.preco_soma / r.preco_count : 0;
+        // Sugestão = MÁXIMO entre média histórica e última quantidade pedida (mais conservador → repor o que ele compra)
+        const sugQtd = Math.max(qtdMedia, r.qtd_ultima);
+        const sugVal = sugQtd * precoMedio;
+        return { ...r, qtdMedia, precoMedio, sugQtd, sugVal };
+      }).sort((a,b) => b.sugVal - a.sugVal);
+
+      // Resumo banner
+      if (elSIRes) {
+        const totalProdutos = linhasSI.length;
+        const totalSug = linhasSI.reduce((s,p) => s + p.sugVal, 0);
+        const totalUltimo = linhasSI.reduce((s,p) => s + (p.qtd_ultima * p.precoMedio), 0);
+        const indsCli = [...new Set(linhasSI.map(p => p.ind))].filter(Boolean);
+        elSIRes.style.display = 'block';
+        elSIRes.innerHTML = `<b>${esc(fSICli)}</b> · ${totalProdutos} produtos distintos · ${indsCli.length} indústrias · <b>Sugestão total: R$ ${fmt(totalSug)}</b> · Último pedido (proxy): R$ ${fmt(totalUltimo)}`;
+      }
+      if (elSIInfo) elSIInfo.textContent = `${linhasSI.length} produtos`;
+
+      linhasSI.forEach((p, i) => {
+        tbSI.innerHTML += `<tr>
+          <td>${i+1}</td>
+          <td><small>${esc(p.ind || '—')}</small></td>
+          <td><span style="background:#1E40AF22;color:#1E40AF;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:600;">${esc(p.cat)}</span></td>
+          <td><b>${esc(p.produto || '—')}</b><br><small style="color:#64748B;">${esc(p.codigo || '')} ${p.embalagem ? '· '+esc(p.embalagem) : ''}</small></td>
+          <td class="right">${p.n_pedidos}</td>
+          <td class="right">${fmt(p.qtdMedia)}</td>
+          <td class="right">${fmt(p.qtd_total)}</td>
+          <td class="right">${fmt(p.qtd_ultima)}</td>
+          <td class="right">R$ ${fmt(p.precoMedio)}</td>
+          <td class="right" style="color:#1E40AF;font-weight:700;">${fmt(p.sugQtd)}</td>
+          <td class="right" style="color:#16a34a;font-weight:700;">R$ ${fmt(p.sugVal)}</td>
+        </tr>`;
+      });
+      window.__sugestao_item__ = { cliente: fSICli, linhas: linhasSI };
+    }
+  }
+
+  // ===========================================================
   // FASE 9.49: Detalhe de Pedidos com Produtos por Cliente ABC
   // ===========================================================
   const itensTodos = dadosCache.itens || [];
@@ -7012,8 +7239,8 @@ function renderProdutos() {
     saldo: (it.valor_saldo || 0),
   }));
 
-  // FASE 9.57: filtros gerais removidos — view é o total de itens 2026
-  const view = itensExt.slice();
+  // FASE 9.57 + 9.60: aplica filtros globais do topo (grupo, cliente, industria, mês, busca)
+  const view = itensExt.filter(i => passaFiltrosGlobais(i, normalizaIndustria, grupoDe));
   const totalView = view.reduce((s,i) => s + i.valor, 0);
 
   const elDiag = document.getElementById('prod-diag');
@@ -7670,6 +7897,55 @@ function exportarGrupoIndustria() {
   XLSX.writeFile(wb, `grupo_industria_3mv_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
+// FASE 9.64: Exportar Sugestão por Item (produto a produto)
+function exportarSugestaoItem() {
+  if (typeof XLSX === 'undefined') { alert('Biblioteca não carregou.'); return; }
+  const d = window.__sugestao_item__ || {};
+  if (!d.linhas || !d.linhas.length) { alert('Selecione um cliente primeiro.'); return; }
+  const data = d.linhas.map((p,i) => ({
+    '#': i+1,
+    Cliente: d.cliente,
+    Industria: p.ind,
+    Categoria: p.cat,
+    Produto: p.produto,
+    Codigo: p.codigo,
+    Embalagem: p.embalagem || '',
+    'Vezes pedido': p.n_pedidos,
+    'Qtd média/pedido': p.qtdMedia,
+    'Qtd total 2026': p.qtd_total,
+    'Última qtd': p.qtd_ultima,
+    'Preço médio': p.precoMedio,
+    'Sugestão qtd': p.sugQtd,
+    'Sugestão R$': p.sugVal,
+  }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), 'Sugestao Pedido');
+  const cli = d.cliente.replace(/[^a-z0-9]+/gi, '_').slice(0, 30);
+  XLSX.writeFile(wb, `sugestao_pedido_${cli}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// FASE 9.64: Enviar sugestão por email pro cliente (mailto: c/ contato do CRM)
+function enviarSugestaoItemEmail() {
+  const d = window.__sugestao_item__ || {};
+  if (!d.linhas || !d.linhas.length) { alert('Selecione um cliente primeiro.'); return; }
+  const cli = d.cliente;
+  const crmCli = (dadosCache.crm && dadosCache.crm.clientes) || {};
+  const norm = (s) => String(s||'').toUpperCase().trim().replace(/\s+/g,' ');
+  const idx = {};
+  Object.entries(crmCli).forEach(([k,v]) => { idx[norm(k)] = v; });
+  const reg = idx[norm(cli)] || crmCli[cli];
+  const email = (reg && reg.email) ? reg.email : '';
+  const totalSug = d.linhas.reduce((s,p) => s + p.sugVal, 0);
+  let body = `Olá!%0D%0A%0D%0ABaseado no seu histórico de compras de 2026, segue sugestão de pedido para reposição:%0D%0A%0D%0A`;
+  d.linhas.slice(0, 30).forEach(p => {
+    body += `• ${p.produto} (${p.codigo || ''}) — ${Math.ceil(p.sugQtd)} un · R$ ${fmt(p.sugVal)}%0D%0A`;
+  });
+  body += `%0D%0ATotal sugerido: R$ ${fmt(totalSug)}%0D%0A%0D%0AAtenciosamente,%0D%0A3MV Representação Comercial`;
+  const subject = encodeURIComponent('Sugestão de Pedido — 3MV Representação');
+  const mailto = `mailto:${email}?subject=${subject}&body=${body}`;
+  window.location.href = mailto;
+}
+
 // FASE 9.43: Exportar tabela de Sugestão de Pedido
 function exportarSugestao() {
   if (typeof XLSX === 'undefined') { alert('Biblioteca não carregou.'); return; }
@@ -8131,6 +8407,16 @@ function renderCicloVendas() {
   const mesAtual = (typeof getMesAtual === 'function') ? getMesAtual() : 12;
   const hoje = new Date();
   const HOJE_TS = hoje.getTime();
+  // FASE 9.59: grupo do cliente vindo do CRM
+  const crmClis = (dadosCache.crm && dadosCache.crm.clientes) || {};
+  const _normCV = (s) => String(s||'').toUpperCase().trim().replace(/\s+/g,' ');
+  const crmIdxCV = {};
+  Object.entries(crmClis).forEach(([k,v]) => { crmIdxCV[_normCV(k)] = v; });
+  const grupoCV = (c) => {
+    const reg = crmIdxCV[_normCV(c)] || crmClis[c] || null;
+    const g = reg && reg.grupo ? String(reg.grupo).trim() : '';
+    return (!g || g === '—' || g === '-' || /^—\s*sem/i.test(g)) ? '—' : g;
+  };
 
   // FASE 8.3: Ciclo de Vendas — definição automatizada de "ativo" via API
   //   ATIVO = cliente que tem fat26 > 0 (comprou alguma coisa em 2026 segundo a API)
@@ -8218,6 +8504,7 @@ function renderCicloVendas() {
       const status = l.diffDias < 0 ? `🔴 atrasado ${Math.abs(l.diffDias)}d` : l.diffDias <= 7 ? `🟡 em ${l.diffDias}d` : `🟢 em ${l.diffDias}d`;
       tbProx.innerHTML += `<tr style="background:${cor};">
         <td>${esc(l.cliente)}</td>
+        <td><small>${esc(grupoCV(l.cliente))}</small></td>
         <td>${esc(l.industria)}</td>
         <td class="right">${formatDate(l.ultima26||l.ultima25||'')}</td>
         <td class="right">${l.intervalo26 ? l.intervalo26.toFixed(0)+'d' : (l.intervalo25 ? l.intervalo25.toFixed(0)+'d (25)' : '—')}</td>
@@ -8239,10 +8526,69 @@ function renderCicloVendas() {
       const diasSem = l.ultima25 ? Math.round((HOJE_TS - new Date(l.ultima25).getTime())/(1000*60*60*24)) : null;
       tbSem.innerHTML += `<tr>
         <td>${esc(l.cliente)}</td>
+        <td><small>${esc(grupoCV(l.cliente))}</small></td>
         <td>${esc(l.industria)}</td>
         <td class="right">R$ ${fmt(l.fat25)}</td>
         <td class="right">${formatDate(l.ultima25||'')}</td>
         <td class="right">${diasSem!==null ? diasSem+'d' : '—'}</td>
+      </tr>`;
+    });
+  }
+
+  // ===== FASE 9.65: Ciclo consolidado por Grupo × Indústria =====
+  const tbGI = document.querySelector('#t-ciclo-grupo-ind tbody');
+  if (tbGI) {
+    tbGI.innerHTML = '';
+    // Agrupa: { grupo → { industria → {fat26, fat25, filiais:Set, datas:[]} } }
+    const giMap = {};
+    linhas.forEach(l => {
+      const g = grupoCV(l.cliente);
+      if (!g || g === '—') return;
+      const ind = l.industria || '—';
+      if (!giMap[g]) giMap[g] = {};
+      if (!giMap[g][ind]) giMap[g][ind] = { fat26: 0, fat25: 0, filiais: new Set(), datas: [] };
+      const d = giMap[g][ind];
+      d.fat26 += (l.fat26 || 0);
+      d.fat25 += (l.fat25 || 0);
+      d.filiais.add(l.cliente);
+      if (l.ultima26) d.datas.push(l.ultima26);
+      if (l.intervalo26) {
+        d.intervalo26_soma = (d.intervalo26_soma || 0) + l.intervalo26;
+        d.intervalo26_count = (d.intervalo26_count || 0) + 1;
+      }
+    });
+    // Linha por grupo×ind, ordenado por fat26 desc
+    const giArr = [];
+    Object.entries(giMap).forEach(([g, indMap]) => {
+      Object.entries(indMap).forEach(([ind, d]) => {
+        d.datas.sort();
+        const ultimaCompra = d.datas[d.datas.length - 1] || '';
+        const intervaloMedio = d.intervalo26_count ? d.intervalo26_soma / d.intervalo26_count : null;
+        const dpct = d.fat25 > 0 ? ((d.fat26/d.fat25 - 1)*100) : null;
+        giArr.push({
+          grupo: g, ind, filiais: d.filiais.size,
+          fat26: d.fat26, fat25: d.fat25, dpct,
+          ultima: ultimaCompra, intervalo: intervaloMedio,
+        });
+      });
+    });
+    giArr.sort((a,b) => (a.grupo||'').localeCompare(b.grupo||'') || (b.fat26 - a.fat26));
+    giArr.forEach(r => {
+      const cor = r.dpct === null ? '#94A3B8' : r.dpct >= 10 ? '#16a34a' : r.dpct >= -10 ? '#475569' : '#DC2626';
+      const stat = r.dpct === null ? '<small style="color:#94A3B8;">novo</small>'
+        : r.dpct >= 10 ? '<span class="ok">↑ crescendo</span>'
+        : r.dpct >= -10 ? '<small style="color:#475569;">estável</small>'
+        : '<span class="warn">↓ caindo</span>';
+      tbGI.innerHTML += `<tr>
+        <td><b>${esc(r.grupo)}</b></td>
+        <td>${esc(r.ind)}</td>
+        <td class="right">${r.filiais}</td>
+        <td class="right" style="font-weight:600;">R$ ${fmt(r.fat26)}</td>
+        <td class="right">R$ ${fmt(r.fat25)}</td>
+        <td class="right" style="color:${cor};font-weight:700;">${r.dpct === null ? '—' : (r.dpct>=0?'+':'') + r.dpct.toFixed(1) + '%'}</td>
+        <td class="right">${r.ultima ? formatDate(r.ultima) : '—'}</td>
+        <td class="right">${r.intervalo ? r.intervalo.toFixed(0)+'d' : '—'}</td>
+        <td>${stat}</td>
       </tr>`;
     });
   }
@@ -8258,6 +8604,7 @@ function renderCicloVendas() {
     aumLinhas.slice(0, 200).forEach(l => {
       tbAum.innerHTML += `<tr>
         <td>${esc(l.cliente)}</td>
+        <td><small>${esc(grupoCV(l.cliente))}</small></td>
         <td>${esc(l.industria)}</td>
         <td class="right">${l.intervalo25.toFixed(0)}d</td>
         <td class="right">${l.intervalo26.toFixed(0)}d</td>
