@@ -2,15 +2,14 @@ name: Atualizar Painel 3MV
 
 on:
   schedule:
-    # 4×/dia em dias úteis (BR-3 = UTC). Mesmos horários do LaunchAgent do Mac:
-    - cron: '0 12 * * 1-5'   # 09:00 BRT (seg-sex)
-    - cron: '0 16 * * 1-5'   # 13:00 BRT (seg-sex)
-    - cron: '0 20 * * 1-5'   # 17:00 BRT (seg-sex)
-    - cron: '0 1 * * 2-6'    # 22:00 BRT do dia anterior (seg-sex BR)
-  workflow_dispatch:           # permite rodar manualmente pelo botão "Run workflow"
+    - cron: '0 12 * * 1-5'
+    - cron: '0 16 * * 1-5'
+    - cron: '0 20 * * 1-5'
+    - cron: '0 1 * * 2-6'
+  workflow_dispatch:
 
 permissions:
-  contents: write   # precisa pra commitar o dados.json + painel_atual.html
+  contents: write
 
 jobs:
   atualizar:
@@ -30,10 +29,23 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests openpyxl
 
-      - name: Etapa 1 — Extrair saldos da API Suas Vendas
+      - name: Etapa 0 — Criar credenciais.json a partir dos secrets
         env:
           SUAS_VENDAS_TOKEN: ${{ secrets.SUAS_VENDAS_TOKEN }}
-          SUAS_VENDAS_API_KEY: ${{ secrets.SUAS_VENDAS_API_KEY }}
+        run: |
+          # Path que o config.json espera (relativo a $HOME)
+          mkdir -p "$HOME/Library/CloudStorage/GoogleDrive-marcelo@3mvrepresentacao.com/Meu Drive/3MV/Automações/comissoes"
+          cat > "$HOME/Library/CloudStorage/GoogleDrive-marcelo@3mvrepresentacao.com/Meu Drive/3MV/Automações/comissoes/credenciais.json" <<EOF
+          {
+            "_comentario": "Gerado automaticamente pelo GitHub Actions a partir do secret SUAS_VENDAS_TOKEN",
+            "subdominio": "representacao3mv.suasvendas.com",
+            "cliente": "representacao3mv",
+            "authorization": "$SUAS_VENDAS_TOKEN"
+          }
+          EOF
+          echo "✓ Credenciais criadas"
+
+      - name: Etapa 1 — Extrair saldos da API Suas Vendas
         run: |
           mkdir -p outputs
           python scripts/extrair_saldos.py \
@@ -47,7 +59,7 @@ jobs:
 
       - name: Etapa 3 — Injetar Conta Corrente + NFD (planilhas snapshot)
         run: python injetar_conta_corrente.py
-        continue-on-error: true   # se a planilha snapshot ainda não existe, segue sem
+        continue-on-error: true
 
       - name: Etapa 4 — Injetar Histórico
         run: python injetar_historico.py
@@ -60,6 +72,10 @@ jobs:
         run: python injetar_crm.py
         continue-on-error: true
 
+      - name: Etapa 4d — Injetar Histórico de Pedidos 24/25/26
+        run: python injetar_historico_pedidos.py
+        continue-on-error: true
+
       - name: Etapa 5 — Gerar painel HTML
         run: python gerar_painel.py
 
@@ -68,7 +84,6 @@ jobs:
           mkdir -p cf-deploy
           cp painel_atual.html cf-deploy/index.html
           cp dados.json cf-deploy/dados.json
-          # logo opcional
           [ -f logo_3mv.png ] && cp logo_3mv.png cf-deploy/ || true
 
       - name: Deploy to Cloudflare Workers (assets)
@@ -76,7 +91,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          cat > cf-deploy/wrangler.toml <<'EOF'
+          cat > cf-deploy/wrangler.toml <<EOF
           name = "painel-3mv"
           compatibility_date = "2024-01-01"
           [assets]
@@ -85,9 +100,9 @@ jobs:
           cd cf-deploy
           npx wrangler@latest deploy
 
-      - name: Commitar dados.json atualizado (snapshot pra próxima rodada)
+      - name: Commitar dados.json
         run: |
-          git config user.name  "github-actions[bot]"
+          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add dados.json painel_atual.html
           git diff --cached --quiet || git commit -m "auto: pipeline $(date -u +%Y-%m-%dT%H:%M)Z"
