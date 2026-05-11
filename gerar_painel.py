@@ -9,6 +9,34 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
+
+def _fix_tzdraf(html: str) -> str:
+    """
+    Corrige o bug de Temporal Dead Zone (TDZ) no JavaScript do painel.
+
+    O problema: 'let __ajusteFonteRAF' era declarado DEPOIS do IIFE checkAuth(),
+    mas checkAuth() dispara renderTab -> agendarAjusteFonte que tenta ler a variável
+    antes de ela ser inicializada -> ReferenceError na carga inicial.
+
+    A correção: move 'let __ajusteFonteRAF = null' para antes do checkAuth() IIFE.
+    Aplicada automaticamente em todos os HTMLs gerados — Mac, Windows e GitHub Actions.
+    """
+    if 'let __ajusteFonteRAF' not in html or '(function checkAuth()' not in html:
+        return html
+    p_raf = html.find('let __ajusteFonteRAF')
+    p_chk = html.find('(function checkAuth()')
+    if p_raf <= p_chk:
+        return html  # já está correto
+    # Remove da posição original e insere antes do checkAuth
+    html = html.replace('let __ajusteFonteRAF = null;\n', '', 1)
+    html = html.replace(
+        '(function checkAuth()',
+        'let __ajusteFonteRAF = null; // fix TDZ — declarado antes do checkAuth()\n(function checkAuth()',
+        1
+    )
+    return html
+
+
 def main():
     here = Path(__file__).parent
     template = here / "painel.html"
@@ -51,6 +79,10 @@ def main():
 
     html = template.read_text(encoding="utf-8")
 
+    # Fix TDZ: garante que __ajusteFonteRAF seja declarado antes do checkAuth() IIFE
+    # (corrige bug que impedia os filtros do cabeçalho de funcionar em todas as abas)
+    html = _fix_tzdraf(html)
+
     # Injeta o JSON antes do </head>
     inject = (
         "<script>\n"
@@ -67,8 +99,8 @@ def main():
     saida.write_text(html, encoding="utf-8")
     print(f"OK: {saida} ({len(html):,} chars)")
 
-    # Também gera versão mobile-friendly em /3MV/Automações/Painel_Mobile/painel.html
-    automacoes = here.parent.parent.parent  # sobe 3 níveis: Resources → Contents → 3MV_Painel.app → Automações
+    # Também gera versão mobile-friendly
+    automacoes = here.parent.parent.parent
     mobile_dir = automacoes / "Painel_Mobile"
     try:
         mobile_dir.mkdir(parents=True, exist_ok=True)
@@ -81,6 +113,7 @@ def main():
 
     # Painéis personalizados por usuário (Marcelo, Lais, Rafaela)
     template_html = template.read_text(encoding="utf-8")
+    template_html = _fix_tzdraf(template_html)  # Fix TDZ nos painéis por usuário também
     inject_dados = (
         "<script>\n"
         "window.__DADOS__ = " + json.dumps(d, ensure_ascii=False) + ";\n"
