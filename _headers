@@ -1,0 +1,26 @@
+# Headers globais do Painel 3MV — 3MV Representação Comercial
+# FASE 9.65: segurança reforçada (anti-Google + anti-iframe + anti-MITM + anti-bot)
+/*
+  X-Robots-Tag: noindex, nofollow, noarchive, nosnippet, noimageindex, notranslate
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), serial=()
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  Content-Security-Policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self' https://api.suasvendas.com; frame-ancestors 'none'
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-site
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# JSON com dados sensíveis — não cachear publicamente
+/dados.json
+  Cache-Control: private, no-store, max-age=0
+  X-Robots-Tag: noindex, noarchive
+
+# Manifest e SW devem ser servidos sem cache pra atualizar PWA
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/manifest.json
+  Cache-Control: no-cache, no-store, must-revalidate

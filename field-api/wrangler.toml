@@ -1,0 +1,19 @@
+name = "field-api"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# Bind do KV - rode primeiro: wrangler kv namespace create FIELD
+# Depois copie o id retornado abaixo (substitua "COLE_O_ID_AQUI"):
+[[kv_namespaces]]
+binding = "FIELD"
+id = "COLE_O_ID_AQUI"
+
+# Custom domain (opcional - depois de apontar DNS no Cloudflare)
+# routes = [
+#   { pattern = "field-api.3mvrepresentacao.com", custom_domain = true }
+# ]
+
+# Em alternativa, montar a Field API DENTRO do dominio painel.3mvrepresentacao.com:
+# routes = [
+#   { pattern = "painel.3mvrepresentacao.com/api/field/*", zone_name = "3mvrepresentacao.com" }
+# ]

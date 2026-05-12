@@ -1,11 +1,11 @@
-name: Atualizar Painel 3MV
+name: Atualizar Painel 3MV (Painel + 3MV Mobile)
 
 on:
   schedule:
-    - cron: '0 12 * * 1-5'
-    - cron: '0 16 * * 1-5'
-    - cron: '0 20 * * 1-5'
-    - cron: '0 1 * * 2-6'
+    - cron: '0 12 * * 1-5'   # 09:00 BRT
+    - cron: '0 16 * * 1-5'   # 13:00 BRT
+    - cron: '0 20 * * 1-5'   # 17:00 BRT
+    - cron: '0 1 * * 2-6'    # 22:00 BRT do dia anterior
   workflow_dispatch:
 
 permissions:
@@ -33,7 +33,6 @@ jobs:
         env:
           SUAS_VENDAS_TOKEN: ${{ secrets.SUAS_VENDAS_TOKEN }}
         run: |
-          # Path que o config.json espera (relativo a $HOME)
           mkdir -p "$HOME/Library/CloudStorage/GoogleDrive-marcelo@3mvrepresentacao.com/Meu Drive/3MV/Automações/comissoes"
           cat > "$HOME/Library/CloudStorage/GoogleDrive-marcelo@3mvrepresentacao.com/Meu Drive/3MV/Automações/comissoes/credenciais.json" <<EOF
           {
@@ -63,6 +62,7 @@ jobs:
 
       - name: Etapa 4 — Injetar Histórico
         run: python injetar_historico.py
+        continue-on-error: true
 
       - name: Etapa 4b — Injetar Metas
         run: python injetar_metas.py
@@ -76,15 +76,61 @@ jobs:
         run: python injetar_historico_pedidos.py
         continue-on-error: true
 
+      - name: Etapa 4e — Injetar Field (opcional — atas/visitas/tarefas do Painel Mobile)
+        env:
+          FIELD_API_URL: ${{ secrets.FIELD_API_URL }}
+          FIELD_API_TOKEN: ${{ secrets.FIELD_API_TOKEN }}
+        run: python injetar_field.py
+        continue-on-error: true
+
+      - name: Etapa 4f — Injetar Agenda Google Calendar (opcional)
+        env:
+          GOOGLE_CALENDAR_ICAL_URL: ${{ secrets.GOOGLE_CALENDAR_ICAL_URL }}
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
+        run: python injetar_agenda.py
+        continue-on-error: true
+
       - name: Etapa 5 — Gerar painel HTML
         run: python gerar_painel.py
 
       - name: Preparar diretório de deploy Cloudflare
         run: |
           mkdir -p cf-deploy
+
+          # Painel principal
           cp painel_atual.html cf-deploy/index.html
-          cp dados.json cf-deploy/dados.json
-          [ -f logo_3mv.png ] && cp logo_3mv.png cf-deploy/ || true
+          cp dados.json         cf-deploy/dados.json
+
+          # 3MV Mobile (versão de domingo 10/05 - completa com Google Sign-In + Calendar client-side)
+          [ -f 3mv-mobile.html ]      && cp 3mv-mobile.html      cf-deploy/3mv-mobile.html
+          [ -f manifest-mobile.json ] && cp manifest-mobile.json cf-deploy/manifest-mobile.json
+
+          # Painel Mobile alternativo (simplificado)
+          [ -f painel-mobile.html ] && cp painel-mobile.html cf-deploy/painel-mobile.html
+          [ -f manifest.json ]      && cp manifest.json      cf-deploy/manifest.json
+          [ -f sw.js ]              && cp sw.js              cf-deploy/sw.js
+
+          # Ícones mobile
+          for f in mobile-icon-32.png mobile-icon-48.png mobile-icon-96.png mobile-icon-128.png mobile-icon-192.png mobile-icon-512.png mobile-banner-220x140.png; do
+            [ -f "$f" ] && cp "$f" cf-deploy/
+          done
+
+          # Logos / ícones gerais
+          for f in logo_3mv.png logo_3mv_branca.png logo_3mv_quadrado.png icon-192.png icon-512.png; do
+            [ -f "$f" ] && cp "$f" cf-deploy/
+          done
+
+          # Páginas extras
+          [ -f 404.html ]         && cp 404.html         cf-deploy/
+          [ -f privacidade.html ] && cp privacidade.html cf-deploy/
+          [ -f suporte.html ]     && cp suporte.html     cf-deploy/
+          [ -f _headers ]         && cp _headers         cf-deploy/
+          [ -f robots.txt ]       && cp robots.txt       cf-deploy/
+
+          echo "Arquivos no cf-deploy:"
+          ls -la cf-deploy/
 
       - name: Setup Node 22 (wrangler precisa)
         uses: actions/setup-node@v4
@@ -105,11 +151,11 @@ jobs:
           cd cf-deploy
           npx wrangler@latest deploy
 
-      - name: Commitar dados.json
+      - name: Commitar dados.json + arquivos atualizados
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add dados.json painel_atual.html
+          git add dados.json painel_atual.html 2>/dev/null || true
           git diff --cached --quiet || git commit -m "auto: pipeline $(date -u +%Y-%m-%dT%H:%M)Z"
           git push
         continue-on-error: true

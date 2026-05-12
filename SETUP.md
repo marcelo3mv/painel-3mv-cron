@@ -1,86 +1,110 @@
-# Painel 3MV — Atualização Automática 24/7 (sem precisar do computador aberto)
+# Painel 3MV + 3MV Mobile — pipeline 100% cloud (sem precisar do Mac ligado)
 
-Esta pasta contém o pipeline completo do Painel 3MV preparado pra rodar no GitHub Actions, atualizando automaticamente 4×/dia em dias úteis (mesmos horários do LaunchAgent do Mac), mesmo com o computador desligado.
+Este repo é o **deploy automático** do Painel 3MV e do 3MV Mobile. Roda no GitHub Actions 4×/dia em dias úteis (09h, 13h, 17h, 22h BRT) e publica em:
 
-## Como funciona
+- `https://painel.3mvrepresentacao.com/` — Painel principal (index.html)
+- `https://painel.3mvrepresentacao.com/3mv-mobile.html` — 3MV Mobile (versão de domingo 10/05)
+- `https://painel.3mvrepresentacao.com/painel-mobile.html` — Painel Mobile alternativo (versão simplificada)
 
-```
-GitHub Actions (cron 4×/dia)
-   │
-   ├─ Roda extrair_saldos.py     → API Suas Vendas → dados.json
-   ├─ Roda injetar_conta_corrente.py / injetar_historico.py / injetar_metas.py / injetar_crm.py
-   ├─ Roda gerar_painel.py       → painel_atual.html (1 MB com tudo embarcado)
-   └─ Deploy via wrangler        → painel.3mvrepresentacao.com
-```
+## Como ativar (UMA vez)
 
-## Setup — passo a passo
+1. Abre o `.command` no Mac (Finder → Go to Folder):
+   ```
+   /Users/marcelorodrigues/Library/CloudStorage/GoogleDrive-marcelo@3mvrepresentacao.com/Meu Drive/3MV/Automações/painel-3mv-cron/PUBLICAR_PIPELINE_CLOUD.command
+   ```
 
-### 1. Criar repositório privado no GitHub
-- Vá em https://github.com/new
-- Nome: `painel-3mv-cron` (privado)
-- Não inicialize com README/gitignore
+2. Dá duplo-clique. O script vai:
+   - Limpar arquivos zerados (locks do Drive Stream)
+   - Sincronizar os 2 PNGs (logo_3mv_branca, logo_3mv_quadrado) que não puderam ser copiados pelo sandbox
+   - Instalar `gh` CLI via Homebrew se não tiver
+   - **Pedir autenticação GitHub** — abre o browser, autoriza com sua conta marcelo3mv
+   - Configurar todos os secrets do GitHub Actions automaticamente:
+     - `SUAS_VENDAS_TOKEN`, `SUAS_VENDAS_SUBDOMAIN`, `SUAS_VENDAS_CLIENTE` (lê de `/3MV/Automações/comissoes/credenciais.json`)
+     - `CLOUDFLARE_ACCOUNT_ID` (`778f4f4c4afbbe58298ee34d7865d312`)
+     - `CLOUDFLARE_API_TOKEN` — **único secret que você precisa fornecer**, pega em https://dash.cloudflare.com/profile/api-tokens (template "Edit Cloudflare Workers")
+   - Sanear `.git/config` (remover token vazado da URL)
+   - `git push` de tudo
+   - Disparar o workflow manualmente (`gh workflow run`)
+   - Acompanhar o primeiro run e validar o painel publicado
 
-### 2. Subir os arquivos desta pasta
-```bash
-cd /caminho/desta/pasta-3mv-painel-cron
-git init
-git add .
-git commit -m "initial commit — painel 3mv pipeline"
-git branch -M main
-git remote add origin https://github.com/SEU_USER/painel-3mv-cron.git
-git push -u origin main
-```
+3. Pronto. A partir desse momento o pipeline roda 4×/dia sem o Mac.
 
-### 3. Configurar os secrets (Settings → Secrets and variables → Actions)
+## Secrets do GitHub Actions
 
-| Secret                       | Valor                                                                 |
-|------------------------------|-----------------------------------------------------------------------|
-| `SUAS_VENDAS_TOKEN`          | Token da API Suas Vendas (pega no `config.json` atual ou no painel)   |
-| `SUAS_VENDAS_API_KEY`        | API key da Suas Vendas, se aplicável                                  |
-| `CLOUDFLARE_API_TOKEN`       | Token Cloudflare com permissão Workers Scripts:Edit                   |
-| `CLOUDFLARE_ACCOUNT_ID`      | `778f4f4c4afbbe58298ee34d7865d312` (já tem no `Atualizar_Painel_AUTO.command`) |
+Configurados automaticamente pelo `PUBLICAR_PIPELINE_CLOUD.command`:
 
-Pra criar o token Cloudflare:
-- https://dash.cloudflare.com/profile/api-tokens → Create Token
-- Use o template **Edit Cloudflare Workers**
-- Conta: `marcelo@3mvrepresentacao.com`
-- Copie o token e cole no secret `CLOUDFLARE_API_TOKEN`
+| Secret                    | De onde vem                                                              | Obrigatório |
+|---------------------------|--------------------------------------------------------------------------|-------------|
+| `SUAS_VENDAS_TOKEN`       | `comissoes/credenciais.json` campo `authorization`                       | Sim         |
+| `SUAS_VENDAS_SUBDOMAIN`   | `comissoes/credenciais.json` campo `subdominio`                          | Sim         |
+| `SUAS_VENDAS_CLIENTE`     | `comissoes/credenciais.json` campo `cliente`                             | Sim         |
+| `CLOUDFLARE_API_TOKEN`    | Você gera em dash.cloudflare.com/profile/api-tokens (Edit Workers)       | Sim         |
+| `CLOUDFLARE_ACCOUNT_ID`   | `778f4f4c4afbbe58298ee34d7865d312` (hardcoded)                           | Sim         |
 
-### 4. Habilitar Actions e rodar a primeira vez
-- Aba **Actions** do repo → Habilitar
-- Clica no workflow **Atualizar Painel 3MV** → **Run workflow** → Run
-- Acompanha o log; deve terminar em ~3 min com "Success! Uploaded ..."
-- Verifica em https://painel.3mvrepresentacao.com — deve estar atualizado
+Opcionais (Painel Mobile / Agenda — não precisa pra a versão 3mv-mobile.html funcionar, ela é client-side):
 
-### 5. Pronto — vai rodar sozinho 4×/dia
-| Horário UTC | Horário BR (BRT, UTC-3) |
-|-------------|--------------------------|
-| 12:00 seg-sex | **09:00 seg-sex** |
-| 16:00 seg-sex | **13:00 seg-sex** |
-| 20:00 seg-sex | **17:00 seg-sex** |
-| 01:00 ter-sáb | **22:00 seg-sex** |
+| Secret                          | Pra que serve                                                       |
+|---------------------------------|---------------------------------------------------------------------|
+| `FIELD_API_URL`, `FIELD_API_TOKEN` | Injetar atas/visitas/tarefas vindas do Worker `field-api` (KV)   |
+| `GOOGLE_CALENDAR_ICAL_URL`     | Injeção server-side da agenda no `dados.json`                       |
+| `GOOGLE_OAUTH_CLIENT_ID/SECRET/REFRESH_TOKEN` | OAuth alternativo pra Calendar                       |
 
-> Os horários são iguais aos do LaunchAgent do Mac. Você pode manter os 2 rodando — eles não conflitam (ambos publicam o mesmo conteúdo no Cloudflare).
+## Arquivos do repo (estado atual)
 
-## Limitações desta versão cloud
+**Pipeline (Python):**
+- `scripts/extrair_saldos.py` — chama API Suas Vendas
+- `injetar_conta_corrente.py`, `injetar_historico.py`, `injetar_metas.py`, `injetar_crm.py`, `injetar_historico_pedidos.py` — enriquecem o `dados.json` com planilhas snapshot
+- `injetar_field.py` — opcional, integra com Worker `field-api`
+- `injetar_agenda.py` — opcional, injeta agenda Google Calendar
+- `gerar_painel.py` — embute tudo no `painel_atual.html`
 
-- **Planilhas Excel** (`Metas.xlsx`, `ContaCorrente.xlsx`, `CRM_3MV.xlsx`) NÃO são lidas do Google Drive — usam o snapshot que estiver no repo. Quando o Mac roda o pipeline, ele atualiza essas planilhas no Drive; pra que o cloud também enxergue novidades, é preciso commitar a versão atualizada das planilhas em `planilhas-snapshot/` periodicamente, ou usar Google Drive API com service account (próxima versão).
+**Frontend Painel principal:**
+- `painel.html` — template
+- `dados.json` — snapshot atual
+
+**Frontend 3MV Mobile (versão de domingo 10/05, restaurada):**
+- `3mv-mobile.html` (105 KB, 1592 linhas) — versão completa com Google Sign-In, Calendar client-side, dashboards, filtros
+- `manifest-mobile.json` — PWA manifest
+- `mobile-icon-32/48/96/128/192/512.png`, `mobile-banner-220x140.png`
+
+**Frontend Painel Mobile alternativo (simplificado):**
+- `painel-mobile.html` (44 KB, 588 linhas) — versão simples com IndexedDB + Worker field-api
+- `manifest.json`, `sw.js`
+
+**Worker auxiliar (opcional, pra atas/visitas do mobile simplificado):**
+- `field-api/worker.js` — Cloudflare Worker com KV (atas, visitas, tarefas)
+- `field-api/wrangler.toml` — precisa de `wrangler kv namespace create FIELD` e atualizar `id`
+
+**Páginas extras:**
+- `404.html`, `privacidade.html`, `suporte.html`, `robots.txt`, `_headers`
+
+**Workflow:**
+- `.github/workflows/atualizar-painel.yml` — cron 4×/dia + workflow_dispatch
+
+## Cronograma (cron LOCAL → UTC)
+
+| Horário UTC     | Horário BR (BRT, UTC-3) |
+|-----------------|--------------------------|
+| 12:00 seg-sex   | **09:00 seg-sex**        |
+| 16:00 seg-sex   | **13:00 seg-sex**        |
+| 20:00 seg-sex   | **17:00 seg-sex**        |
+| 01:00 ter-sáb   | **22:00 seg-sex**        |
+
+## Limitações conhecidas
+
+- **Planilhas Excel** (Metas, ContaCorrente, CRM, HistoricoPedidos): NÃO são lidas do Google Drive — usam snapshot em `planilhas-snapshot/`. Quando o Mac roda o pipeline (LaunchAgent), ele atualiza esses snapshots no Drive; pra o cloud ver atualizações, o snapshot precisa ser commitado periodicamente. Próximo passo: usar Google Drive API com service account.
 - API data (pedidos, itens, histórico, indústrias ativas) sempre vem fresca da Suas Vendas.
 
 ## Próximos passos opcionais
 
-- **Google Drive API**: usar `oauth2client` + service account pra ler planilhas direto do Drive a cada execução. Custo: 30 min de setup.
-- **Notificação Slack/email** quando o pipeline falhar.
-- **Dashboard de status** com último horário de execução exibido no próprio painel.
+- **Google Drive API** com service account pra ler planilhas direto a cada execução
+- **Field API**: rodar `wrangler kv namespace create FIELD`, copiar o `id` pra `field-api/wrangler.toml`, `wrangler secret put FIELD_TOKEN`, `wrangler deploy` na pasta `field-api/`. Daí configurar DNS `field-api.3mvrepresentacao.com` apontando pro worker.
+- **Notificação Slack/email** quando o pipeline falhar
+- **Aposentar o LaunchAgent do Mac** depois que o GitHub Actions estiver estável (manter como redundância nas primeiras semanas)
 
----
+## Em caso de problema
 
-Arquivos importantes:
-- `.github/workflows/atualizar-painel.yml` — agendamento e steps
-- `config.json` — config da API Suas Vendas (NUNCA commitar token aqui — usa secrets)
-- `scripts/extrair_saldos.py` — chama a API
-- `injetar_*.py` — enriquecem o JSON
-- `gerar_painel.py` — gera HTML final
-- `painel.html` — template
-
-Em caso de dúvida, abrir um issue no repo ou rodar `Run workflow` manualmente.
+- Workflow falhou: ver em https://github.com/marcelo3mv/painel-3mv-cron/actions
+- Token Suas Vendas mudou: re-execute o `PUBLICAR_PIPELINE_CLOUD.command` (lê e atualiza secret automaticamente)
+- Token Cloudflare expirou: gere novo e rode `gh secret set CLOUDFLARE_API_TOKEN -R marcelo3mv/painel-3mv-cron` colando o novo valor
+- Painel desatualizado: dispara manual via `gh workflow run atualizar-painel.yml -R marcelo3mv/painel-3mv-cron`

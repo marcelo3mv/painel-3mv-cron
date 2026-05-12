@@ -1,19 +1,23 @@
 {
-  "name": "Central Comercial 3MV",
-  "short_name": "3MV",
-  "description": "Painel comercial 3MV Representação — saldos, faturamento, alertas",
-  "start_url": "/",
+  "name": "3MV Painel Mobile",
+  "short_name": "Painel Mobile",
+  "description": "App mobile da 3MV Representacao - clientes, saldos, metas e tarefas sincronizados em tempo real com o Painel 3MV.",
+  "start_url": "painel-mobile.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#0A3F77",
-  "theme_color": "#0556AD",
-  "orientation": "portrait-primary",
+  "orientation": "portrait",
+  "background_color": "#0f2540",
+  "theme_color": "#0f2540",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["business", "productivity"],
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-  ],
-  "shortcuts": [
-    { "name": "Saldos",    "url": "/?aba=saldos",   "description": "Ver saldos pendentes" },
-    { "name": "Entregas",  "url": "/?aba=entregas",  "description": "Acompanhar entregas" },
-    { "name": "Dashboard", "url": "/?aba=dashboard", "description": "Dashboard geral" }
+    { "src": "logo_3mv_quadrado.png", "sizes": "120x120",  "type": "image/png", "purpose": "any maskable" },
+    { "src": "logo_3mv_quadrado.png", "sizes": "152x152",  "type": "image/png", "purpose": "any maskable" },
+    { "src": "logo_3mv_quadrado.png", "sizes": "167x167",  "type": "image/png", "purpose": "any maskable" },
+    { "src": "logo_3mv_quadrado.png", "sizes": "180x180",  "type": "image/png", "purpose": "any maskable" },
+    { "src": "logo_3mv_quadrado.png", "sizes": "192x192",  "type": "image/png", "purpose": "any maskable" },
+    { "src": "logo_3mv_quadrado.png", "sizes": "256x256",  "type": "image/png", "purpose": "any maskable" },
+    { "src": "logo_3mv_quadrado.png", "sizes": "512x512",  "type": "image/png", "purpose": "any maskable" }
   ]
 }

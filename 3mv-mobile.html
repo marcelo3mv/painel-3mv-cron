@@ -1,1 +1,1592 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="0; url=/"><script>window.location.replace("/");</script></head><body></body></html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="3MV">
+<meta name="theme-color" content="#1d8ad6">
+<link rel="manifest" href="/manifest-mobile.json">
+<link rel="apple-touch-icon" href="/mobile-icon-192.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/mobile-icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="/mobile-icon-512.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/mobile-icon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/mobile-icon-192.png">
+<title>3MV Mobile</title>
+<style>
+:root{--azul:#1d8ad6;--azul-claro:#5fb0e8;--azul-medio:#1565a8;--azul-escuro:#1a3a5c;--laranja:#e85d04;--laranja-claro:#fef3c7;--verde:#06a77d;--verde-claro:#d1fae5;--vermelho:#d62828;--vermelho-claro:#fee2e2;--amarelo:#f59e0b;--amarelo-claro:#fef9c3;--roxo:#7c3aed;--roxo-claro:#ede9fe;--cinza:#f8fafc;--cinza2:#e2e8f0;--texto:#0f172a;--muted:#64748b;--card:#ffffff;--border:#e2e8f0;--sombra-sm:0 1px 3px rgba(0,0,0,0.04);--sombra-md:0 4px 12px rgba(59,130,196,0.10),0 2px 4px rgba(59,130,196,0.06);--sombra-lg:0 12px 24px rgba(59,130,196,0.14);--raio-sm:10px;--raio:16px;--raio-lg:20px;--raio-xl:28px;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;background:var(--cinza);color:var(--texto);min-height:100vh;padding-bottom:88px;font-size:15px;line-height:1.4;}
+.header{background:linear-gradient(180deg,#dbeafe 0%,#bfdbfe 60%,#dbeafe 100%);padding:18px 20px 24px;position:sticky;top:0;z-index:100;border-bottom-left-radius:var(--raio-xl);border-bottom-right-radius:var(--raio-xl);box-shadow:0 4px 16px rgba(29,138,214,0.15),0 2px 4px rgba(0,0,0,0.04);}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.logo-img{height:52px;}
+.header-date{font-size:12px;color:#1565a8;font-weight:800;background:#fff;padding:6px 13px;border-radius:20px;border:1px solid rgba(29,138,214,0.3);box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+.search-box{display:flex;align-items:center;background:#fff;border:1.5px solid rgba(29,138,214,0.2);border-radius:var(--raio);padding:12px 16px;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+.search-box:focus-within{border-color:#1d8ad6;background:#fff;box-shadow:0 0 0 3px rgba(29,138,214,0.1);}
+.search-box input{flex:1;background:none;border:none;outline:none;color:var(--texto);font-size:15px;font-family:inherit;font-weight:500;}
+.search-box input::placeholder{color:var(--muted);}
+
+/* AGENDA DO DIA - card destaque */
+.agenda-section{padding:18px 16px 0;}
+.agenda-card{background:linear-gradient(135deg,#a78bfa 0%,#c084fc 50%,#a78bfa 100%);border-radius:var(--raio-lg);padding:18px;color:#fff;box-shadow:var(--sombra-md);margin-bottom:8px;}
+.agenda-titulo{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;opacity:0.9;margin-bottom:4px;display:flex;align-items:center;gap:6px;}
+.agenda-subtitulo{font-size:18px;font-weight:900;margin-bottom:14px;letter-spacing:-0.3px;}
+.agenda-lista{display:grid;gap:8px;}
+.agenda-item{background:rgba(255,255,255,0.18);backdrop-filter:blur(6px);padding:10px 14px;border-radius:var(--raio-sm);display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .2s;}
+.agenda-item:active{transform:scale(0.98);background:rgba(255,255,255,0.28);}
+.agenda-hora{font-size:13px;font-weight:800;background:rgba(255,255,255,0.35);color:#5b21b6;padding:5px 10px;border-radius:8px;flex-shrink:0;}
+.agenda-cliente{font-size:13px;font-weight:600;flex:1;}
+.agenda-conectar{background:#fff;color:#7c3aed;border:none;padding:10px 16px;border-radius:var(--raio-sm);font-weight:700;font-size:13px;cursor:pointer;width:100%;font-family:inherit;}
+.agenda-vazio{text-align:center;padding:14px;font-size:13px;opacity:0.9;}
+
+.section{padding:20px 16px 0;}
+.section-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;padding:0 4px;}
+.section-title.urgente{color:var(--vermelho);}
+.section-title.proximo{color:var(--laranja);}
+.section-title.normal{color:var(--verde);}
+.section-title .badge-count{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;background:var(--cinza2);color:var(--muted);}
+.section-title.urgente .badge-count{background:var(--vermelho-claro);color:var(--vermelho);}
+.section-title.proximo .badge-count{background:var(--laranja-claro);color:var(--laranja);}
+.section-title.normal .badge-count{background:var(--verde-claro);color:var(--verde);}
+.card{background:var(--card);border-radius:var(--raio-lg);box-shadow:var(--sombra-md);overflow:hidden;margin-bottom:12px;border:1px solid transparent;cursor:pointer;}
+.card:active{transform:scale(0.98);}
+.card.urgente{border-left:5px solid var(--vermelho);background:linear-gradient(90deg,#fff5f5 0%,#fff 25%);}
+.card.proximo{border-left:5px solid var(--laranja);background:linear-gradient(90deg,#fff7ed 0%,#fff 25%);}
+.card.normal{border-left:5px solid var(--verde);}
+.card.agenda-hoje{border-left:5px solid var(--roxo);background:linear-gradient(90deg,#faf5ff 0%,#fff 25%);}
+.card-header{padding:16px 18px 12px;border-bottom:1px solid var(--border);}
+.card-nome{font-size:17px;font-weight:800;margin-bottom:6px;color:var(--texto);letter-spacing:-0.3px;}
+.card-meta{font-size:12px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge-vermelho{background:var(--vermelho-claro);color:var(--vermelho);}
+.badge-laranja{background:var(--laranja-claro);color:#92400e;}
+.badge-amarelo{background:var(--amarelo-claro);color:#854d0e;}
+.badge-verde{background:var(--verde-claro);color:#065f46;}
+.badge-azul{background:#dbeafe;color:#1e40af;}
+.badge-roxo{background:var(--roxo-claro);color:var(--roxo);}
+.industria-lista{padding:8px 18px 14px;}
+.industria-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.industria-row:last-child{border-bottom:none;}
+.industria-nome{font-size:13px;font-weight:600;flex:1;color:var(--texto);}
+.industria-info{text-align:right;}
+.industria-valor{font-size:14px;font-weight:800;color:var(--azul);}
+.industria-ciclo{font-size:11px;margin-top:2px;font-weight:600;}
+.ciclo-ok{color:var(--verde);}
+.ciclo-atrasado{color:var(--vermelho);}
+.ciclo-proximo{color:var(--laranja);}
+.saldo-row{padding:12px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);background:linear-gradient(90deg,#fff7ed 0%,#fff 100%);}
+.saldo-row:last-child{border-bottom:none;}
+.saldo-produto{font-size:13px;flex:1;font-weight:600;}
+.saldo-qtd{font-size:13px;font-weight:800;color:var(--laranja);margin-right:10px;background:var(--laranja-claro);padding:2px 8px;border-radius:6px;}
+.saldo-data{font-size:11px;color:var(--muted);font-weight:600;}
+.produto-row{padding:10px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);}
+.produto-row:last-child{border-bottom:none;}
+.produto-nome{font-size:13px;flex:1;}
+.produto-qtd{font-size:12px;color:var(--muted);font-weight:600;background:var(--cinza);padding:2px 8px;border-radius:6px;}
+.tarefa-row{padding:14px 18px;display:flex;align-items:flex-start;gap:12px;border-bottom:1px solid var(--border);}
+.tarefa-row:last-child{border-bottom:none;}
+.tarefa-check{width:24px;height:24px;border:2px solid var(--cinza2);border-radius:8px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.tarefa-check.done{background:var(--verde);border-color:var(--verde);color:#fff;}
+.tarefa-texto{flex:1;font-size:14px;}
+.tarefa-texto.done{text-decoration:line-through;color:var(--muted);}
+.tarefa-resp{font-size:11px;color:var(--azul);font-weight:700;background:#dbeafe;padding:3px 9px;border-radius:20px;}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(180deg,#ffffff 0%,#f0f9ff 100%);border-top:1.5px solid #e0f2fe;display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -4px 16px rgba(29,138,214,0.10);}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 4px 10px;cursor:pointer;color:#94a3b8;border:none;background:none;font-family:inherit;font-weight:600;}
+.nav-item.ativo{color:#1d8ad6;background:#e0f2fe;border-radius:12px;margin:4px 4px;font-weight:800;}
+.nav-item.ativo .nav-icon{transform:scale(1.15);}
+.nav-icon{font-size:20px;margin-bottom:4px;transition:transform .2s;}
+.nav-label{font-size:10px;font-weight:700;letter-spacing:0.3px;}
+.tela{display:none;}
+.tela.ativa{display:block;}
+.kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 16px 0;}
+.kpi-card{background:var(--card);border-radius:var(--raio);padding:16px 18px;box-shadow:var(--sombra-md);}
+.kpi-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);margin-bottom:8px;}
+.kpi-valor{font-size:22px;font-weight:900;line-height:1;color:var(--texto);}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;font-weight:600;}
+.kpi-card.destaque{background:linear-gradient(135deg,var(--azul-medio) 0%,var(--azul) 100%);}
+.kpi-card.destaque .kpi-label{color:rgba(255,255,255,0.9);}
+.kpi-card.destaque .kpi-valor{color:#fff;}
+.kpi-card.destaque .kpi-sub{color:rgba(255,255,255,0.8);}
+.kpi-card.urgente{background:linear-gradient(135deg,var(--vermelho) 0%,#a31818 100%);}
+.kpi-card.urgente .kpi-label,.kpi-card.urgente .kpi-sub{color:rgba(255,255,255,0.9);}
+.kpi-card.urgente .kpi-valor{color:#fff;}
+.vazio{text-align:center;padding:36px 20px;color:var(--muted);font-size:14px;}
+.vazio-icon{font-size:42px;margin-bottom:12px;}
+.modal{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.55);align-items:flex-end;}
+.modal.aberto{display:flex;}
+.modal-sheet{background:#fff;border-radius:var(--raio-xl) var(--raio-xl) 0 0;width:100%;max-height:90vh;overflow-y:auto;}
+.modal-handle{width:40px;height:4px;background:var(--cinza2);border-radius:2px;margin:12px auto 6px;}
+.modal-header{padding:12px 22px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+.modal-titulo{font-size:20px;font-weight:900;letter-spacing:-0.5px;}
+.modal-fechar{background:var(--cinza);border:none;border-radius:20px;padding:7px 14px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;}
+.chip-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.chip{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:700;background:var(--cinza);color:var(--texto);}
+.separador{height:1px;background:var(--border);margin:14px 18px;}
+.toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-100px);background:var(--texto);color:#fff;padding:14px 22px;border-radius:var(--raio);font-size:14px;font-weight:600;z-index:999;transition:transform .3s;white-space:nowrap;box-shadow:var(--sombra-lg);}
+.toast.visivel{transform:translateX(-50%) translateY(0);}
+.banner-status{margin:12px 16px 0;padding:10px 14px;border-radius:var(--raio-sm);font-size:11px;display:flex;align-items:center;gap:8px;font-weight:600;}
+.banner-loading{background:#dbeafe;color:#1e40af;}
+.banner-erro{background:var(--vermelho-claro);color:var(--vermelho);}
+.banner-ok{background:var(--verde-claro);color:var(--verde);}
+.btn-refresh{background:none;border:1px solid currentColor;border-radius:8px;padding:5px 11px;font-size:11px;color:inherit;cursor:pointer;font-family:inherit;margin-left:auto;font-weight:600;}
+.alerta-saldo{background:linear-gradient(135deg,#fff7ed,#ffedd5);border-left:5px solid var(--laranja);padding:14px 18px;margin:0 0 14px;border-radius:0 var(--raio) var(--raio) 0;}
+.alerta-saldo-titulo{font-size:12px;font-weight:800;color:#9a3412;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
+.alerta-saldo-valor{font-size:22px;font-weight:900;color:#9a3412;}
+.modal-secao{padding:8px 18px 6px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);margin-top:12px;}
+.modal-secao.saldo{color:var(--laranja);}
+.nfd-row,.cc-row{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.nfd-row:last-child,.cc-row:last-child{border-bottom:none;}
+.nfd-info,.cc-info{flex:1;}
+.nfd-cliente,.cc-cliente{font-size:14px;font-weight:700;margin-bottom:3px;}
+.nfd-meta,.cc-meta{font-size:11px;color:var(--muted);font-weight:500;}
+.nfd-valor,.cc-valor{font-size:14px;font-weight:800;text-align:right;}
+.nfd-valor.devolvida{color:var(--vermelho);}
+.cc-valor.vencido{color:var(--vermelho);}
+.cc-valor.aberto{color:var(--laranja);}
+.cc-valor.pago{color:var(--verde);}
+
+
+/* TELA DE LOGIN OBRIGATÓRIO */
+#tela-login{position:fixed;inset:0;background:linear-gradient(135deg,#dbeafe 0%,#bfdbfe 50%,#a78bfa 100%);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;}
+#tela-login.escondido{display:none;}
+.login-card{background:#fff;border-radius:24px;padding:36px 28px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(29,138,214,0.25);text-align:center;}
+.login-logo{height:64px;margin-bottom:18px;}
+.login-titulo{font-size:22px;font-weight:900;color:#0f172a;margin-bottom:6px;letter-spacing:-0.5px;}
+.login-sub{font-size:13px;color:#64748b;margin-bottom:24px;font-weight:500;line-height:1.5;}
+.login-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;background:#fff;color:#1f2937;border:1.5px solid #e2e8f0;padding:14px 18px;border-radius:14px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+.login-btn:active{transform:scale(0.98);background:#f8fafc;}
+.login-btn:hover{border-color:#1d8ad6;box-shadow:0 4px 12px rgba(29,138,214,0.15);}
+.login-google-icon{width:20px;height:20px;}
+.login-aviso{font-size:11px;color:#94a3b8;margin-top:18px;line-height:1.5;}
+.login-erro{background:#fef2f2;color:#991b1b;padding:10px 14px;border-radius:10px;font-size:12px;margin-top:14px;font-weight:600;border:1px solid #fecaca;}
+.login-loading{font-size:12px;color:#64748b;margin-top:14px;}
+.user-chip{position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.95);padding:5px 10px 5px 5px;border-radius:20px;display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;color:#1565a8;cursor:pointer;border:1px solid rgba(29,138,214,0.2);}
+.user-chip img{width:22px;height:22px;border-radius:50%;}
+
+
+/* SETTINGS BUTTON no header */
+.btn-config{background:rgba(255,255,255,0.6);border:1px solid rgba(29,138,214,0.25);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;margin-right:8px;}
+.btn-config:active{background:#fff;}
+
+/* MODAL form genérico (settings + nova tarefa) */
+.modal-form{position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9000;display:none;align-items:flex-end;justify-content:center;}
+.modal-form.aberto{display:flex;}
+.modal-form-card{background:#fff;width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:22px 22px 32px;max-height:88vh;overflow-y:auto;animation:slideUp .25s ease;}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0.5;}to{transform:translateY(0);opacity:1;}}
+.modal-form-titulo{font-size:18px;font-weight:900;margin-bottom:4px;color:#0f172a;}
+.modal-form-sub{font-size:12px;color:var(--muted);margin-bottom:18px;font-weight:600;}
+.modal-form label{display:block;font-size:11px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:#475569;margin:14px 0 6px;}
+.modal-form input[type=text],.modal-form textarea,.modal-form select{width:100%;border:1.5px solid #e2e8f0;border-radius:12px;padding:11px 14px;font-size:14px;font-family:inherit;color:#0f172a;outline:none;background:#fff;font-weight:500;}
+.modal-form input:focus,.modal-form textarea:focus,.modal-form select:focus{border-color:#1d8ad6;box-shadow:0 0 0 3px rgba(29,138,214,0.1);}
+.modal-form textarea{min-height:80px;resize:vertical;}
+.chips-grupo{display:flex;gap:8px;flex-wrap:wrap;}
+.chip-resp{padding:9px 14px;border-radius:12px;background:#f1f5f9;color:#475569;border:2px solid transparent;font-size:13px;font-weight:700;cursor:pointer;}
+.chip-resp.ativo{background:#dbeafe;color:#1565a8;border-color:#1d8ad6;}
+.chip-prio{padding:7px 12px;border-radius:10px;background:#f1f5f9;color:#64748b;border:2px solid transparent;font-size:12px;font-weight:700;cursor:pointer;}
+.chip-prio.ativo[data-prio="alta"]{background:#fef2f2;color:#dc2626;border-color:#dc2626;}
+.chip-prio.ativo[data-prio="media"]{background:#fef3c7;color:#92400e;border-color:#d97706;}
+.chip-prio.ativo[data-prio="baixa"]{background:#d1fae5;color:#065f46;border-color:#059669;}
+.modal-form-actions{display:flex;gap:10px;margin-top:20px;}
+.btn-primary{flex:1;background:linear-gradient(135deg,#1d8ad6 0%,#1565a8 100%);color:#fff;border:none;padding:14px;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;}
+.btn-primary:active{transform:scale(0.98);}
+.btn-secondary{flex:1;background:#fff;color:#475569;border:1.5px solid #e2e8f0;padding:14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+/* Action buttons após criar tarefa */
+.acao-grupo{display:flex;gap:10px;margin-top:14px;}
+.btn-acao{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:13px;border-radius:12px;font-weight:800;font-size:13px;text-decoration:none;border:none;cursor:pointer;font-family:inherit;}
+.btn-email{background:#dbeafe;color:#1565a8;}
+.btn-email:active{background:#bfdbfe;}
+.btn-whats{background:#dcfce7;color:#15803d;}
+.btn-whats:active{background:#bbf7d0;}
+
+/* + Nova Tarefa botão flutuante */
+.fab{position:fixed;bottom:96px;right:18px;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#1d8ad6 0%,#1565a8 100%);color:#fff;border:none;font-size:28px;font-weight:300;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 20px rgba(29,138,214,0.35);z-index:150;font-family:inherit;}
+.fab:active{transform:scale(0.92);}
+
+/* Filter chips para NFD/CC */
+.filter-row{padding:14px 16px 0;display:flex;gap:8px;flex-wrap:wrap;overflow-x:auto;}
+.filter-chip{padding:7px 14px;border-radius:20px;background:#f1f5f9;color:#475569;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid transparent;white-space:nowrap;}
+.filter-chip.ativo{background:#dbeafe;color:#1565a8;border-color:#1d8ad6;}
+.filter-chip[data-status=vencido].ativo{background:#fef2f2;color:#dc2626;border-color:#dc2626;}
+.filter-chip[data-status=pago].ativo{background:#d1fae5;color:#065f46;border-color:#059669;}
+.filter-chip[data-status=hoje].ativo{background:#fef3c7;color:#92400e;border-color:#d97706;}
+
+.tarefa-acao-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.btn-mini{padding:5px 11px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+.btn-mini.email{background:#dbeafe;color:#1565a8;}
+.btn-mini.whats{background:#dcfce7;color:#15803d;}
+
+.equipe-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-bottom:8px;align-items:center;}
+.equipe-row input{width:100%;padding:8px 10px;font-size:12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;}
+
+.contato-item{display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid #f1f5f9;cursor:pointer;}
+.contato-item:active{background:#f1f5f9;}
+.contato-item .ci-foto{width:36px;height:36px;border-radius:50%;background:#dbeafe;color:#1565a8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;}
+.contato-item .ci-info{flex:1;min-width:0;}
+.contato-item .ci-nome{font-size:13px;font-weight:700;color:#0f172a;}
+.contato-item .ci-meta{font-size:11px;color:var(--muted);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.contato-item .ci-add{background:#1d8ad6;color:#fff;border:none;padding:5px 10px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
+.equipe-rm{background:#fef2f2;color:#dc2626;border:none;width:30px;height:30px;border-radius:8px;font-size:14px;cursor:pointer;font-weight:700;}
+
+</style>
+</head>
+<body>
+
+<div id="tela-login">
+  <div class="login-card">
+    <img src="logo_3mv_completa.png" alt="3MV" class="login-logo">
+    <div class="login-titulo">3MV Mobile</div>
+    <div class="login-sub">Use o mesmo e-mail e senha do painel<br>3MV Representação</div>
+    <form onsubmit="return doLogin(event)" autocomplete="on">
+      <label style="display:block;text-align:left;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#475569;margin:8px 0 5px;">E-mail</label>
+      <input type="email" id="auth-user" autocomplete="username" placeholder="seu@3mvrepresentacao.com" required style="width:100%;padding:12px 14px;font-size:14px;border:1.5px solid #e2e8f0;border-radius:10px;outline:none;font-family:inherit;background:#fff;">
+      <label style="display:block;text-align:left;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#475569;margin:14px 0 5px;">Senha</label>
+      <input type="password" id="auth-pass" autocomplete="current-password" placeholder="••••••••" required style="width:100%;padding:12px 14px;font-size:14px;border:1.5px solid #e2e8f0;border-radius:10px;outline:none;font-family:inherit;background:#fff;">
+      <button type="submit" class="login-btn" style="margin-top:18px;background:linear-gradient(135deg,#1d8ad6 0%,#1565a8 100%);color:#fff;border:none;font-weight:800;justify-content:center;">Entrar</button>
+    </form>
+    <div id="login-erro" class="login-erro" style="display:none;"></div>
+    <div class="login-aviso">Mesma senha do painel.3mvrepresentacao.com<br>Em caso de esquecimento, fale com o Marcelo.</div>
+  </div>
+</div>
+
+<div class="toast" id="toast">OK</div>
+<div class="tela ativa" id="tela-clientes">
+  <div class="header">
+    <div class="header-top">
+      <img src="logo_3mv_completa.png" alt="3MV" class="logo-img">
+      <div style="display:flex;align-items:center;gap:6px;"><button class="btn-config" onclick="abrirDashboard()" title="Dashboard">📊</button><button class="btn-config" onclick="abrirConfig()" title="Configurações">⚙️</button><div class="header-date" id="data-atual"></div></div>
+    </div>
+    <div class="search-box">
+      <span>🔍</span>
+      <input type="text" id="busca-input" placeholder="Buscar cliente, indústria, cidade..." autocomplete="off">
+    </div>
+  </div>
+
+  <!-- AGENDA DO DIA - card no TOPO -->
+  <div class="agenda-section">
+    <div class="agenda-card">
+      <div class="agenda-titulo">📅 Agenda de Hoje</div>
+      <div class="agenda-subtitulo" id="agenda-data"></div>
+      <div id="agenda-conteudo">
+        <div class="agenda-vazio">Conecte seu Google Agenda para ver os clientes do dia</div>
+        <button class="agenda-conectar" onclick="conectarCalendar()">🔗 Conectar Google Agenda</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="banner-dados" class="banner-status banner-loading">⏳ Carregando dados... <button class="btn-refresh" onclick="recarregarDados()">↻</button></div>
+  <div class="section"><div class="section-title urgente">🔴 Atenção imediata <span class="badge-count" id="badge-urgente">0</span></div><div id="lista-urgente"></div></div>
+  <div class="section"><div class="section-title proximo">🟡 Próximos do ciclo <span class="badge-count" id="badge-proximo">0</span></div><div id="lista-proximo"></div></div>
+  <div class="section"><div class="section-title normal">🟢 Em dia <span class="badge-count" id="badge-normal">0</span></div><div id="lista-normal"></div></div>
+</div>
+<div class="tela" id="tela-nfd">
+  <div class="header">
+    <div class="header-top"><img src="logo_3mv_completa.png" alt="3MV" class="logo-img"><div class="header-date">NFD</div></div>
+    <div class="search-box"><span>🔍</span><input type="text" id="busca-nfd" placeholder="Buscar por cliente, número..." autocomplete="off"></div>
+  </div>
+  <div class="kpi-row" id="kpi-nfd"></div>
+  <div class="filter-row" id="filtros-nfd">
+    <div class="filter-chip ativo" data-filtro="todos" onclick="filtrarNFD(this,'todos')">Todos</div>
+    <div class="filter-chip" data-filtro="30d" onclick="filtrarNFD(this,'30d')">Últimos 30d</div>
+    <div class="filter-chip" data-filtro="90d" onclick="filtrarNFD(this,'90d')">Últimos 90d</div>
+    <div class="filter-chip" data-filtro="ano" onclick="filtrarNFD(this,'ano')">2026</div>
+  </div>
+  <div class="section" style="margin-top:16px;"><div class="section-title">Notas devolvidas <span class="badge-count" id="contador-nfd">0</span></div><div class="card" id="lista-nfd"></div></div>
+</div>
+<div class="tela" id="tela-cc">
+  <div class="header">
+    <div class="header-top"><img src="logo_3mv_completa.png" alt="3MV" class="logo-img"><div class="header-date">Conta Corrente</div></div>
+    <div class="search-box"><span>🔍</span><input type="text" id="busca-cc" placeholder="Buscar cliente ou parcela..." autocomplete="off"></div>
+  </div>
+  <div class="kpi-row" id="kpi-cc"></div>
+  <div class="filter-row" id="filtros-cc">
+    <div class="filter-chip ativo" data-filtro="todos" onclick="filtrarCC(this,'todos')">Todos</div>
+    <div class="filter-chip" data-status="vencido" data-filtro="vencido" onclick="filtrarCC(this,'vencido')">Vencidos</div>
+    <div class="filter-chip" data-filtro="aberto" onclick="filtrarCC(this,'aberto')">Em aberto</div>
+    <div class="filter-chip" data-status="pago" data-filtro="pago" onclick="filtrarCC(this,'pago')">Pagos</div>
+    <div class="filter-chip" data-status="hoje" data-filtro="7d" onclick="filtrarCC(this,'7d')">Vence 7d</div>
+  </div>
+  <div class="section" style="margin-top:16px;"><div class="section-title">Parcelas <span class="badge-count" id="contador-cc">0</span></div><div class="card" id="lista-cc"></div></div>
+</div>
+<div class="tela" id="tela-industrias">
+  <div class="header">
+    <div class="header-top"><img src="logo_3mv_completa.png" alt="3MV" class="logo-img"><div style="display:flex;align-items:center;gap:6px;"><button class="btn-config" onclick="abrirDashboard()" title="Dashboard">📊</button><div class="header-date">Indústrias</div></div></div>
+    <div class="search-box"><span>🔍</span><input type="text" id="busca-industria" placeholder="Buscar indústria..." autocomplete="off" oninput="renderIndustrias()"></div>
+  </div>
+  <div class="filter-row" id="filtros-industrias">
+    <div class="filter-chip ativo" data-filtro="todas" onclick="filtrarIndustrias(this,'todas')">Todas ativas</div>
+    <div class="filter-chip" data-filtro="saldos" data-status="vencido" onclick="filtrarIndustrias(this,'saldos')">Com saldos</div>
+    <div class="filter-chip" data-filtro="top10" onclick="filtrarIndustrias(this,'top10')">Top 10</div>
+    <div class="filter-chip" data-filtro="multi" onclick="filtrarIndustrias(this,'multi')">Multi-cliente</div>
+  </div>
+  <div class="kpi-row" id="kpi-industrias"></div>
+  <div class="section" style="margin-top:16px;"><div class="section-title">Indústrias <span class="badge-count" id="contador-industrias">0</span></div><div id="lista-industrias"></div></div>
+</div>
+<div class="tela" id="tela-tarefas">
+  <div class="header">
+    <div class="header-top"><img src="logo_3mv_completa.png" alt="3MV" class="logo-img"><div class="header-date">Tarefas</div></div>
+    <div class="search-box"><span>🔍</span><input type="text" id="busca-tarefas" placeholder="Buscar tarefa, cliente, indústria..." autocomplete="off" oninput="renderTarefas()"></div>
+  </div>
+  <div class="filter-row" id="filtros-tarefas">
+    <div class="filter-chip ativo" data-filtro="todas" onclick="filtrarTarefas(this,'todas')">Todas</div>
+    <div class="filter-chip" data-filtro="minhas" onclick="filtrarTarefas(this,'minhas')">Minhas</div>
+    <div class="filter-chip" data-filtro="alta" onclick="filtrarTarefas(this,'alta')">🔴 Alta</div>
+    <div class="filter-chip" data-filtro="hoje" onclick="filtrarTarefas(this,'hoje')">Hoje</div>
+    <div class="filter-chip" data-filtro="atrasadas" data-status="vencido" onclick="filtrarTarefas(this,'atrasadas')">Atrasadas</div>
+    <div class="filter-chip" data-filtro="enviadas" data-status="pago" onclick="filtrarTarefas(this,'enviadas')">Enviadas</div>
+  </div>
+  <div class="kpi-row" id="kpi-tarefas"></div>
+  <div class="section" style="margin-top:16px;"><div class="section-title">Pendentes <span class="badge-count" id="contador-pendentes">0</span></div><div class="card" id="lista-pendentes"></div></div>
+  <div class="section"><div class="section-title">Concluídas (últimas 8)</div><div class="card" id="lista-concluidas"></div></div>
+</div>
+<button class="fab" id="fab-tarefa" onclick="abrirNovaTarefa()" style="display:none;" title="Nova tarefa">+</button>
+
+<!-- Modal Nova Tarefa -->
+<div class="modal-form" id="modal-tarefa">
+  <div class="modal-form-card">
+    <div class="modal-form-titulo">📝 Nova tarefa</div>
+    <div class="modal-form-sub">Descreva, escolha pra quem (cliente/indústria) e por onde enviar.</div>
+    <label>Descrição da tarefa</label>
+    <textarea id="t-texto" placeholder="Ex: Enviar tabela de preços atualizada"></textarea>
+    
+    <label>📤 Enviar para</label>
+    <div class="chips-grupo">
+      <div class="chip-resp" id="dest-cliente" onclick="toggleDest('cliente')">📋 Cliente</div>
+      <div class="chip-resp" id="dest-industria" onclick="toggleDest('industria')">🏭 Indústria</div>
+    </div>
+    
+    <!-- Bloco CLIENTE -->
+    <div id="bloco-cliente" style="display:none;">
+      <label>Cliente</label>
+      <input type="text" id="t-cliente" list="datalist-clientes" placeholder="Digite ou escolha">
+      <datalist id="datalist-clientes"></datalist>
+
+    </div>
+    
+    <!-- Bloco INDÚSTRIA -->
+    <div id="bloco-industria" style="display:none;">
+      <label>Indústria</label>
+      <input type="text" id="t-industria" list="datalist-industrias" placeholder="Digite ou escolha">
+      <datalist id="datalist-industrias"></datalist>
+
+    </div>
+    
+    <label>Responsável interno (equipe 3MV)</label>
+    <div class="chips-grupo" id="chips-resp"></div>
+    
+    <label>📡 Canais de envio</label>
+    <div class="chips-grupo">
+      <div class="chip-resp ativo" id="canal-email" onclick="toggleCanal('email')">📧 E-mail</div>
+      <div class="chip-resp ativo" id="canal-whats" onclick="toggleCanal('whats')">💬 WhatsApp</div>
+    </div>
+    
+    <label>Prioridade</label>
+    <div class="chips-grupo">
+      <div class="chip-prio" data-prio="alta" onclick="setPrio(this,'alta')">🔴 Alta</div>
+      <div class="chip-prio ativo" data-prio="media" onclick="setPrio(this,'media')">🟡 Média</div>
+      <div class="chip-prio" data-prio="baixa" onclick="setPrio(this,'baixa')">🟢 Baixa</div>
+    </div>
+    
+    <div class="modal-form-actions">
+      <button class="btn-secondary" onclick="fecharNovaTarefa()">Cancelar</button>
+      <button class="btn-primary" onclick="salvarTarefa()">Salvar e enviar</button>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- Modal Dashboard -->
+<div class="modal-form" id="modal-dashboard">
+  <div class="modal-form-card">
+    <div class="modal-form-titulo">📊 Dashboard de Execuções</div>
+    <div class="modal-form-sub">Resumo das tarefas e produtividade da equipe</div>
+    <div id="dash-conteudo"></div>
+    <div class="modal-form-actions">
+      <button class="btn-secondary" onclick="fecharDashboard()" style="flex:1;">Fechar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal Concluir Tarefa -->
+<div class="modal-form" id="modal-concluir">
+  <div class="modal-form-card">
+    <div class="modal-form-titulo">✓ Concluir tarefa</div>
+    <div class="modal-form-sub">Registre quem executou e por qual canal a resposta veio.</div>
+    <div id="concluir-tarefa-info" style="background:#f0f9ff;padding:12px;border-radius:10px;margin-bottom:14px;font-size:13px;font-weight:600;color:#1565a8;"></div>
+    <label>Quem executou?</label>
+    <div class="chips-grupo" id="chips-executor"></div>
+    <label>Como o cliente/indústria respondeu?</label>
+    <div class="chips-grupo">
+      <div class="chip-resp" id="resp-email" onclick="setRespCanal(this,'email')">📧 E-mail</div>
+      <div class="chip-resp" id="resp-whats" onclick="setRespCanal(this,'whats')">💬 WhatsApp</div>
+      <div class="chip-resp" id="resp-tel" onclick="setRespCanal(this,'telefone')">📞 Telefone</div>
+      <div class="chip-resp" id="resp-pessoal" onclick="setRespCanal(this,'pessoal')">🤝 Pessoalmente</div>
+      <div class="chip-resp" id="resp-outro" onclick="setRespCanal(this,'outro')">📌 Outro</div>
+    </div>
+    <label>Observação da execução (opcional)</label>
+    <textarea id="concluir-obs" placeholder="Ex: Pedido confirmado, aguardando entrega"></textarea>
+    <div class="modal-form-actions">
+      <button class="btn-secondary" onclick="fecharConcluir()">Cancelar</button>
+      <button class="btn-primary" onclick="confirmarConcluir()">Concluir tarefa</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmação de Envio -->
+<div class="modal-form" id="modal-envio">
+  <div class="modal-form-card">
+    <div class="modal-form-titulo">✓ Confirmar envio</div>
+    <div class="modal-form-sub">Marque os canais que você efetivamente enviou:</div>
+    <div id="envio-checks"></div>
+    <label>Adicionou alguém em cópia? (e-mails separados por vírgula, opcional)</label>
+    <input type="text" id="envio-copia" placeholder="email1@x.com, email2@y.com">
+    <label>Observação (opcional)</label>
+    <input type="text" id="envio-obs" placeholder="Ex: Cliente confirmou recebimento">
+    <div class="modal-form-actions">
+      <button class="btn-secondary" onclick="fecharModalEnvio()">Pular</button>
+      <button class="btn-primary" onclick="salvarConfirmacaoEnvio()">Salvar registro</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Configurações - Editor de Equipe -->
+<div class="modal-form" id="modal-config">
+  <div class="modal-form-card">
+    <div class="modal-form-titulo">⚙️ Equipe</div>
+    <div class="modal-form-sub">Cadastre quem recebe tarefas marcadas com @. WhatsApp formato 5511999999999.</div>
+    <div id="lista-equipe"></div>
+    <button class="btn-secondary" onclick="adicionarMembro()" style="margin-top:12px;">+ Adicionar pessoa</button>
+    <label style="margin-top:18px;">Como notificar por padrão?</label>
+    <select id="cfg-modo-envio">
+      <option value="ambos">📧 E-mail + 💬 WhatsApp</option>
+      <option value="email">Só e-mail (Outlook)</option>
+      <option value="whats">Só WhatsApp</option>
+    </select>
+    <div class="modal-form-actions">
+      <button class="btn-secondary" onclick="fecharConfig()">Cancelar</button>
+      <button class="btn-primary" onclick="salvarConfig()">Salvar</button>
+    </div>
+  </div>
+</div>
+<nav class="bottom-nav">
+  <button class="nav-item ativo" onclick="irPara('clientes',this)"><span class="nav-icon">👥</span><span class="nav-label">Clientes</span></button>
+  <button class="nav-item" onclick="irPara('industrias',this)"><span class="nav-icon">🏭</span><span class="nav-label">Indústrias</span></button>
+  <button class="nav-item" onclick="irPara('nfd',this)"><span class="nav-icon">📄</span><span class="nav-label">NFD</span></button>
+  <button class="nav-item" onclick="irPara('cc',this)"><span class="nav-icon">💰</span><span class="nav-label">CC</span></button>
+  <button class="nav-item" onclick="irPara('tarefas',this)"><span class="nav-icon">✅</span><span class="nav-label">Tarefas</span></button>
+</nav>
+<div class="modal" id="modal-cliente"><div class="modal-sheet"><div class="modal-handle"></div><div class="modal-header"><div><div class="modal-titulo" id="modal-nome"></div><div class="chip-row" id="modal-chips"></div></div><button class="modal-fechar" onclick="fecharModal()">Fechar</button></div><div id="modal-body"></div></div></div>
+<script>
+const RESPONSAVEIS={'lais':{nome:'Lais',email:'adm@3mvrepresentacao.com'},'rafa':{nome:'Rafaela',email:'adm1@3mvrepresentacao.com'},'marcelo':{nome:'Marcelo',email:'marcelo@3mvrepresentacao.com'}};
+let CLIENTES=[],TAREFAS=[],NFD_LISTA=[],CC_LISTA=[],PRODUTOS_POR_CLIENTE={},DADOS_RAW=null,AGENDA_HOJE=[],CLIENTES_HOJE=new Set();
+
+// --- AGENDA GOOGLE CALENDAR (auto-conexão) ---
+const GOOGLE_CLIENT_ID = '218307959907-ei570t4i6aqluaflq7glkhjuklk2uo13.apps.googleusercontent.com';
+let _gcalTokenClient = null;
+
+function carregarGSIeAutoConectar(){
+  if(window.google && window.google.accounts){iniciarAuthAutomatico();return;}
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.onload = () => iniciarAuthAutomatico();
+  s.async = true;
+  s.defer = true;
+  document.head.appendChild(s);
+}
+
+function iniciarAuthAutomatico(){
+  // Inicia client de token (reutilizado pra silent re-auth e clique manual)
+  _gcalTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/calendar.readonly',
+    prompt: '', // vazio = silent quando há sessão ativa
+    callback: (resp) => {
+      if(resp.access_token){
+        const expiraEm = Date.now() + (resp.expires_in || 3600) * 1000;
+        localStorage.setItem('gcal_token', resp.access_token);
+        localStorage.setItem('gcal_token_exp', expiraEm.toString());
+        localStorage.setItem('gcal_conectado', '1');
+        carregarAgenda(resp.access_token);
+      } else if(resp.error === 'access_denied'){
+        // usuário cancelou — limpa flag pra não tentar de novo
+        localStorage.removeItem('gcal_conectado');
+      }
+    }
+  });
+
+  // Verifica se há token salvo válido
+  const tokenSalvo = localStorage.getItem('gcal_token');
+  const expiraEm = parseInt(localStorage.getItem('gcal_token_exp') || '0', 10);
+  if(tokenSalvo && Date.now() < expiraEm - 60000){
+    // Token ainda válido (com folga de 1 min)
+    carregarAgenda(tokenSalvo);
+    return;
+  }
+
+  // Sem token válido — se já foi conectado antes, tenta silent re-auth
+  if(localStorage.getItem('gcal_conectado') === '1'){
+    try {_gcalTokenClient.requestAccessToken({prompt: ''});} catch(e){console.log('silent auth falhou', e);}
+  }
+}
+
+function conectarCalendar(){
+  // Botão manual — força popup se silent não rolou
+  if(!_gcalTokenClient){carregarGSIeAutoConectar();setTimeout(conectarCalendar, 1500);return;}
+  _gcalTokenClient.requestAccessToken({prompt: 'consent'});
+}
+
+function desconectarCalendar(){
+  localStorage.removeItem('gcal_token');
+  localStorage.removeItem('gcal_token_exp');
+  localStorage.removeItem('gcal_conectado');
+  AGENDA_HOJE = [];
+  document.getElementById('agenda-conteudo').innerHTML = '<div class="agenda-vazio">Conecte seu Google Agenda para ver os clientes do dia</div><button class="agenda-conectar" onclick="conectarCalendar()">🔗 Conectar Google Agenda</button>';
+  showToast('Desconectado do Google Agenda');
+}
+async function carregarAgenda(token){
+  const hoje = new Date();
+  hoje.setHours(0,0,0,0);
+  const amanha = new Date(hoje); amanha.setDate(amanha.getDate()+1);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${hoje.toISOString()}&timeMax=${amanha.toISOString()}&singleEvents=true&orderBy=startTime`;
+  try{
+    const r = await fetch(url, {headers: {Authorization: 'Bearer '+token}});
+    const data = await r.json();
+    AGENDA_HOJE = (data.items||[]).map(e => {
+      const start = e.start.dateTime || e.start.date;
+      const hora = start.includes('T') ? start.substring(11,16) : 'Dia todo';
+      return {hora, titulo: e.summary || '(sem título)', cliente: extrairCliente(e.summary||'')};
+    });
+    renderAgenda();
+    showToast('✓ Agenda sincronizada: ' + AGENDA_HOJE.length + ' eventos');
+  }catch(e){console.error(e); showToast('Erro ao carregar agenda');}
+}
+function extrairCliente(titulo){
+  // Pega primeiro nome em maiúsculas, ou tudo
+  const t = titulo.toUpperCase();
+  for(const c of CLIENTES){
+    if(t.includes(c.nome.substring(0,15)))return c;
+  }
+  return null;
+}
+function renderAgenda(){
+  const cont = document.getElementById('agenda-conteudo');
+  // Atualiza Set de clientes na agenda do dia
+  CLIENTES_HOJE = new Set();
+  AGENDA_HOJE.forEach(a => { if(a.cliente) CLIENTES_HOJE.add(a.cliente.id); });
+  if(AGENDA_HOJE.length === 0){
+    cont.innerHTML = '<div class="agenda-vazio">Nenhum compromisso hoje 🎉</div>';
+    if(CLIENTES.length>0) renderClientes();
+    return;
+  }
+  cont.innerHTML = '<div class="agenda-lista">' + AGENDA_HOJE.map(a => 
+    `<div class="agenda-item" ${a.cliente?'onclick="abrirCliente('+a.cliente.id+')"':''}>
+      <div class="agenda-hora">${a.hora}</div>
+      <div class="agenda-cliente">${a.titulo}${a.cliente?' <span style="opacity:0.85;font-weight:700;">› abrir cliente</span>':''}</div>
+    </div>`
+  ).join('') + '</div><button class="agenda-conectar" style="margin-top:10px;background:rgba(255,255,255,0.25);color:#fff;font-size:11px;padding:6px 12px;" onclick="desconectarCalendar()">Desconectar</button>';
+  // Re-renderiza lista pra destacar clientes do dia em roxo
+  if(CLIENTES.length>0) renderClientes(document.getElementById('busca-input').value||'');
+}
+
+async function carregarDados(){const banner=document.getElementById('banner-dados');banner.className='banner-status banner-loading';banner.innerHTML='⏳ Carregando... <button class="btn-refresh" onclick="recarregarDados()">↻</button>';try{if(window.__DADOS__){DADOS_RAW=window.__DADOS__;}else{const r=await fetch('/dados.json',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);DADOS_RAW=await r.json();}CLIENTES=transformarParaCLIENTES(DADOS_RAW);NFD_LISTA=extrairNFD(DADOS_RAW);CC_LISTA=extrairCC(DADOS_RAW);PRODUTOS_POR_CLIENTE=extrairProdutos(DADOS_RAW);banner.className='banner-status banner-ok';banner.innerHTML='✓ '+CLIENTES.length+' clientes · '+NFD_LISTA.length+' NFD · '+CC_LISTA.length+' parcelas <button class="btn-refresh" onclick="recarregarDados()">↻</button>';}catch(e){console.error(e);banner.className='banner-status banner-erro';banner.innerHTML='⚠️ Sem conexão — usando demo <button class="btn-refresh" onclick="recarregarDados()">↻</button>';CLIENTES=clientesDemo();NFD_LISTA=nfdDemo();CC_LISTA=ccDemo();PRODUTOS_POR_CLIENTE=produtosDemo();}renderClientes();renderNFD();renderCC();calcularIndustriasAgreg();renderIndustrias();
+}
+function transformarParaCLIENTES(dados){const hp=dados&&dados.historico_pedidos&&dados.historico_pedidos.por_cliente_industria_ano||{};const itens=dados&&dados.itens||[];const cfg=dados&&dados.clientes_config||{};const inativos=new Set((cfg.inativos||[]).map(s=>s.toUpperCase()));const excluidos=new Set((cfg.excluidos||[]).map(s=>s.toUpperCase()));const saldosPorCliente={};for(const it of itens){const cli=(it.cliente||it.razao_social||'').toUpperCase().trim();if(!cli)continue;saldosPorCliente[cli]=saldosPorCliente[cli]||[];saldosPorCliente[cli].push({prod:it.produto||it.descricao||'-',qtd:it.qtd_saldo||it.quantidade||0,pedido:it.pedido_numero||it.numero||'',valor:it.valor_saldo||0,industria:(it.industria||'').toUpperCase()});}const out=[];let id=1;for(const cliente in hp){if(excluidos.has(cliente.toUpperCase()))continue;const indMap=hp[cliente];const industrias=[];for(const ind in indMap){const a26=indMap[ind]['2026']||{};const valor26=a26.valor||0;const qtd=a26.qtd_pedidos||0;const ciclo=qtd>0?Math.round(365/qtd):60;const saldosInd=(saldosPorCliente[cliente]||[]).filter(s=>!s.industria||s.industria===ind.toUpperCase());industrias.push({nome:ind,ultimaCompra:a26.ultima_data||'-',ciclo:ciclo,diasSemComprar:30,valor2026:valor26,qtdPedidos:qtd,saldo:saldosInd});}industrias.sort((a,b)=>b.valor2026-a.valor2026);out.push({id:id++,nome:cliente,cidade:'',segmento:inativos.has(cliente.toUpperCase())?'Inativo':'Ativo',industrias:industrias,todosSaldos:saldosPorCliente[cliente]||[]});}out.sort((a,b)=>{const va=a.industrias.reduce((s,i)=>s+i.valor2026,0);const vb=b.industrias.reduce((s,i)=>s+i.valor2026,0);return vb-va;});return out;}
+function extrairProdutos(dados){if(dados&&dados.produtos_por_cliente)return dados.produtos_por_cliente;const itens=dados&&dados.itens||[];const out={};for(const it of itens){const cli=(it.cliente||it.razao_social||'').toUpperCase().trim();if(!cli)continue;const prod=it.produto||it.descricao||'-';out[cli]=out[cli]||{};out[cli][prod]=(out[cli][prod]||0)+(it.qtd_saldo||it.quantidade||1);}return out;}
+function extrairNFD(dados){if(dados&&Array.isArray(dados.nfd))return dados.nfd;if(dados&&dados.notas_devolvidas)return dados.notas_devolvidas;return [];}
+function extrairCC(dados){if(dados&&Array.isArray(dados.conta_corrente))return dados.conta_corrente;if(dados&&Array.isArray(dados.contacorrente))return dados.contacorrente;if(dados&&dados.cc)return dados.cc;return [];}
+async function carregarTarefas(){try{const r=await fetch('/tasks-from-onenote.json',{cache:'no-store'});if(r.ok){TAREFAS=await r.json();}else{throw new Error('indisp');}}catch(e){TAREFAS=JSON.parse(localStorage.getItem('3mv_tarefas')||'[]');if(TAREFAS.length===0){TAREFAS=[{id:1,texto:'Enviar tabela de preços atualizada',responsavel:'Lais',email:'adm@',cliente:'Supermercado Central',data:'10/05/2026',feita:false,fonte_onenote:'Visita 10/05'},{id:2,texto:'Confirmar saldo do pedido P-2234',responsavel:'Rafa',email:'adm1@',cliente:'Supermercado Central',data:'10/05/2026',feita:false,fonte_onenote:'Visita 10/05'},{id:3,texto:'Ligar pra logística',responsavel:'Marcelo',email:'marcelo@',cliente:'Mercado Bom Preço',data:'09/05/2026',feita:true,fonte_onenote:'Visita 09/05'}];}}renderTarefas();}
+function recarregarDados(){carregarDados();}
+const ms=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];const ds=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];const dh=new Date();
+document.getElementById('data-atual').textContent=ds[dh.getDay()]+', '+dh.getDate()+' '+ms[dh.getMonth()];
+document.getElementById('agenda-data').textContent=ds[dh.getDay()]+', '+dh.getDate()+' de '+['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'][dh.getMonth()];
+function statusCiclo(i){const p=i.diasSemComprar/i.ciclo;if(p>=1.1)return{cls:'ciclo-atrasado',txt:i.diasSemComprar+'d sem comprar'};if(p>=0.85)return{cls:'ciclo-proximo',txt:'Vence ~'+(i.ciclo-i.diasSemComprar)+'d'};return{cls:'ciclo-ok',txt:'Próx em '+(i.ciclo-i.diasSemComprar)+'d'};}
+function classificarCliente(c){if(c.todosSaldos&&c.todosSaldos.length>0)return 'urgente';if(c.industrias.some(i=>i.diasSemComprar/i.ciclo>=1.1))return 'urgente';if(c.industrias.some(i=>i.diasSemComprar/i.ciclo>=0.85))return 'proximo';return 'normal';}
+function fmt(v){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}).format(v||0);}
+function fmtData(d){if(!d)return '-';if(typeof d==='string'&&d.length>=10)return d.substring(8,10)+'/'+d.substring(5,7)+'/'+d.substring(0,4);return d;}
+function renderCard(c,container,classe){const totalSaldos=c.todosSaldos?c.todosSaldos.length:0;const valorSaldosTotal=c.todosSaldos?c.todosSaldos.reduce((s,x)=>s+(x.valor||0),0):0;const div=document.createElement('div');div.className='card '+classe;div.onclick=()=>abrirCliente(c.id);div.innerHTML='<div class="card-header"><div class="card-nome">'+c.nome+'</div><div class="card-meta">'+(c.cidade?'<span>📍 '+c.cidade+'</span>':'')+(totalSaldos>0?'<span class="badge badge-laranja">⏳ '+totalSaldos+' saldo'+(totalSaldos>1?'s':'')+(valorSaldosTotal>0?' · '+fmt(valorSaldosTotal):'')+'</span>':'')+(CLIENTES_HOJE.has(c.id)?'<span class="badge badge-roxo">📅 HOJE</span>':'')+(c.industrias.some(i=>i.diasSemComprar/i.ciclo>=1.1)?'<span class="badge badge-vermelho">Ciclo vencido</span>':'')+(c.industrias.some(i=>i.diasSemComprar/i.ciclo>=0.85&&i.diasSemComprar/i.ciclo<1.1)?'<span class="badge badge-amarelo">Vencendo</span>':'')+'</div></div><div class="industria-lista">'+c.industrias.slice(0,3).map(i=>{const s=statusCiclo(i);return '<div class="industria-row"><div class="industria-nome">'+i.nome+'</div><div class="industria-info"><div class="industria-valor">'+fmt(i.valor2026)+'</div><div class="industria-ciclo '+s.cls+'">'+s.txt+'</div></div></div>';}).join('')+(c.industrias.length>3?'<div style="text-align:center;padding:8px;font-size:11px;color:var(--muted);font-weight:600;">+ '+(c.industrias.length-3)+' indústria'+(c.industrias.length-3>1?'s':'')+'</div>':'')+'</div>';container.appendChild(div);}
+function renderClientes(filtro){filtro=filtro||'';const lu=document.getElementById('lista-urgente');const lp=document.getElementById('lista-proximo');const ln=document.getElementById('lista-normal');lu.innerHTML='';lp.innerHTML='';ln.innerHTML='';const f=filtro.toLowerCase();const fc=f?CLIENTES.filter(c=>c.nome.toLowerCase().includes(f)||(c.cidade||'').toLowerCase().includes(f)||c.industrias.some(i=>i.nome.toLowerCase().includes(f))):CLIENTES;const sortHoje=(a,b)=>{const ah=CLIENTES_HOJE.has(a.id)?1:0;const bh=CLIENTES_HOJE.has(b.id)?1:0;return bh-ah;};const fcFiltrado=aplicarFiltroClientes(fc);const urgentes=fcFiltrado.filter(c=>classificarCliente(c)==='urgente').sort(sortHoje);const proximos=fcFiltrado.filter(c=>classificarCliente(c)==='proximo').sort(sortHoje);const normais=fcFiltrado.filter(c=>classificarCliente(c)==='normal').sort(sortHoje);document.getElementById('badge-urgente').textContent=urgentes.length;document.getElementById('badge-proximo').textContent=proximos.length;document.getElementById('badge-normal').textContent=normais.length;if(urgentes.length===0)lu.innerHTML='<div class="vazio" style="padding:20px;font-size:13px;background:var(--verde-claro);border-radius:var(--raio);color:var(--verde);font-weight:600;">🎉 Nenhum cliente urgente!</div>';else urgentes.slice(0,30).forEach(c=>renderCard(c,lu,'urgente'));if(proximos.length===0)lp.innerHTML='<div class="vazio" style="padding:14px;font-size:12px;">Nenhum próximo do ciclo</div>';else proximos.slice(0,30).forEach(c=>renderCard(c,lp,'proximo'));normais.slice(0,40).forEach(c=>renderCard(c,ln,'normal'));if(normais.length>40)ln.insertAdjacentHTML('beforeend','<div class="vazio" style="padding:14px;font-size:12px">+ '+(normais.length-40)+' clientes - busca pra encontrar</div>');if(normais.length===0&&!f)ln.innerHTML='<div class="vazio" style="padding:14px;font-size:12px;">Nenhum cliente em dia</div>';}
+document.getElementById('busca-input').addEventListener('input',e=>renderClientes(e.target.value));
+function abrirCliente(id){const c=CLIENTES.find(x=>x.id===id);if(!c)return;document.getElementById('modal-nome').textContent=c.nome;document.getElementById('modal-chips').innerHTML=(c.cidade?'<span class="chip">📍 '+c.cidade+'</span>':'')+'<span class="chip">'+c.segmento+'</span><span class="chip">'+c.industrias.length+' indústria'+(c.industrias.length>1?'s':'')+'</span>';const tot=c.industrias.reduce((s,i)=>s+i.valor2026,0);const saldosTot=c.todosSaldos?c.todosSaldos.length:0;const valorSaldosTotal=c.todosSaldos?c.todosSaldos.reduce((s,x)=>s+(x.valor||0),0):0;let h='';if(saldosTot>0){h+='<div style="padding:14px 18px 0;"><div class="alerta-saldo"><div class="alerta-saldo-titulo">⏳ '+saldosTot+' item'+(saldosTot>1?'s':'')+' aguardando faturamento</div>'+(valorSaldosTotal>0?'<div class="alerta-saldo-valor">'+fmt(valorSaldosTotal)+'</div>':'')+'</div></div>';}h+='<div class="kpi-row" style="padding:'+(saldosTot>0?'4px 18px 0':'14px 18px 0')+';"><div class="kpi-card destaque"><div class="kpi-label">Total 2026</div><div class="kpi-valor">'+fmt(tot)+'</div><div class="kpi-sub">'+c.industrias.length+' indústria'+(c.industrias.length>1?'s':'')+'</div></div><div class="kpi-card"><div class="kpi-label">Pedidos</div><div class="kpi-valor">'+c.industrias.reduce((s,i)=>s+(i.qtdPedidos||0),0)+'</div><div class="kpi-sub">em 2026</div></div></div>';c.industrias.forEach(i=>{const s=statusCiclo(i);h+='<div class="separador"></div><div style="padding:0 18px 6px;"><div style="font-size:16px;font-weight:900;margin-bottom:5px;">'+i.nome+'</div><div style="font-size:12px;color:var(--muted);font-weight:600;">'+fmt(i.valor2026)+' em 2026 · '+(i.qtdPedidos||0)+' pedidos · Ciclo: '+i.ciclo+'d</div><div style="font-size:12px;margin-top:4px;font-weight:700;" class="'+s.cls+'">'+s.txt+' · Última: '+i.ultimaCompra+'</div></div>';if(i.saldo&&i.saldo.length>0){h+='<div class="modal-secao saldo">⏳ Saldos pendentes ('+i.saldo.length+')</div>';i.saldo.forEach(x=>{h+='<div class="saldo-row"><div class="saldo-produto">'+x.prod+'</div><div class="saldo-qtd">'+x.qtd+' un</div><div class="saldo-data">'+x.pedido+'</div></div>';});}});const prodCli=PRODUTOS_POR_CLIENTE[c.nome.toUpperCase()]||{};const listaProd=Object.entries(prodCli).sort((a,b)=>b[1]-a[1]);if(listaProd.length>0){h+='<div class="separador"></div><div class="modal-secao">📦 Produtos comprados ('+listaProd.length+')</div>';listaProd.slice(0,30).forEach(([prod,qtd])=>{h+='<div class="produto-row"><div class="produto-nome">'+prod+'</div><div class="produto-qtd">'+qtd+' un</div></div>';});if(listaProd.length>30){h+='<div class="vazio" style="padding:10px;font-size:11px;">+ '+(listaProd.length-30)+' outros produtos</div>';}}const nfdCli=NFD_LISTA.filter(n=>(n.cliente||'').toUpperCase().includes(c.nome.toUpperCase().substring(0,15)));if(nfdCli.length>0){h+='<div class="separador"></div><div class="modal-secao">📄 Notas devolvidas ('+nfdCli.length+')</div>';nfdCli.slice(0,10).forEach(n=>{h+='<div class="nfd-row"><div class="nfd-info"><div class="nfd-cliente">NF '+(n.numero||'-')+'</div><div class="nfd-meta">'+(n.industria||'-')+' · '+fmtData(n.data)+' · '+(n.motivo||'-')+'</div></div><div class="nfd-valor devolvida">'+fmt(n.valor||0)+'</div></div>';});}const ccCli=CC_LISTA.filter(p=>(p.cliente||'').toUpperCase().includes(c.nome.toUpperCase().substring(0,15)));if(ccCli.length>0){const aberto=ccCli.filter(p=>(p.situacao||'').toLowerCase()!=='pago');h+='<div class="separador"></div><div class="modal-secao">💰 Conta corrente ('+ccCli.length+' parcelas, '+aberto.length+' em aberto)</div>';ccCli.slice(0,10).forEach(p=>{const sit=(p.situacao||'aberto').toLowerCase();const cls=sit==='pago'?'pago':(sit.includes('venc')?'vencido':'aberto');h+='<div class="cc-row"><div class="cc-info"><div class="cc-cliente">'+(p.parcela||'Parcela')+(p.numero?' #'+p.numero:'')+'</div><div class="cc-meta">Vence '+fmtData(p.vencimento)+' · '+(p.situacao||'-')+'</div></div><div class="cc-valor '+cls+'">'+fmt(p.valor||0)+'</div></div>';});}h+='<div style="padding:18px;"><div style="background:#dbeafe;border-radius:var(--raio);padding:14px;font-size:12px;color:#1e40af;text-align:center;font-weight:600;">📝 Pra registrar uma ata, abra o <b>OneNote</b> e use <b>@Lais</b>, <b>@Rafa</b> ou <b>@Marcelo</b>.</div></div>';document.getElementById('modal-body').innerHTML=h;document.getElementById('modal-cliente').classList.add('aberto');document.body.style.overflow='hidden';}
+function fecharModal(){document.getElementById('modal-cliente').classList.remove('aberto');document.body.style.overflow='';}
+document.getElementById('modal-cliente').addEventListener('click',function(e){if(e.target===this)fecharModal();});
+function renderNFD(filtro){filtro=filtro||'';const f=filtro.toLowerCase();let lista=f?NFD_LISTA.filter(n=>(n.cliente||'').toLowerCase().includes(f)||(n.numero||'').toString().includes(f)||(n.industria||'').toLowerCase().includes(f)):NFD_LISTA;lista=aplicarFiltroPeriodoNFD(lista);const totalValor=lista.reduce((s,n)=>s+(n.valor||0),0);document.getElementById('kpi-nfd').innerHTML='<div class="kpi-card urgente"><div class="kpi-label">Total devolvido</div><div class="kpi-valor">'+fmt(totalValor)+'</div><div class="kpi-sub">'+lista.length+' nota'+(lista.length!==1?'s':'')+'</div></div><div class="kpi-card"><div class="kpi-label">Indústrias</div><div class="kpi-valor">'+(new Set(lista.map(n=>n.industria||'-')).size)+'</div><div class="kpi-sub">com devolução</div></div>';document.getElementById('contador-nfd').textContent=lista.length;const ul=document.getElementById('lista-nfd');if(lista.length===0){ul.innerHTML='<div class="vazio"><div class="vazio-icon">📄</div>'+(NFD_LISTA.length===0?'Dados de NFD ainda não disponíveis':'Nenhuma nota encontrada')+'</div>';return;}ul.innerHTML=lista.slice(0,100).map(n=>'<div class="nfd-row"><div class="nfd-info"><div class="nfd-cliente">'+(n.cliente||'-')+'</div><div class="nfd-meta">NF '+(n.numero||'-')+' · '+(n.industria||'-')+' · '+fmtData(n.data)+(n.motivo?' · '+n.motivo:'')+'</div></div><div class="nfd-valor devolvida">'+fmt(n.valor||0)+'</div></div>').join('');}
+document.getElementById('busca-nfd').addEventListener('input',e=>renderNFD(e.target.value));
+function renderCC(filtro){filtro=filtro||'';const f=filtro.toLowerCase();let lista=f?CC_LISTA.filter(p=>(p.cliente||'').toLowerCase().includes(f)||(p.parcela||'').toLowerCase().includes(f)||(p.numero||'').toString().includes(f)):CC_LISTA;lista=aplicarFiltroCC(lista);const aberto=lista.filter(p=>(p.situacao||'').toLowerCase()!=='pago');const vencido=aberto.filter(p=>{const v=p.vencimento;if(!v)return false;return new Date(v)<new Date();});const valorAberto=aberto.reduce((s,p)=>s+(p.valor||0),0);document.getElementById('kpi-cc').innerHTML='<div class="kpi-card destaque"><div class="kpi-label">Em aberto</div><div class="kpi-valor">'+fmt(valorAberto)+'</div><div class="kpi-sub">'+aberto.length+' parcela'+(aberto.length!==1?'s':'')+'</div></div><div class="kpi-card '+(vencido.length>0?'urgente':'')+'"><div class="kpi-label">Vencidas</div><div class="kpi-valor">'+vencido.length+'</div><div class="kpi-sub">a cobrar</div></div>';document.getElementById('contador-cc').textContent=aberto.length;const ul=document.getElementById('lista-cc');if(aberto.length===0&&lista.length===0){ul.innerHTML='<div class="vazio"><div class="vazio-icon">💰</div>'+(CC_LISTA.length===0?'Dados de Conta Corrente ainda não disponíveis':'Nenhuma parcela em aberto')+'</div>';return;}const renderArr=aberto.length>0?aberto:lista;ul.innerHTML=renderArr.slice(0,100).map(p=>{const sit=(p.situacao||'aberto').toLowerCase();const venc=p.vencimento?new Date(p.vencimento):null;const isVencido=venc&&venc<new Date()&&sit!=='pago';const cls=sit==='pago'?'pago':(isVencido?'vencido':'aberto');return '<div class="cc-row"><div class="cc-info"><div class="cc-cliente">'+(p.cliente||'-')+'</div><div class="cc-meta">Vence '+fmtData(p.vencimento)+' · '+(p.parcela||'-')+(p.numero?' #'+p.numero:'')+(isVencido?' · ⚠️ vencida':'')+'</div></div><div class="cc-valor '+cls+'">'+fmt(p.valor||0)+'</div></div>';}).join('');}
+document.getElementById('busca-cc').addEventListener('input',e=>renderCC(e.target.value));
+// ============== EQUIPE (gerenciada via Settings) ==============
+const EQUIPE_DEFAULT = [
+  {nome:'Lais', email:'adm@3mvrepresentacao.com', whats:'5531999403675'},
+  {nome:'Rafa', email:'adm1@3mvrepresentacao.com', whats:'5531999403675'},
+  {nome:'Marcelo', email:'marcelo@3mvrepresentacao.com', whats:'5531988843675'}
+];
+let EQUIPE = (function(){
+  const saved = JSON.parse(localStorage.getItem('3mv_equipe')||'null');
+  if(!saved) return EQUIPE_DEFAULT;
+  // Mesclar: pega whats/email do default se não tiver no salvo
+  return saved.map(m=>{
+    const def = EQUIPE_DEFAULT.find(d=>d.email===m.email||d.nome===m.nome);
+    return {
+      nome: m.nome || (def?def.nome:''),
+      email: m.email || (def?def.email:''),
+      whats: m.whats || (def?def.whats:'')
+    };
+  });
+})();
+let MODO_ENVIO = localStorage.getItem('3mv_modo_envio') || 'ambos';
+let _prioSel = 'media';
+let _respSel = []; // array de responsaveis selecionados
+
+// ============== TAREFAS RENDER ==============
+function renderTarefas(){
+  const tFiltradas = aplicarFiltroTarefas(TAREFAS||[]);
+  const p=tFiltradas.filter(t=>!t.feita),c=tFiltradas.filter(t=>t.feita);
+  document.getElementById('kpi-tarefas').innerHTML='<div class="kpi-card destaque"><div class="kpi-label">Pendentes</div><div class="kpi-valor">'+p.length+'</div><div class="kpi-sub">aguardando</div></div><div class="kpi-card"><div class="kpi-label">Concluídas</div><div class="kpi-valor">'+c.length+'</div><div class="kpi-sub">total</div></div>';
+  document.getElementById('contador-pendentes').textContent=p.length;
+  const fab = document.getElementById('fab-tarefa');
+  if(fab) fab.style.display='flex';
+  const lp=document.getElementById('lista-pendentes');
+  lp.innerHTML = p.length===0
+    ? '<div class="vazio"><div class="vazio-icon">🎉</div>Nenhuma pendência! Clique no + pra criar uma.</div>'
+    : p.map(t => renderTarefaItem(t,false)).join('');
+  document.getElementById('lista-concluidas').innerHTML = c.length===0
+    ? '<div class="vazio"><div class="vazio-icon">📋</div>Nenhuma ainda</div>'
+    : c.slice(-8).reverse().map(t => renderTarefaItem(t,true)).join('');
+}
+
+function renderTarefaItem(t, concluida){
+  const prio = t.prioridade||'media';
+  const prioIcon = prio==='alta'?'🔴':(prio==='baixa'?'🟢':'🟡');
+  const respList = Array.isArray(t.responsavel) ? t.responsavel : [t.responsavel];
+  const respDisplay = respList.length===EQUIPE.length ? '@todos' : respList.map(r=>'@'+r).join(' ');
+  const canais = Array.isArray(t.canais) ? t.canais : ['email','whats'];
+  let acoes='';
+  if(!concluida){
+    const emails = EQUIPE.filter(m=>respList.includes(m.nome)).map(m=>m.email).filter(x=>x).join(',');
+    const subject = encodeURIComponent('[3MV] '+(t.cliente||t.industria||'Tarefa')+' - '+t.texto.substring(0,50));
+    const body = encodeURIComponent(montarMsgEmail(t));
+    const txtMsg = encodeURIComponent(montarMsgWhats(t));
+    
+    if(canais.includes('email') && emails){
+      acoes += '<a class="btn-mini email" href="mailto:'+emails+'?subject='+subject+'&body='+body+'" onclick="abrirConfirmarEnvio('+t.id+',\'email\')">📧 E-mail</a>';
+    }
+    if(canais.includes('whats')){
+      const whats = EQUIPE.filter(m=>respList.includes(m.nome) && m.whats).map(m=>({nome:m.nome,num:m.whats}));
+      whats.forEach(w=>{if(!w.num)return; acoes+='<a class="btn-mini whats" href="https://wa.me/'+w.num+'?text='+txtMsg+'" target="_blank" onclick="abrirConfirmarEnvio('+t.id+',\'whats\')">💬 '+w.nome+'</a>';});
+    }
+    
+    // Status de envios
+    if(t.envios && t.envios.length>0){
+      const enviosE = t.envios.filter(e=>e.canal==='email').length;
+      const enviosW = t.envios.filter(e=>e.canal==='whats').length;
+      acoes += '<span style="font-size:10px;color:#059669;font-weight:700;background:#d1fae5;padding:3px 8px;border-radius:8px;display:inline-flex;align-items:center;gap:4px;">✓ enviado'+(enviosE?' 📧'+enviosE:'')+(enviosW?' 💬'+enviosW:'')+'</span>';
+    }
+  }else if(t.concluida_por){
+    const canalIcon = {email:'📧',whats:'💬',telefone:'📞',pessoal:'🤝',outro:'📌'}[t.canal_resposta] || '✓';
+    const executor = t.executado_por || t.concluida_por.split('@')[0];
+    acoes='<span style="font-size:11px;color:#059669;font-weight:700;background:#d1fae5;padding:4px 9px;border-radius:8px;">✓ '+executor+' · '+canalIcon+'</span>';
+    if(t.concluida_obs){
+      acoes += '<span style="font-size:11px;color:var(--muted);font-weight:600;margin-left:6px;font-style:italic;">"'+t.concluida_obs.substring(0,40)+(t.concluida_obs.length>40?'...':'')+'"</span>';
+    }
+    acoes += '<span style="font-size:10px;color:var(--muted);font-weight:600;margin-left:6px;">'+t.concluida_em+'</span>';
+  }
+  return '<div class="tarefa-row">'
+    +'<div class="tarefa-check'+(concluida?' done':'')+'" onclick="toggleTarefa('+t.id+')" style="cursor:pointer;font-size:22px;color:'+(concluida?'#059669':'#cbd5e1')+';font-weight:700;">'+(concluida?'✓':'○')+'</div>'
+    +'<div class="tarefa-texto'+(concluida?' done':'')+'" style="flex:1;'+(concluida?'opacity:0.6;text-decoration:line-through;':'')+'">'
+      +'<div style="font-weight:700;">'+prioIcon+' '+t.texto+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-top:3px;font-weight:600;">'+respDisplay+(t.cliente?' · 📋 '+t.cliente:'')+(t.industria?' · 🏭 '+t.industria:'')+' · '+t.data+'</div>'
+      +(acoes?'<div class="tarefa-acao-row">'+acoes+'</div>':'')
+    +'</div></div>';
+}
+
+function toggleTarefa(id){
+  const t = TAREFAS.find(x=>x.id===id);
+  if(!t) return;
+  if(t.feita){
+    // Desmarca direto (volta pra pendente)
+    TAREFAS = TAREFAS.map(x => x.id===id ? (function(){const c=Object.assign({},x,{feita:false}); delete c.concluida_por; delete c.concluida_em; delete c.executado_por; delete c.canal_resposta; delete c.concluida_obs; return c;})() : x);
+    localStorage.setItem('3mv_tarefas',JSON.stringify(TAREFAS));
+    renderTarefas();
+    showToast('Tarefa reaberta');
+    return;
+  }
+  // Vai marcar como concluída — abre modal pra registrar
+  abrirModalConcluir(id);
+}
+
+let _concluirTarefaId = null;
+let _respCanalSel = null;
+
+function abrirModalConcluir(id){
+  _concluirTarefaId = id;
+  _respCanalSel = null;
+  const t = TAREFAS.find(x=>x.id===id);
+  if(!t) return;
+  
+  document.getElementById('concluir-tarefa-info').innerHTML = '📌 ' + t.texto + (t.cliente?'<br>📋 ' + t.cliente:'') + (t.industria?'<br>🏭 ' + t.industria:'');
+  
+  // Chips de quem executou (equipe)
+  const meuNome = USUARIO_LOGADO ? (EQUIPE.find(m=>m.email===USUARIO_LOGADO.email)||{}).nome || USUARIO_LOGADO.email.split('@')[0] : '';
+  const cont = document.getElementById('chips-executor');
+  cont.innerHTML = EQUIPE.map(m=>'<div class="chip-resp '+(m.nome===meuNome?'ativo':'')+'" data-exec="'+m.nome+'" onclick="setExecutor(this,\''+m.nome+'\')">'+(m.nome===meuNome?'✓ ':'')+m.nome+(m.nome===meuNome?' (eu)':'')+'</div>').join('');
+  window._executorSel = meuNome;
+  
+  // Reset chips canal
+  document.querySelectorAll('#modal-concluir .chip-resp[id^="resp-"]').forEach(el=>el.classList.remove('ativo'));
+  document.getElementById('concluir-obs').value = '';
+  
+  document.getElementById('modal-concluir').classList.add('aberto');
+}
+
+function setExecutor(el, nome){
+  document.querySelectorAll('#chips-executor .chip-resp').forEach(x=>x.classList.remove('ativo'));
+  el.classList.add('ativo');
+  window._executorSel = nome;
+}
+
+function setRespCanal(el, canal){
+  document.querySelectorAll('#modal-concluir .chip-resp[id^="resp-"]').forEach(x=>x.classList.remove('ativo'));
+  el.classList.add('ativo');
+  _respCanalSel = canal;
+}
+
+function fecharConcluir(){
+  document.getElementById('modal-concluir').classList.remove('aberto');
+  _concluirTarefaId = null;
+}
+
+function confirmarConcluir(){
+  if(!_concluirTarefaId) return;
+  if(!window._executorSel){alert('Marque quem executou');return;}
+  if(!_respCanalSel){alert('Marque como o cliente/indústria respondeu');return;}
+  
+  const obs = document.getElementById('concluir-obs').value.trim();
+  TAREFAS = TAREFAS.map(t => {
+    if(t.id !== _concluirTarefaId) return t;
+    return Object.assign({}, t, {
+      feita: true,
+      concluida_por: USUARIO_LOGADO?USUARIO_LOGADO.email:'?',
+      concluida_em: dataHoraAgora(),
+      executado_por: window._executorSel,
+      canal_resposta: _respCanalSel,
+      concluida_obs: obs
+    });
+  });
+  localStorage.setItem('3mv_tarefas', JSON.stringify(TAREFAS));
+  fecharConcluir();
+  renderTarefas();
+  showToast('✓ Tarefa concluída por '+window._executorSel);
+}
+
+function dataHoraAgora(){
+  const d=new Date();
+  return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+}
+
+function montarMsgEmail(t){
+  return 'Olá,\n\n'
+    +'Solicitação da 3MV Representação:\n\n'
+    +'📌 '+t.texto+'\n'
+    +(t.cliente?'📋 Cliente: '+t.cliente+'\n':'')
+    +(t.industria?'🏭 Indústria: '+t.industria+'\n':'')
+    +'⚡ Prioridade: '+(t.prioridade||'media')+'\n'
+    +'📅 '+t.data+'\n'
+    +(USUARIO_LOGADO?'\nSolicitado por: '+USUARIO_LOGADO.nome+' ('+USUARIO_LOGADO.email+')\n':'')
+    +'\nObrigado!\n3MV Representação';
+}
+
+function montarMsgWhats(t){
+  return '*3MV Representação*\n\n'
+    +'📌 '+t.texto+'\n'
+    +(t.cliente?'📋 Cliente: '+t.cliente+'\n':'')
+    +(t.industria?'🏭 Indústria: '+t.industria+'\n':'')
+    +'⚡ '+(t.prioridade||'media')+'\n'
+    +(USUARIO_LOGADO?'\n_'+USUARIO_LOGADO.nome+'_':'');
+}
+
+// ============== NOVA TAREFA - MODAL ==============
+function abrirNovaTarefa(){
+  // Reset campos
+  document.getElementById('t-texto').value='';
+  document.getElementById('t-cliente').value='';
+  document.getElementById('t-industria').value='';
+  _prioSel='media';
+  _respSel=[];
+  _destSel = [];
+  _canalSel = ['email','whats'];
+
+  document.getElementById('bloco-cliente').style.display='none';
+  document.getElementById('bloco-industria').style.display='none';
+  document.getElementById('dest-cliente').classList.remove('ativo');
+  document.getElementById('dest-industria').classList.remove('ativo');
+  document.getElementById('canal-email').classList.add('ativo');
+  document.getElementById('canal-whats').classList.add('ativo');
+
+  document.querySelectorAll('.chip-prio').forEach(el=>el.classList.toggle('ativo',el.dataset.prio==='media'));
+  
+  // Chips responsáveis
+  const cont = document.getElementById('chips-resp');
+  cont.innerHTML = EQUIPE.map(m=>'<div class="chip-resp" data-resp="'+m.nome+'" onclick="toggleResp(this,\''+m.nome+'\')">@'+m.nome+'</div>').join('')
+    + '<div class="chip-resp" data-resp="todos" onclick="selecionarTodos(this)">@todos</div>';
+  
+  // Datalists
+  document.getElementById('datalist-clientes').innerHTML = (CLIENTES||[]).slice(0,200).map(c=>'<option value="'+c.nome.replace(/"/g,'&quot;')+'">').join('');
+  document.getElementById('datalist-industrias').innerHTML = (INDUSTRIAS_AGREG||[]).slice(0,200).map(ind=>'<option value="'+ind.nome.replace(/"/g,'&quot;')+'">').join('');
+  
+  document.getElementById('modal-tarefa').classList.add('aberto');
+  
+}
+
+let _destSel=[], _canalSel=['email','whats'];
+
+function toggleDest(tipo){
+  const el = document.getElementById('dest-'+tipo);
+  const bloco = document.getElementById('bloco-'+tipo);
+  if(_destSel.includes(tipo)){
+    _destSel = _destSel.filter(x=>x!==tipo);
+    el.classList.remove('ativo');
+    bloco.style.display='none';
+  }else{
+    _destSel.push(tipo);
+    el.classList.add('ativo');
+    bloco.style.display='block';
+  }
+}
+
+function toggleCanal(c){
+  const el = document.getElementById('canal-'+c);
+  if(_canalSel.includes(c)){
+    if(_canalSel.length===1){return;} // sempre 1 canal mínimo
+    _canalSel = _canalSel.filter(x=>x!==c);
+    el.classList.remove('ativo');
+  }else{
+    _canalSel.push(c);
+    el.classList.add('ativo');
+  }
+}
+
+function atualizarContatosIndustria(){
+  const ind = (document.getElementById('t-industria').value||'').trim();
+  const bloco = document.getElementById('bloco-depto-industria');
+  bloco.style.display='block'; // SEMPRE visível
+  if(CONTATOS_GOOGLE.length===0){
+    document.getElementById('chips-industria-contatos').innerHTML = 
+      '<button class="btn-secondary" style="background:#dbeafe;color:#1565a8;border-color:#1d8ad6;" onclick="importarContatosGoogle()">📇 Importar contatos do Google (1x)</button>';
+    return;
+  }
+  const sugestoes = sugerirContatosDoCliente(ind);
+  const cont = document.getElementById('chips-industria-contatos');
+  const todos = [..._industriaContatosSel];
+  sugestoes.forEach(s=>{if(!todos.find(t=>t.email===s.email))todos.push(s);});
+  if(todos.length===0){
+    cont.innerHTML='<div style="font-size:11px;color:#94a3b8;font-style:italic;padding:6px 0;">Nenhuma sugestão automática para "'+ind+'". Use a busca abaixo. ('+CONTATOS_GOOGLE.length+' contatos)</div>';
+    return;
+  }
+  cont.innerHTML = todos.map((c,i)=>{
+    const sel = _industriaContatosSel.find(s=>s.email===c.email||s.phone===c.phone);
+    return '<div class="chip-resp '+(sel?'ativo':'')+'" onclick="toggleContatoIndustria('+i+')" title="'+(c.email||c.phone)+'">@'+c.nome.split(' ')[0]+(sel?' ✓':'')+'</div>';
+  }).join('');
+  window._contatosIndustriaVistos = todos;
+}
+
+function toggleContatoIndustria(idx){
+  const c = window._contatosIndustriaVistos[idx];
+  if(!c) return;
+  const i = _industriaContatosSel.findIndex(s=>s.email===c.email||s.phone===c.phone);
+  if(i>=0)_industriaContatosSel.splice(i,1);
+  else _industriaContatosSel.push(c);
+  atualizarContatosIndustria();
+}
+
+function buscarContatosIndustria(q){
+  q=(q||'').trim().toLowerCase();
+  const cont=document.getElementById('resultados-contatos-industria');
+  if(q.length<2){cont.innerHTML='';return;}
+  const matches = CONTATOS_GOOGLE.filter(c => 
+    (c.nome||'').toLowerCase().includes(q)||(c.email||'').toLowerCase().includes(q)||(c.empresa||'').toLowerCase().includes(q)
+  ).slice(0,12);
+  if(matches.length===0){cont.innerHTML='<div style="font-size:11px;color:#94a3b8;padding:6px;">Nenhum contato</div>';return;}
+  cont.innerHTML = matches.map(c=>{
+    const ja = _industriaContatosSel.find(s=>s.email===c.email||s.phone===c.phone);
+    return '<div class="contato-item" onclick="adicionarContatoIndDireto(\''+(c.email||c.phone||'').replace(/\'/g,'')+'\')">'
+      +'<div class="ci-foto" style="width:28px;height:28px;font-size:11px;">'+c.nome.split(' ').slice(0,1).map(p=>p[0]).join('').toUpperCase()+'</div>'
+      +'<div class="ci-info"><div class="ci-nome" style="font-size:12px;">'+c.nome+'</div><div class="ci-meta">'+(c.empresa?c.empresa+' · ':'')+(c.email||c.phone)+'</div></div>'
+      +(ja?'<span style="font-size:11px;color:#059669;font-weight:700;">✓</span>':'<button class="ci-add" style="padding:4px 8px;font-size:10px;">+</button>')
+    +'</div>';
+  }).join('');
+}
+
+function adicionarContatoIndDireto(chave){
+  const c = CONTATOS_GOOGLE.find(x => x.email===chave || x.phone===chave);
+  if(!c) return;
+  if(_industriaContatosSel.find(s=>s.email===c.email||s.phone===c.phone)){
+    _industriaContatosSel = _industriaContatosSel.filter(s=>!(s.email===c.email||s.phone===c.phone));
+  }else _industriaContatosSel.push(c);
+  document.getElementById('busca-contato-industria').value='';
+  document.getElementById('resultados-contatos-industria').innerHTML='';
+  atualizarContatosIndustria();
+}
+function fecharNovaTarefa(){document.getElementById('modal-tarefa').classList.remove('aberto');}
+
+function toggleResp(el, nome){
+  // Desmarca "todos" se estava ativo
+  const todosEl = document.querySelector('.chip-resp[data-resp="todos"]');
+  if(todosEl) todosEl.classList.remove('ativo');
+  if(_respSel.includes(nome)){
+    _respSel = _respSel.filter(x=>x!==nome);
+    el.classList.remove('ativo');
+  }else{
+    _respSel.push(nome);
+    el.classList.add('ativo');
+  }
+}
+
+function selecionarTodos(el){
+  document.querySelectorAll('.chip-resp').forEach(x=>x.classList.remove('ativo'));
+  el.classList.add('ativo');
+  _respSel = EQUIPE.map(m=>m.nome);
+}
+
+function setPrio(el, p){
+  document.querySelectorAll('.chip-prio').forEach(x=>x.classList.remove('ativo'));
+  el.classList.add('ativo');
+  _prioSel = p;
+}
+
+function salvarTarefa(){
+  const texto = document.getElementById('t-texto').value.trim();
+  const cliente = document.getElementById('t-cliente').value.trim();
+  const industria = document.getElementById('t-industria').value.trim();
+
+  if(!texto){alert('Descreva a tarefa');return;}
+  if(_respSel.length===0){alert('Marque pelo menos 1 responsável interno (use @todos pra mandar pra todos)');return;}
+  if(_destSel.length===0){alert('Escolha pra quem enviar: Cliente, Indústria ou ambos');return;}
+  if(_destSel.includes('cliente') && !cliente){alert('Preencha o nome do cliente');return;}
+  if(_destSel.includes('industria') && !industria){alert('Preencha o nome da indústria');return;}
+  if(_canalSel.length===0){alert('Marque pelo menos 1 canal de envio');return;}
+
+  const novaTarefa = {
+    id: Date.now(),
+    texto: texto,
+    cliente: _destSel.includes('cliente')?cliente:'',
+    industria: _destSel.includes('industria')?industria:'',
+    destinatarios_tipo: _destSel.slice(),
+    responsavel: _respSel.slice(),
+    canais: _canalSel.slice(),
+    prioridade: _prioSel,
+    data: dataHoraAgora(),
+    criada_por: USUARIO_LOGADO?USUARIO_LOGADO.email:'?',
+    feita: false,
+    envios: [] // {canal, data, por, copia, obs}
+  };
+  TAREFAS.unshift(novaTarefa);
+  localStorage.setItem('3mv_tarefas',JSON.stringify(TAREFAS));
+  fecharNovaTarefa();
+  renderTarefas();
+  showToast('✓ Tarefa criada! Use os botões pra enviar.');
+}
+
+// ============== CONFIG / EQUIPE ==============
+function abrirConfig(){
+  renderEquipeForm();
+  document.getElementById('cfg-modo-envio').value = MODO_ENVIO;
+  document.getElementById('modal-config').classList.add('aberto');
+}
+function fecharConfig(){document.getElementById('modal-config').classList.remove('aberto');}
+
+function renderEquipeForm(){
+  const cont = document.getElementById('lista-equipe');
+  cont.innerHTML = EQUIPE.map((m,i) => 
+    '<div class="equipe-row">'
+      +'<input type="text" placeholder="Nome" value="'+(m.nome||'')+'" onchange="atualizarEquipe('+i+',\'nome\',this.value)">'
+      +'<input type="text" placeholder="E-mail" value="'+(m.email||'')+'" onchange="atualizarEquipe('+i+',\'email\',this.value)">'
+      +'<input type="text" placeholder="WhatsApp" value="'+(m.whats||'')+'" onchange="atualizarEquipe('+i+',\'whats\',this.value)">'
+      +'<button class="equipe-rm" onclick="removerMembro('+i+')">×</button>'
+    +'</div>'
+  ).join('');
+}
+
+function adicionarMembro(){EQUIPE.push({nome:'',email:'',whats:''});renderEquipeForm();}
+function removerMembro(i){EQUIPE.splice(i,1);renderEquipeForm();}
+function atualizarEquipe(i,campo,valor){EQUIPE[i][campo]=valor;}
+
+function salvarConfig(){
+  EQUIPE = EQUIPE.filter(m => m.nome && (m.email||m.whats));
+  MODO_ENVIO = document.getElementById('cfg-modo-envio').value;
+  localStorage.setItem('3mv_equipe', JSON.stringify(EQUIPE));
+  localStorage.setItem('3mv_modo_envio', MODO_ENVIO);
+  fecharConfig();
+  showToast('✓ Equipe salva');
+}
+
+// ============== FILTROS NFD/CC ==============
+let _filtroNFD = 'todos';
+let _filtroCC = 'todos';
+
+function filtrarNFD(el, f){
+  document.querySelectorAll('#filtros-nfd .filter-chip').forEach(x=>x.classList.remove('ativo'));
+  el.classList.add('ativo');
+  _filtroNFD = f;
+  renderNFD(document.getElementById('busca-nfd').value);
+}
+
+function filtrarCC(el, f){
+  document.querySelectorAll('#filtros-cc .filter-chip').forEach(x=>x.classList.remove('ativo'));
+  el.classList.add('ativo');
+  _filtroCC = f;
+  renderCC(document.getElementById('busca-cc').value);
+}
+
+function aplicarFiltroPeriodoNFD(lista){
+  if(_filtroNFD==='todos') return lista;
+  const hoje = new Date();
+  if(_filtroNFD==='30d'){const lim=new Date(hoje); lim.setDate(lim.getDate()-30); return lista.filter(n=>n.data && new Date(n.data)>=lim);}
+  if(_filtroNFD==='90d'){const lim=new Date(hoje); lim.setDate(lim.getDate()-90); return lista.filter(n=>n.data && new Date(n.data)>=lim);}
+  if(_filtroNFD==='ano') return lista.filter(n=>n.data && (n.data+'').substring(0,4)==='2026');
+  return lista;
+}
+
+function aplicarFiltroCC(lista){
+  if(_filtroCC==='todos') return lista;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  if(_filtroCC==='vencido') return lista.filter(p=>{const v=p.vencimento;if(!v)return false;const sit=(p.situacao||'').toLowerCase();return sit!=='pago' && new Date(v)<hoje;});
+  if(_filtroCC==='aberto') return lista.filter(p=>(p.situacao||'').toLowerCase()!=='pago');
+  if(_filtroCC==='pago') return lista.filter(p=>(p.situacao||'').toLowerCase()==='pago');
+  if(_filtroCC==='7d'){const lim=new Date(hoje); lim.setDate(lim.getDate()+7); return lista.filter(p=>{const v=p.vencimento;if(!v)return false;const dv=new Date(v);return dv>=hoje && dv<=lim;});}
+  return lista;
+}
+
+function irPara(t,b){
+  document.querySelectorAll('.tela').forEach(x=>x.classList.remove('ativa'));
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('ativo'));
+  document.getElementById('tela-'+t).classList.add('ativa');
+  b.classList.add('ativo');
+  const fab=document.getElementById('fab-tarefa');
+  if(fab) fab.style.display = (t==='tarefas')?'flex':'none';
+  if(t==='tarefas')renderTarefas();
+  if(t==='nfd')renderNFD(document.getElementById('busca-nfd').value);
+  if(t==='cc')renderCC(document.getElementById('busca-cc').value);
+  if(t==='industrias')renderIndustrias(document.getElementById('busca-industria').value);
+}
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('visivel');setTimeout(()=>t.classList.remove('visivel'),2500);}
+function clientesDemo(){return[{id:1,nome:'SUPERMERCADO CENTRAL',cidade:'Ipatinga',segmento:'Ativo',industrias:[{nome:'CASA MADEIRA',ultimaCompra:'Mar/26',ciclo:45,diasSemComprar:52,valor2026:18400,qtdPedidos:8,saldo:[]}],todosSaldos:[]},{id:2,nome:'MERCADO BOM PRECO',cidade:'Coronel Fabriciano',segmento:'Ativo',industrias:[{nome:'CASA MADEIRA',ultimaCompra:'Fev/26',ciclo:60,diasSemComprar:88,valor2026:22100,qtdPedidos:6,saldo:[]}],todosSaldos:[]}];}
+function nfdDemo(){return[];}
+function ccDemo(){return[];}
+function produtosDemo(){return{};}
+// ====== LOGIN E-MAIL+SENHA (mesmo do painel.3mvrepresentacao.com) ======
+const DOMINIO_PERMITIDO = '3mvrepresentacao.com';
+let USUARIO_LOGADO = null;
+
+// Mesmos hashes do painel - mesmas senhas funcionam aqui
+const USUARIOS = {
+  'marcelo@3mvrepresentacao.com':  { hash: '9a885d36d6c4c5b641456fb57ecec3344e3047e4d113fe03a22a762fe4c0ad94', nome: 'Marcelo Rodrigues' },
+  'adm@3mvrepresentacao.com':      { hash: '88552bb952c3a362fea39cdbab22c666d9166ff72ea94df04a02b4d46c66a30d', nome: 'Lais' },
+  'adm1@3mvrepresentacao.com':     { hash: 'e46755c81db231358b744852d65f6a26825d138868b6f796dea75dc6c5fdc01d', nome: 'Rafaela' },
+};
+
+async function sha256(text){
+  const buf = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// Anti brute-force: 5 tentativas em 5 min → bloqueia 5 min (igual painel)
+const LOCK_KEY = '3mv_auth_lock';
+const MAX_TRIES = 5, LOCK_MIN = 5;
+function getLock(){try{return JSON.parse(localStorage.getItem(LOCK_KEY)||'{"tries":0,"until":0,"log":[]}');}catch(e){return {tries:0,until:0,log:[]};}}
+function setLock(s){try{localStorage.setItem(LOCK_KEY, JSON.stringify(s));}catch(e){}}
+function lockRemainingMs(){const s=getLock(); return s.until>Date.now() ? s.until-Date.now() : 0;}
+
+async function doLogin(event){
+  if(event) event.preventDefault();
+  const user = (document.getElementById('auth-user').value||'').trim().toLowerCase();
+  const pass = document.getElementById('auth-pass').value||'';
+  const erro = document.getElementById('login-erro');
+  erro.style.display='none'; erro.textContent='';
+
+  const remMs = lockRemainingMs();
+  if(remMs>0){
+    const min = Math.ceil(remMs/60000);
+    erro.textContent='Muitas tentativas. Aguarde '+min+' min.';
+    erro.style.display='block';
+    return false;
+  }
+
+  const u = USUARIOS[user];
+  const h = u ? await sha256(pass) : null;
+  const ok = u && h===u.hash;
+
+  // Audit log local (visível só no DevTools de cada navegador)
+  const lock = getLock();
+  lock.log = (lock.log||[]).slice(-19);
+  lock.log.push({user, ok, ts: new Date().toISOString(), ua: navigator.userAgent.slice(0,80)});
+
+  if(!ok){
+    lock.tries = (lock.tries||0)+1;
+    if(lock.tries>=MAX_TRIES){
+      lock.until = Date.now() + LOCK_MIN*60*1000;
+      lock.tries = 0;
+      erro.textContent='Bloqueado por '+LOCK_MIN+' min após '+MAX_TRIES+' tentativas.';
+    }else{
+      erro.textContent = u ? 'Senha incorreta ('+(MAX_TRIES-lock.tries)+' tentativas restantes)' : 'Usuário não encontrado';
+    }
+    erro.style.display='block';
+    setLock(lock);
+    return false;
+  }
+
+  // Sucesso
+  lock.tries=0; lock.until=0;
+  setLock(lock);
+  // SSO com painel: salva no MESMO formato que o index.html usa (3mv_auth)
+  localStorage.setItem('3mv_auth', JSON.stringify({user, nome: u.nome, ts: Date.now()}));
+  USUARIO_LOGADO = {email: user, nome: u.nome, foto: ''};
+  mostrarApp();
+  return false;
+}
+
+function checarLoginSalvo(){
+  try{
+    const raw = localStorage.getItem('3mv_auth');
+    if(!raw) return false;
+    const a = JSON.parse(raw);
+    // Sessão expira em 8h (mesma regra do painel - confiar mas atualizar)
+    if(!a.user) return false;
+    const u = USUARIOS[a.user];
+    if(!u) return false;
+    USUARIO_LOGADO = {email: a.user, nome: u.nome, foto: ''};
+    return true;
+  }catch(e){return false;}
+}
+
+function logout(){
+  localStorage.removeItem('3mv_auth');
+  localStorage.removeItem('gcal_token');
+  localStorage.removeItem('gcal_token_exp');
+  localStorage.removeItem('gcal_conectado');
+  USUARIO_LOGADO = null;
+  location.reload();
+}
+
+// Mantém função carregarGSI pra Calendar/Contacts (separado do login)
+let _gsiLoaded = false;
+function carregarGSI(callback){
+  if(window.google && window.google.accounts){_gsiLoaded=true;callback&&callback();return;}
+  const sc = document.createElement('script');
+  sc.src='https://accounts.google.com/gsi/client';
+  sc.async=true;sc.defer=true;
+  sc.onload = ()=>{_gsiLoaded=true;callback&&callback();};
+  document.head.appendChild(sc);
+}
+
+function mostrarUserChip(){
+  if(!USUARIO_LOGADO) return;
+  let chip = document.getElementById('user-chip');
+  if(!chip){
+    chip = document.createElement('div');
+    chip.id='user-chip';
+    chip.className='user-chip';
+    chip.onclick = () => { if(confirm('Sair da conta '+USUARIO_LOGADO.email+'?'))logout(); };
+    document.body.appendChild(chip);
+  }
+  const nome = (USUARIO_LOGADO.nome||USUARIO_LOGADO.email).split(' ')[0];
+  chip.innerHTML = '<span style="background:#1d8ad6;color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">'+nome[0].toUpperCase()+'</span><span>'+nome+'</span>';
+}
+
+async function mostrarApp(){
+  document.getElementById('tela-login').classList.add('escondido');
+  mostrarUserChip();
+  await carregarDados();
+  await carregarTarefas();
+  carregarGSIeAutoConectar();
+}
+
+// BOOT
+if(checarLoginSalvo()){
+  mostrarApp();
+}else{
+  // Foco automático no campo e-mail
+  setTimeout(()=>{const f=document.getElementById('auth-user');if(f)f.focus();},100);
+}
+
+
+
+
+
+
+
+
+// ============== AGREGADO INDÚSTRIAS ==============
+let INDUSTRIAS_AGREG = []; // {nome, clientes:[], totalValor, totalSaldos}
+
+function calcularIndustriasAgreg(){
+  const map = {};
+  (CLIENTES||[]).forEach(c=>{
+    (c.industrias||[]).forEach(i=>{
+      const k = i.nome;
+      if(!map[k]) map[k] = {nome:k, clientes:[], totalValor:0, totalSaldos:0, totalPedidos:0, valoresPorCliente:{}};
+      if(!map[k].clientes.includes(c.nome)) map[k].clientes.push(c.nome);
+      map[k].totalValor += i.valor2026||0;
+      map[k].totalPedidos += i.qtdPedidos||0;
+      map[k].totalSaldos += (i.saldo||[]).length;
+      map[k].valoresPorCliente[c.nome] = (map[k].valoresPorCliente[c.nome]||0) + (i.valor2026||0);
+    });
+  });
+  // SÓ INDÚSTRIAS ATIVAS - com valor 2026 > 0
+  INDUSTRIAS_AGREG = Object.values(map).filter(i=>i.totalValor>0).sort((a,b)=>b.totalValor-a.totalValor);
+}
+
+// Agrupar clientes que sejam filiais do mesmo grupo (mesmo nome base)
+function agruparClientes(nomes, valoresPorCliente){
+  // Heurística: nomes que começam com as mesmas 2 primeiras palavras OU mesma raiz longa
+  const grupos = {};
+  nomes.forEach(n=>{
+    // Pega as 2-3 primeiras palavras significativas (>2 chars)
+    const palavras = n.toUpperCase().split(/\s+/).filter(p=>p.length>2 && !['DE','DA','DO','LTDA','SA','EIRELI','ME','MEI','EPP','S/A','S\.A\.','COM','IND','COMERCIO','LATICINIO'].includes(p));
+    const chave = palavras.slice(0,2).join(' ') || n;
+    if(!grupos[chave]) grupos[chave]={nome:chave,filiais:[],total:0};
+    grupos[chave].filiais.push({nome:n, valor: valoresPorCliente[n]||0});
+    grupos[chave].total += valoresPorCliente[n]||0;
+  });
+  return Object.values(grupos).sort((a,b)=>b.total-a.total);
+}
+
+function renderIndustrias(filtro){
+  if(INDUSTRIAS_AGREG.length===0) calcularIndustriasAgreg();
+  if(filtro===undefined){const el=document.getElementById('busca-industria'); filtro=el?el.value:'';}
+  filtro = (filtro||'').toLowerCase().trim();
+  let lista = filtro ? INDUSTRIAS_AGREG.filter(i=>i.nome.toLowerCase().includes(filtro)) : INDUSTRIAS_AGREG;
+  lista = aplicarFiltroIndustrias(lista);
+  
+  const totalGeral = lista.reduce((s,i)=>s+i.totalValor,0);
+  document.getElementById('kpi-industrias').innerHTML = 
+    '<div class="kpi-card destaque"><div class="kpi-label">Faturamento 2026</div><div class="kpi-valor">'+fmt(totalGeral)+'</div><div class="kpi-sub">'+lista.length+' indústrias</div></div>'
+    +'<div class="kpi-card"><div class="kpi-label">Saldos pendentes</div><div class="kpi-valor">'+lista.reduce((s,i)=>s+i.totalSaldos,0)+'</div><div class="kpi-sub">itens</div></div>';
+  
+  document.getElementById('contador-industrias').textContent = lista.length+' ativas';
+  const cont = document.getElementById('lista-industrias');
+  if(lista.length===0){cont.innerHTML='<div class="vazio"><div class="vazio-icon">🏭</div>Nenhuma indústria</div>';return;}
+  
+  cont.innerHTML = lista.map(i=>{
+    const grupos = agruparClientes(i.clientes, i.valoresPorCliente);
+    return '<div class="card" style="cursor:pointer;" onclick="abrirIndustria(\''+i.nome.replace(/\'/g,'')+'\')">'
+      +'<div class="card-header" style="border-bottom:none;padding-bottom:8px;">'
+        +'<div class="card-nome">🏭 '+i.nome+'</div>'
+        +'<div class="card-meta">'
+          +'<span>📂 '+grupos.length+' grupo'+(grupos.length>1?'s':'')+'</span>'
+          +'<span>📋 '+i.clientes.length+' cliente'+(i.clientes.length>1?'s':'')+'</span>'
+          +'<span>📦 '+i.totalPedidos+' ped.</span>'
+          +(i.totalSaldos>0?'<span class="badge badge-laranja">⏳ '+i.totalSaldos+'</span>':'')
+        +'</div>'
+      +'</div>'
+      +'<div class="industria-lista" style="padding:8px 18px 14px;border-top:1px solid var(--border);">'
+        +'<div class="industria-row"><div class="industria-nome">Faturamento 2026</div><div class="industria-info"><div class="industria-valor">'+fmt(i.totalValor)+'</div></div></div>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+
+function abrirIndustria(nome){
+  const i = INDUSTRIAS_AGREG.find(x=>x.nome===nome);
+  if(!i) return;
+  const grupos = agruparClientes(i.clientes, i.valoresPorCliente);
+  
+  let h = '<div class="kpi-row" style="padding:14px 18px 0;">'
+    +'<div class="kpi-card destaque"><div class="kpi-label">Faturamento 2026</div><div class="kpi-valor">'+fmt(i.totalValor)+'</div></div>'
+    +'<div class="kpi-card"><div class="kpi-label">Pedidos</div><div class="kpi-valor">'+i.totalPedidos+'</div></div>'
+    +'</div>';
+  h += '<div class="separador"></div><div class="modal-secao">📋 '+grupos.length+' grupos · '+i.clientes.length+' clientes</div>';
+  
+  grupos.slice(0,40).forEach(g=>{
+    if(g.filiais.length>1){
+      // Grupo com filiais
+      h += '<div style="padding:10px 18px 6px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">'
+        +'<div style="font-weight:800;font-size:13px;color:#0f172a;">📂 '+g.nome+' <span style="font-size:11px;color:var(--muted);font-weight:600;">('+g.filiais.length+' filiais)</span></div>'
+        +'<div style="font-size:11px;color:var(--azul);font-weight:700;margin-top:2px;">'+fmt(g.total)+'</div>'
+      +'</div>';
+      g.filiais.forEach(f=>{
+        const cli = CLIENTES.find(c=>c.nome===f.nome);
+        h += '<div class="produto-row" style="cursor:pointer;padding-left:30px;" onclick="fecharModal();setTimeout(()=>abrirCliente('+(cli?cli.id:0)+'),200);"><div class="produto-nome" style="font-size:12px;">↳ '+f.nome+'</div><div class="produto-qtd">'+fmt(f.valor)+'</div></div>';
+      });
+    }else{
+      const f = g.filiais[0];
+      const cli = CLIENTES.find(c=>c.nome===f.nome);
+      h += '<div class="produto-row" style="cursor:pointer;" onclick="fecharModal();setTimeout(()=>abrirCliente('+(cli?cli.id:0)+'),200);"><div class="produto-nome">'+f.nome+'</div><div class="produto-qtd">'+fmt(f.valor)+'</div></div>';
+    }
+  });
+  
+  document.getElementById('modal-nome').textContent = '🏭 '+i.nome;
+  document.getElementById('modal-chips').innerHTML = '<span class="chip">Ativa</span><span class="chip">'+grupos.length+' grupos</span><span class="chip">'+i.clientes.length+' clientes</span>';
+  document.getElementById('modal-body').innerHTML = h;
+  document.getElementById('modal-cliente').classList.add('aberto');
+  document.body.style.overflow='hidden';
+}
+
+// ============== DASHBOARD ==============
+function abrirDashboard(){
+  renderDashboard();
+  document.getElementById('modal-dashboard').classList.add('aberto');
+}
+function fecharDashboard(){document.getElementById('modal-dashboard').classList.remove('aberto');}
+
+function renderDashboard(){
+  const t = TAREFAS||[];
+  const pendentes = t.filter(x=>!x.feita);
+  const concluidas = t.filter(x=>x.feita);
+  const enviadas = t.filter(x=>(x.envios||[]).length>0);
+  
+  // Por canal
+  const totalEnvE = t.reduce((s,x)=>s+(x.envios||[]).filter(e=>e.canal==='email').length,0);
+  const totalEnvW = t.reduce((s,x)=>s+(x.envios||[]).filter(e=>e.canal==='whats').length,0);
+  
+  // Por responsável
+  const porResp = {};
+  t.forEach(x=>{
+    (Array.isArray(x.responsavel)?x.responsavel:[x.responsavel]).forEach(r=>{
+      if(!r)return;
+      if(!porResp[r]) porResp[r]={total:0,feitas:0};
+      porResp[r].total++;
+      if(x.feita) porResp[r].feitas++;
+    });
+  });
+  
+  // Tempo médio criação → conclusão
+  const tempos = concluidas.filter(x=>x.concluida_em && x.data).map(x=>{
+    try{
+      const c = parseDataBR(x.data); const f = parseDataBR(x.concluida_em);
+      if(!c||!f)return null;
+      return (f-c)/3600000; // horas
+    }catch(e){return null;}
+  }).filter(v=>v!==null && v>=0);
+  const tempoMedio = tempos.length>0 ? (tempos.reduce((a,b)=>a+b,0)/tempos.length) : 0;
+  
+  let h = '<div class="kpi-row" style="margin-top:8px;">'
+    +'<div class="kpi-card destaque"><div class="kpi-label">Total tarefas</div><div class="kpi-valor">'+t.length+'</div></div>'
+    +'<div class="kpi-card"><div class="kpi-label">Pendentes</div><div class="kpi-valor">'+pendentes.length+'</div></div>'
+    +'</div>'
+    +'<div class="kpi-row" style="margin-top:8px;">'
+    +'<div class="kpi-card"><div class="kpi-label">Concluídas</div><div class="kpi-valor" style="color:#059669;">'+concluidas.length+'</div></div>'
+    +'<div class="kpi-card"><div class="kpi-label">% Conclusão</div><div class="kpi-valor">'+(t.length?Math.round(concluidas.length/t.length*100):0)+'%</div></div>'
+    +'</div>';
+  
+  h += '<div style="margin-top:18px;font-size:11px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:#475569;margin-bottom:8px;">📤 Envios disparados</div>'
+    +'<div class="kpi-row">'
+    +'<div class="kpi-card"><div class="kpi-label">📧 E-mail</div><div class="kpi-valor">'+totalEnvE+'</div></div>'
+    +'<div class="kpi-card"><div class="kpi-label">💬 WhatsApp</div><div class="kpi-valor">'+totalEnvW+'</div></div>'
+    +'</div>';
+  
+  // Estatísticas de canal de resposta (quem responde por onde)
+  const respPorCanal = {email:0, whats:0, telefone:0, pessoal:0, outro:0};
+  concluidas.forEach(x=>{ if(x.canal_resposta) respPorCanal[x.canal_resposta] = (respPorCanal[x.canal_resposta]||0)+1; });
+  const totalResp = Object.values(respPorCanal).reduce((a,b)=>a+b,0);
+  if(totalResp>0){
+    h += '<div style="margin-top:18px;font-size:11px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:#475569;margin-bottom:8px;">📥 Como respondem</div>';
+    const canais = [
+      {k:'email', i:'📧', n:'E-mail'},
+      {k:'whats', i:'💬', n:'WhatsApp'},
+      {k:'telefone', i:'📞', n:'Telefone'},
+      {k:'pessoal', i:'🤝', n:'Pessoalmente'},
+      {k:'outro', i:'📌', n:'Outro'}
+    ];
+    canais.forEach(c=>{
+      if(respPorCanal[c.k]<=0) return;
+      const pct = Math.round(respPorCanal[c.k]/totalResp*100);
+      h += '<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:#f8fafc;border-radius:8px;margin-bottom:5px;font-size:12px;">'
+        +'<span style="width:90px;font-weight:700;">'+c.i+' '+c.n+'</span>'
+        +'<div style="flex:1;background:#e2e8f0;height:8px;border-radius:4px;overflow:hidden;"><div style="background:#1d8ad6;height:100%;width:'+pct+'%;"></div></div>'
+        +'<span style="font-weight:800;color:#1565a8;min-width:40px;text-align:right;">'+respPorCanal[c.k]+' ('+pct+'%)</span>'
+      +'</div>';
+    });
+  }
+  
+  // Quem mais executa tarefas
+  const execPorPessoa = {};
+  concluidas.forEach(x=>{ const e=x.executado_por; if(e) execPorPessoa[e]=(execPorPessoa[e]||0)+1; });
+  if(Object.keys(execPorPessoa).length>0){
+    h += '<div style="margin-top:18px;font-size:11px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:#475569;margin-bottom:8px;">🏆 Executores</div>';
+    Object.entries(execPorPessoa).sort((a,b)=>b[1]-a[1]).forEach(([nome,n])=>{
+      const pct = Math.round(n/concluidas.length*100);
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f0f9ff;border-radius:8px;margin-bottom:5px;font-size:13px;">'
+        +'<div style="font-weight:700;color:#1565a8;">⭐ '+nome+'</div>'
+        +'<div style="font-size:12px;"><b>'+n+'</b> tarefa'+(n>1?'s':'')+' · '+pct+'%</div>'
+      +'</div>';
+    });
+  }
+  
+  if(tempoMedio>0){
+    h += '<div style="margin-top:14px;background:#f0f9ff;padding:10px 14px;border-radius:10px;font-size:12px;color:#1565a8;font-weight:700;">⏱ Tempo médio até conclusão: <b>'+(tempoMedio<24?tempoMedio.toFixed(1)+'h':((tempoMedio/24).toFixed(1)+'d'))+'</b></div>';
+  }
+  
+  // Por responsável
+  if(Object.keys(porResp).length>0){
+    h += '<div style="margin-top:18px;font-size:11px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:#475569;margin-bottom:8px;">👥 Por responsável</div>';
+    Object.entries(porResp).sort((a,b)=>b[1].total-a[1].total).forEach(([r,d])=>{
+      const pct = d.total?Math.round(d.feitas/d.total*100):0;
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#f8fafc;border-radius:10px;margin-bottom:6px;font-size:13px;">'
+        +'<div style="font-weight:700;">'+r+'</div>'
+        +'<div style="font-size:12px;color:var(--muted);"><b style="color:#059669;">'+d.feitas+'</b>/'+d.total+' · '+pct+'%</div>'
+      +'</div>';
+    });
+  }
+  
+  // Últimas atividades
+  const ultimas = [...t].slice(0,8);
+  if(ultimas.length>0){
+    h += '<div style="margin-top:18px;font-size:11px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:#475569;margin-bottom:8px;">🕐 Últimas tarefas</div>';
+    ultimas.forEach(x=>{
+      const status = x.feita?'✓':'○';
+      const cor = x.feita?'#059669':'#94a3b8';
+      h += '<div style="font-size:12px;padding:6px 10px;border-bottom:1px solid #f1f5f9;display:flex;gap:8px;align-items:center;">'
+        +'<span style="color:'+cor+';font-weight:800;">'+status+'</span>'
+        +'<span style="flex:1;color:#0f172a;">'+x.texto.substring(0,40)+(x.texto.length>40?'...':'')+'</span>'
+        +'<span style="color:var(--muted);font-size:10px;">'+x.data+'</span>'
+      +'</div>';
+    });
+  }
+  
+  document.getElementById('dash-conteudo').innerHTML = h;
+}
+
+function parseDataBR(s){ // formato "10/05 22:45"
+  if(!s)return null;
+  const m = s.match(/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/);
+  if(!m)return null;
+  const d=new Date();
+  d.setMonth(parseInt(m[2])-1); d.setDate(parseInt(m[1])); d.setHours(parseInt(m[3])); d.setMinutes(parseInt(m[4])); d.setSeconds(0); d.setMilliseconds(0);
+  return d.getTime();
+}
+
+// ============== CONFIRMAÇÃO DE ENVIO ==============
+let _envioTarefaId=null, _envioCanal=null;
+function abrirConfirmarEnvio(tarefaId, canal){
+  _envioTarefaId = tarefaId;
+  _envioCanal = canal;
+  // Pequeno delay pro app de e-mail/whats abrir primeiro
+  setTimeout(()=>{
+    const t = TAREFAS.find(x=>x.id===tarefaId);
+    if(!t)return;
+    const checks = '<label>Confirmar envio realizado:</label>'
+      +'<div class="chips-grupo">'
+      +(t.canais.includes('email')?'<div class="chip-resp '+(canal==='email'?'ativo':'')+'" id="conf-email" onclick="this.classList.toggle(\'ativo\')">📧 Enviado por e-mail</div>':'')
+      +(t.canais.includes('whats')?'<div class="chip-resp '+(canal==='whats'?'ativo':'')+'" id="conf-whats" onclick="this.classList.toggle(\'ativo\')">💬 Enviado por WhatsApp</div>':'')
+      +'</div>';
+    document.getElementById('envio-checks').innerHTML = checks;
+    document.getElementById('envio-copia').value='';
+    document.getElementById('envio-obs').value='';
+    document.getElementById('modal-envio').classList.add('aberto');
+  }, 600);
+}
+function fecharModalEnvio(){document.getElementById('modal-envio').classList.remove('aberto');_envioTarefaId=null;}
+function salvarConfirmacaoEnvio(){
+  if(!_envioTarefaId){fecharModalEnvio();return;}
+  const t = TAREFAS.find(x=>x.id===_envioTarefaId);
+  if(!t){fecharModalEnvio();return;}
+  if(!t.envios) t.envios=[];
+  const copia = (document.getElementById('envio-copia').value||'').split(',').map(s=>s.trim()).filter(s=>s);
+  const obs = document.getElementById('envio-obs').value.trim();
+  ['email','whats'].forEach(canal=>{
+    const el = document.getElementById('conf-'+canal);
+    if(el && el.classList.contains('ativo')){
+      t.envios.push({
+        canal: canal,
+        data: dataHoraAgora(),
+        por: USUARIO_LOGADO?USUARIO_LOGADO.email:'?',
+        copia: canal==='email'?copia:[],
+        obs: obs
+      });
+    }
+  });
+  localStorage.setItem('3mv_tarefas',JSON.stringify(TAREFAS));
+  fecharModalEnvio();
+  renderTarefas();
+  showToast('✓ Envio registrado no dashboard');
+}
+
+
+
+// ============== FILTROS NOVOS ==============
+let _filtroTarefas = 'todas';
+let _filtroIndustrias = 'todas';
+let _filtroClientes = 'todos';
+
+function filtrarTarefas(el, f){
+  document.querySelectorAll('#filtros-tarefas .filter-chip').forEach(x=>x.classList.remove('ativo'));
+  el.classList.add('ativo');
+  _filtroTarefas = f;
+  renderTarefas();
+}
+
+function filtrarIndustrias(el, f){
+  document.querySelectorAll('#filtros-industrias .filter-chip').forEach(x=>x.classList.remove('ativo'));
+  el.classList.add('ativo');
+  _filtroIndustrias = f;
+  renderIndustrias();
+}
+
+function filtrarClientes(el, f){
+  document.querySelectorAll('#filtros-clientes .filter-chip').forEach(x=>x.classList.remove('ativo'));
+  el.classList.add('ativo');
+  _filtroClientes = f;
+  renderClientes(document.getElementById('busca-input').value||'');
+}
+
+function aplicarFiltroTarefas(lista){
+  const buscaEl = document.getElementById('busca-tarefas');
+  const busca = (buscaEl?buscaEl.value||'':'').toLowerCase().trim();
+  const meuEmail = USUARIO_LOGADO?USUARIO_LOGADO.email:'';
+  const meuNome = USUARIO_LOGADO ? (EQUIPE.find(m=>m.email===meuEmail)||{}).nome : '';
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  
+  return lista.filter(t=>{
+    // Texto
+    if(busca){
+      const texto = ((t.texto||'')+' '+(t.cliente||'')+' '+(t.industria||'')+' '+(Array.isArray(t.responsavel)?t.responsavel.join(' '):t.responsavel||'')).toLowerCase();
+      if(!texto.includes(busca)) return false;
+    }
+    // Filtro chip
+    if(_filtroTarefas==='minhas'){
+      const respList = Array.isArray(t.responsavel)?t.responsavel:[t.responsavel];
+      if(!respList.includes(meuNome)) return false;
+    }
+    if(_filtroTarefas==='alta' && t.prioridade!=='alta') return false;
+    if(_filtroTarefas==='hoje'){
+      const dt = parseDataBR(t.data);
+      if(!dt) return false;
+      const d = new Date(dt); d.setHours(0,0,0,0);
+      if(d.getTime()!==hoje.getTime()) return false;
+    }
+    if(_filtroTarefas==='atrasadas'){
+      const dt = parseDataBR(t.data);
+      if(!dt || t.feita) return false;
+      const dias = (Date.now()-dt)/86400000;
+      if(dias < 1) return false;
+    }
+    if(_filtroTarefas==='enviadas'){
+      if(!(t.envios && t.envios.length>0)) return false;
+    }
+    return true;
+  });
+}
+
+function aplicarFiltroIndustrias(lista){
+  if(_filtroIndustrias==='saldos') return lista.filter(i=>i.totalSaldos>0);
+  if(_filtroIndustrias==='top10') return lista.slice(0,10);
+  if(_filtroIndustrias==='multi') return lista.filter(i=>i.clientes.length>=2);
+  return lista;
+}
+
+function aplicarFiltroClientes(lista){
+  if(_filtroClientes==='todos') return lista;
+  if(_filtroClientes==='urgente') return lista.filter(c=>classificarCliente(c)==='urgente');
+  if(_filtroClientes==='proximo') return lista.filter(c=>classificarCliente(c)==='proximo');
+  if(_filtroClientes==='normal') return lista.filter(c=>classificarCliente(c)==='normal');
+  if(_filtroClientes==='agenda') return lista.filter(c=>CLIENTES_HOJE && CLIENTES_HOJE.has(c.id));
+  if(_filtroClientes==='saldos') return lista.filter(c=>c.todosSaldos&&c.todosSaldos.length>0);
+  return lista;
+}
+
+</script>
+</body>
+</html>
