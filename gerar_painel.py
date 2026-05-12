@@ -99,6 +99,12 @@ def main():
     saida.write_text(html, encoding="utf-8")
     print(f"OK: {saida} ({len(html):,} chars)")
 
+    # Re-grava dados.json com gerado_em + clientes_config + metas (que foram adicionados em memoria)
+    if dados.exists():
+        dados.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
+        print(f"OK dados.json re-gravado com gerado_em={d.get('gerado_em')}")
+
+
     # Também gera versão mobile-friendly
     automacoes = here.parent.parent.parent
     mobile_dir = automacoes / "Painel_Mobile"
