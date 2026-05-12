@@ -46,7 +46,9 @@ jobs:
 
       - name: Etapa 0b — Baixar planilhas do Drive (Service Account, opcional)
         env:
-          GOOGLE_SA_KEY: ${{ secrets.GOOGLE_SA_KEY }}
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
           DRIVE_ID_CRM: ${{ secrets.DRIVE_ID_CRM }}
           DRIVE_ID_CC: ${{ secrets.DRIVE_ID_CC }}
           DRIVE_ID_METAS: ${{ secrets.DRIVE_ID_METAS }}
