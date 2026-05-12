@@ -15,8 +15,8 @@ def _fix_tzdraf(html: str) -> str:
     Corrige o bug de Temporal Dead Zone (TDZ) no JavaScript do painel.
 
     O problema: 'let __ajusteFonteRAF' era declarado DEPOIS do IIFE checkAuth(),
-    mas checkAuth() dispara renderTab -> agendarAjusteFonte que tenta ler a variável
-    antes de ela ser inicializada -> ReferenceError na carga inicial.
+    mas checkAuth() dispara renderTab → agendarAjusteFonte que tenta ler a variável
+    antes de ela ser inicializada → ReferenceError na carga inicial.
 
     A correção: move 'let __ajusteFonteRAF = null' para antes do checkAuth() IIFE.
     Aplicada automaticamente em todos os HTMLs gerados — Mac, Windows e GitHub Actions.
@@ -36,6 +36,112 @@ def _fix_tzdraf(html: str) -> str:
     )
     return html
 
+
+
+
+def _fix_autorefresh(html: str) -> str:
+    """Garante auto-refresh de 30min no mobile (seg-sex 8h-20h)."""
+    if 'autoRefresh' in html:
+        return html
+    import re
+    NEW = (
+        "// Auto-refresh: recarrega a cada 30min em dias úteis (8h-20h)\n"
+        "(function autoRefresh() {\n"
+        "  const INTERVALO_MS = 30 * 60 * 1000;\n"
+        "  function devePuxar() {\n"
+        "    const h = new Date().getHours(), d = new Date().getDay();\n"
+        "    return d >= 1 && d <= 5 && h >= 8 && h < 20;\n"
+        "  }\n"
+        "  setInterval(function() { if (devePuxar()) location.reload(); }, INTERVALO_MS);\n"
+        "})();"
+    )
+    html = re.sub(r'// Auto-refresh removido[^\n]*\n[^\n]*\n', NEW + '\n', html)
+    return html
+
+
+def _fix_industrias_inativas(html: str) -> str:
+    """Filtra indústrias inativas da tabela de Contatos das Indústrias."""
+    OLD = "      const corStatus = (d.status_erp||'').toLowerCase().includes('ativ') ? '#10B981' : '#94A3B8';"
+    NEW = (
+        "      const _st = (d.status_erp || '').toLowerCase();\n"
+        "      if (_st && !_st.includes('ativ')) return; // oculta inativos\n"
+        "      const corStatus = '#10B981';"
+    )
+    return html.replace(OLD, NEW, 1)
+
+
+def _fix_filtros_globais(html: str) -> str:
+    """
+    Garante que TODOS os filtros do cabeçalho (Grupo/Cliente/Indústria/Mês/Busca)
+    se apliquem a TODAS as análises do painel.
+
+    Aplica três patches:
+    1. pedidos_2026: wraps com aplicarF_pedidos() onde ainda não estiver
+    2. historico: usa getHistoricoFiltrado() em vez de dadosCache.historico diretamente
+    3. renderHistorico: respeita filtros globais além dos locais
+
+    Já aplicado no painel_fixed.html — esta função serve de safeguard para
+    versões futuras do painel.html que ainda não tenham o patch.
+    """
+    import re
+
+    # Guard 1: já tem o helper? Se sim, assume que o patch está aplicado
+    if 'function getHistoricoFiltrado()' in html:
+        return html
+
+    # Patch pedidos_2026 não-wrapped
+    lines_out = []
+    for line in html.split('\n'):
+        if 'aplicarF_pedidos(dadosCache.pedidos_2026' in line:
+            lines_out.append(line)
+            continue
+        if '!dadosCache.pedidos_2026' in line or '!dadosCache.historico' in line:
+            lines_out.append(line)
+            continue
+        if 'dadosCache.pedidos_2026 || []' in line:
+            line = line.replace('(dadosCache.pedidos_2026 || []).', 'aplicarF_pedidos(dadosCache.pedidos_2026 || []).')
+            line = re.sub(r'(?<!aplicarF_pedidos\()dadosCache\.pedidos_2026 \|\| \[\]',
+                          'aplicarF_pedidos(dadosCache.pedidos_2026 || [])', line)
+        if '= dadosCache.historico' in line and 'getHistoricoFiltrado' not in line:
+            line = line.replace('= dadosCache.historico;', '= getHistoricoFiltrado();')
+            line = line.replace('= dadosCache.historico || {};', '= getHistoricoFiltrado();')
+        lines_out.append(line)
+    html = '\n'.join(lines_out)
+
+    # Injetar helper getHistoricoFiltrado antes de aplicarFiltros()
+    HELPER = """
+function getHistoricoFiltrado() {
+  const h = dadosCache ? (dadosCache.historico || {}) : {};
+  const fg = getFiltrosGlobais();
+  if (!fg.industria && !fg.cliente && !fg.grupo) return h;
+  const fInd = (obj) => {
+    if (!fg.industria) return obj;
+    const r = {};
+    Object.keys(obj || {}).forEach(k => { if (normalizaIndustria(k) === normalizaIndustria(fg.industria)) r[k] = obj[k]; });
+    return r;
+  };
+  const fCli = (obj) => {
+    if (!fg.cliente && !fg.grupo) return obj;
+    const r = {};
+    Object.keys(obj || {}).forEach(k => {
+      if (fg.cliente && k !== fg.cliente) return;
+      if (fg.grupo && grupoDoCliente(k) !== fg.grupo) return;
+      r[k] = obj[k];
+    });
+    return r;
+  };
+  return { ...h,
+    ind_mes_26: fInd(h.ind_mes_26 || {}), ind_mes_25: fInd(h.ind_mes_25 || {}),
+    cli_mes_26: fCli(h.cli_mes_26 || {}), cli_mes_25: fCli(h.cli_mes_25 || {}),
+    por_cliente: fCli(h.por_cliente || {}), por_industria: fInd(h.por_industria || {}),
+  };
+}
+"""
+    ANCHOR = 'function aplicarFiltros() {'
+    if ANCHOR in html:
+        html = html.replace(ANCHOR, HELPER + ANCHOR, 1)
+
+    return html
 
 def main():
     here = Path(__file__).parent
@@ -82,6 +188,9 @@ def main():
     # Fix TDZ: garante que __ajusteFonteRAF seja declarado antes do checkAuth() IIFE
     # (corrige bug que impedia os filtros do cabeçalho de funcionar em todas as abas)
     html = _fix_tzdraf(html)
+    html = _fix_filtros_globais(html)
+    html = _fix_autorefresh(html)        # refresh 30min no mobile
+    html = _fix_industrias_inativas(html)  # esconde indústrias inativas
 
     # Injeta o JSON antes do </head>
     inject = (
@@ -99,8 +208,8 @@ def main():
     saida.write_text(html, encoding="utf-8")
     print(f"OK: {saida} ({len(html):,} chars)")
 
-    # Também gera versão mobile-friendly
-    automacoes = here.parent.parent.parent
+    # Também gera versão mobile-friendly em /3MV/Automações/Painel_Mobile/painel.html
+    automacoes = here.parent.parent.parent  # sobe 3 níveis: Resources → Contents → 3MV_Painel.app → Automações
     mobile_dir = automacoes / "Painel_Mobile"
     try:
         mobile_dir.mkdir(parents=True, exist_ok=True)
@@ -113,7 +222,10 @@ def main():
 
     # Painéis personalizados por usuário (Marcelo, Lais, Rafaela)
     template_html = template.read_text(encoding="utf-8")
-    template_html = _fix_tzdraf(template_html)  # Fix TDZ nos painéis por usuário também
+    template_html = _fix_tzdraf(template_html)
+    template_html = _fix_filtros_globais(template_html)
+    template_html = _fix_autorefresh(template_html)
+    template_html = _fix_industrias_inativas(template_html)
     inject_dados = (
         "<script>\n"
         "window.__DADOS__ = " + json.dumps(d, ensure_ascii=False) + ";\n"
