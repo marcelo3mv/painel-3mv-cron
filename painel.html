@@ -1853,7 +1853,7 @@ function pos_load() {
 // === COMPARATIVO 24×25×26 (3MV PATCH) ===
 function renderComparativo() {
   if (!dadosCache || !dadosCache.historico) return;
-  const h = dadosCache.historico;
+  const h = getHistoricoFiltrado();
   const por_ano = h.por_ano || {};
   const por_ind = h.por_industria || {};
   const por_cli = h.por_cliente || {};
@@ -1971,7 +1971,7 @@ function drawBarMulti(id, labels, datasets) {
 // Calcula totais separando indústrias ativas (com vendas em 2026) das inativas
 function calcAtivasInativas() {
   if (!dadosCache || !dadosCache.historico) return null;
-  const h = dadosCache.historico;
+  const h = getHistoricoFiltrado();
   const ind_mes_25 = h.ind_mes_25 || {};
   const ind_mes_26 = h.ind_mes_26 || {};
   const mesAtual = (typeof getMesAtual === 'function') ? getMesAtual() : 12;
@@ -2023,10 +2023,10 @@ function renderBannerAtivasFiltrado(elId) {
     return renderBannerAtivas(elId);
   }
 
-  const h = dadosCache.historico;
+  const h = getHistoricoFiltrado();
   const ind_mes_25 = h.ind_mes_25 || {};
   const ind_mes_26 = h.ind_mes_26 || {};
-  const peds = dadosCache.pedidos_2026 || [];
+  const peds = aplicarF_pedidos(dadosCache.pedidos_2026 || []);
   const mesAtual = (typeof getMesAtual === 'function') ? getMesAtual() : 12;
   const mesNome = (typeof MESES !== 'undefined') ? MESES[mesAtual-1] : '';
 
@@ -2113,9 +2113,13 @@ function renderBannerAtivas(elId) {
 
 function renderDashboard() {
   if (!dadosCache) return;
-  const h = dadosCache.historico || {};
+  const h = getHistoricoFiltrado();
   const totais = dadosCache.totais || {};
   const cc = dadosCache.conta_corrente || {};
+  // FIX: valores filtrados para cards que usavam totais pré-agregados
+  const _itensF   = aplicarF(dadosCache.itens || []);
+  const _pedsF    = aplicarF_pedidos(dadosCache.pedidos_2026 || []);
+  const _saldoF   = _itensF.reduce((s,i) => s + (i.valor_saldo||0), 0);
   const por_ano = h.por_ano || {};
   const t25 = por_ano['2025'] || 0;
   const t26 = por_ano['2026'] || 0;
@@ -2131,8 +2135,8 @@ function renderDashboard() {
     el.textContent = cresc !== null ? (cresc * 100).toFixed(1) + '%' : '—';
     el.className = 'v ' + (cresc >= 0 ? 'ok' : 'warn');
   }
-  if ($('db-saldo')) $('db-saldo').textContent = 'R$ ' + fmt(totais.valor_total_saldo || 0);
-  if ($('db-ped26')) $('db-ped26').textContent = fmtInt(totais.pedidos_no_ano || 0);
+  if ($('db-saldo')) $('db-saldo').textContent = 'R$ ' + fmt(_saldoF);
+  if ($('db-ped26')) $('db-ped26').textContent = fmtInt(_pedsF.length);
   if ($('db-ind')) $('db-ind').textContent = fmtInt(Object.keys(h.por_industria || {}).length);
   if ($('db-cli')) $('db-cli').textContent = fmtInt(Object.keys(h.por_cliente || {}).length);
   if ($('db-nfd')) $('db-nfd').textContent = 'R$ ' + fmt((cc.nfd_aberto || {}).total || 0);
@@ -2401,7 +2405,7 @@ function renderDashboard() {
   if ($('db-fatxsaldo')) {
     drawDoughnut('db-fatxsaldo',
       ['Faturado 2026', 'Saldo a Faturar'],
-      [t26, totais.valor_total_saldo || 0],
+      [t26, _saldoF],
       [COLORS[2], COLORS[1]]);
   }
 }
@@ -2411,7 +2415,7 @@ function renderComp25x26() {
   if (!dadosCache || !dadosCache.historico) return;
   // Banner respeita filtros globais (passa o escopo)
   renderBannerAtivasFiltrado('banner-ativas-comp');
-  const h = dadosCache.historico;
+  const h = getHistoricoFiltrado();
   const por_ano = h.por_ano || {};
   const por_ind = h.por_industria || {};
   const por_cli = h.por_cliente || {};
@@ -2551,7 +2555,7 @@ function renderComp25x26() {
   } else if (escopo === 'cliente' || escopo === 'grupo') {
     // Cruza pedidos_2026 → indústrias do cliente/grupo
     const ind26_filtrado = {};
-    (dadosCache.pedidos_2026 || []).forEach(p => {
+    aplicarF_pedidos(dadosCache.pedidos_2026 || []).forEach(p => {
       const cli = p.cliente || '';
       const ind = p.industria || '—';
       const dt = p.data || '';
@@ -2642,7 +2646,7 @@ function renderComp25x26() {
 
   // FASE 8.6: Mapa cliente → indústria principal (pra filtrar ativos)
   const indPrinPorCli = {};
-  (dadosCache.pedidos_2026 || []).forEach(p => {
+  aplicarF_pedidos(dadosCache.pedidos_2026 || []).forEach(p => {
     const c = p.cliente; if (!c) return;
     if (!indPrinPorCli[c]) indPrinPorCli[c] = {};
     const ind = p.industria || '—';
@@ -2766,7 +2770,7 @@ function ytdSum(arr12, mesLimite) {
 
 function renderTopCli() {
   if (!dadosCache || !dadosCache.historico) return;
-  const h = dadosCache.historico;
+  const h = getHistoricoFiltrado();
   const por_cli = h.por_cliente || {};
   const cli_mes_25 = h.cli_mes_25 || {};
   const cli_mes_26 = h.cli_mes_26 || {};
@@ -2791,7 +2795,7 @@ function renderTopCli() {
   // Se filtro global de indústria: restringe clientes àqueles que compraram dessa indústria em 2026
   if (fGlobalInd) {
     const clisInd = new Set();
-    (dadosCache.pedidos_2026 || []).forEach(p => {
+    aplicarF_pedidos(dadosCache.pedidos_2026 || []).forEach(p => {
       if (normalizaIndustria(p.industria) === normalizaIndustria(fGlobalInd)) {
         if (p.cliente) clisInd.add(p.cliente);
       }
@@ -2924,7 +2928,7 @@ function renderTopCli() {
 function renderTopInd() {
   if (!dadosCache || !dadosCache.historico) return;
   renderBannerAtivasFiltrado('banner-ativas-top-ind');
-  const h = dadosCache.historico;
+  const h = getHistoricoFiltrado();
   let por_ind = h.por_industria || {};
   const por_cli = h.por_cliente || {};
   let ind_mes_25 = h.ind_mes_25 || {};
@@ -2941,7 +2945,7 @@ function renderTopInd() {
   // Se filtro global de cliente/grupo: restringe indústrias àquelas que ele compra em 2026
   if (fGlobalCli || fGlobalGrp) {
     const indsCli = new Set();
-    (dadosCache.pedidos_2026 || []).forEach(p => {
+    aplicarF_pedidos(dadosCache.pedidos_2026 || []).forEach(p => {
       const matchC = fGlobalCli ? p.cliente === fGlobalCli : (grupoDoCliente(p.cliente) === fGlobalGrp);
       if (matchC && p.industria) indsCli.add(normalizaIndustria(p.industria));
     });
@@ -3090,7 +3094,7 @@ function renderTopInd() {
 
 function renderTopMes() {
   if (!dadosCache || !dadosCache.historico) return;
-  const h = dadosCache.historico;
+  const h = getHistoricoFiltrado();
   const mesAtual = getMesAtual();
 
   // Filtros globais sobrepõem o local
@@ -3207,7 +3211,7 @@ function renderTopMes() {
   // Se filtro global cliente/grupo: recalcula ind_mes_26 cruzando pedidos_2026 (apenas 2026 — 2025 sem cross-tab)
   if (fGlobalCli || fGlobalGrp) {
     const novo_ind_mes_26 = {};
-    (dadosCache.pedidos_2026 || []).forEach(p => {
+    aplicarF_pedidos(dadosCache.pedidos_2026 || []).forEach(p => {
       const matchC = fGlobalCli ? p.cliente === fGlobalCli : (grupoDoCliente(p.cliente) === fGlobalGrp);
       if (!matchC) return;
       const ind = normalizaIndustria(p.industria);
@@ -3421,6 +3425,12 @@ function renderContaCorrenteAba() {
   if (tb) {
     tb.innerHTML = '';
     let itens = cc.itens || [];
+    // FIX: filtros globais do cabeçalho
+    const _fg3 = getFiltrosGlobais();
+    if (_fg3.grupo)     itens = itens.filter(i => grupoDoCliente(i.cliente) === _fg3.grupo);
+    if (_fg3.cliente)   itens = itens.filter(i => i.cliente === _fg3.cliente);
+    if (_fg3.industria) itens = itens.filter(i => normalizaIndustria(i.industria) === normalizaIndustria(_fg3.industria));
+    if (_fg3.busca)     itens = itens.filter(i => (i.cliente+' '+i.industria+' '+(i.pedido||'')).toLowerCase().includes(_fg3.busca));
     if (fCli) itens = itens.filter(i => i.cliente === fCli);
     if (fInd) itens = itens.filter(i => i.industria === fInd);
     itens.slice(0, 200).forEach(i => {
@@ -3638,6 +3648,40 @@ function popularFiltros(d) {
   if (filtros.status) document.getElementById('f-status').value = filtros.status;
 }
 
+
+// FIX FILTROS GLOBAIS: filtra dados históricos por indústria/cliente/grupo
+function getHistoricoFiltrado() {
+  const h = dadosCache ? (dadosCache.historico || {}) : {};
+  const fg = getFiltrosGlobais();
+  if (!fg.industria && !fg.cliente && !fg.grupo) return h;
+  const fInd = (obj) => {
+    if (!fg.industria) return obj;
+    const r = {};
+    Object.keys(obj || {}).forEach(k => {
+      if (normalizaIndustria(k) === normalizaIndustria(fg.industria)) r[k] = obj[k];
+    });
+    return r;
+  };
+  const fCli = (obj) => {
+    if (!fg.cliente && !fg.grupo) return obj;
+    const r = {};
+    Object.keys(obj || {}).forEach(k => {
+      if (fg.cliente && k !== fg.cliente) return;
+      if (fg.grupo && grupoDoCliente(k) !== fg.grupo) return;
+      r[k] = obj[k];
+    });
+    return r;
+  };
+  return {
+    ...h,
+    ind_mes_26: fInd(h.ind_mes_26 || {}),
+    ind_mes_25: fInd(h.ind_mes_25 || {}),
+    cli_mes_26: fCli(h.cli_mes_26 || {}),
+    cli_mes_25: fCli(h.cli_mes_25 || {}),
+    por_cliente: fCli(h.por_cliente || {}),
+    por_industria: fInd(h.por_industria || {}),
+  };
+}
 function aplicarFiltros() {
   filtros = {
     busca: document.getElementById('f-busca').value.trim().toLowerCase(),
@@ -3651,11 +3695,26 @@ function aplicarFiltros() {
   if (dadosCache) {
     renderKPIs();
     renderTab(abaAtiva);
-    // FASE 9.60: re-renderiza tb sub-panes da Avaliação se estiverem visíveis
+    // FIX: garante que TODAS as abas re-renderizam com filtros atuais
     if (typeof renderAvaliacao === 'function') renderAvaliacao();
     if (typeof renderCicloVendas === 'function') renderCicloVendas();
     if (typeof renderProdutos === 'function') renderProdutos();
     if (typeof renderHistorico === 'function') renderHistorico();
+    if (typeof renderVendasConsolid === 'function') renderVendasConsolid();
+    if (typeof renderCRM === 'function') renderCRM();
+    if (typeof renderEntregas === 'function' && abaAtiva === 'entregas') renderEntregas();
+    if (typeof renderSemFaturar === 'function' && abaAtiva === 'sem-fat') renderSemFaturar();
+    if (typeof renderContaCorrenteAba === 'function' && abaAtiva === 'conta-corrente') renderContaCorrenteAba();
+    if (typeof renderNFDAba === 'function' && abaAtiva === 'nfd') renderNFDAba();
+    if (typeof renderVendasGeral === 'function' && abaAtiva === 'vendas-geral') renderVendasGeral();
+    // Abas que recebem itens filtrados diretamente — re-renderizar explicitamente
+    if (abaAtiva === 'visao')    renderVisao(aplicarF(dadosCache.itens || []));
+    if (abaAtiva === 'saldos')   renderSaldos(aplicarF(dadosCache.itens || []));
+    if (abaAtiva === 'clientes') renderClientes(aplicarF(dadosCache.itens || []));
+    if (abaAtiva === 'industrias') renderIndustrias(aplicarF(dadosCache.itens || []));
+    if (abaAtiva === 'produtos')   renderProdutos(aplicarF(dadosCache.itens || []));
+    if (abaAtiva === 'mensal')     renderMensal(aplicarF(dadosCache.itens || []));
+    if (abaAtiva === 'detalhe')    renderDetalhe(aplicarF(dadosCache.itens || []));
   }
 }
 
@@ -5312,6 +5371,7 @@ function trocarAvalPane(qual) {
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
+let __ajusteFonteRAF = null; // declarado antes do checkAuth() para evitar TDZ
 (function checkAuth() {
   try {
     const a = JSON.parse(localStorage.getItem('3mv_auth') || 'null');
@@ -5333,8 +5393,22 @@ function trocarAvalPane(qual) {
   } catch(e) {}
 })();
 
-// Auto-refresh removido — atualização vem da automação 4x/dia (09h, 13h, 17h, 22h).
-// Pra forçar reload manual, usar o botão 🔄 Recarregar no topo.
+// Auto-refresh: recarrega a página a cada 30 min em dias úteis (8h–20h)
+// Garante que o mobile sempre exiba os dados da última automação (09h, 13h, 17h, 22h)
+(function autoRefresh() {
+  const INTERVALO_MS = 30 * 60 * 1000; // 30 minutos
+  function devePuxar() {
+    const h = new Date().getHours();
+    const d = new Date().getDay(); // 0=dom, 6=sab
+    return d >= 1 && d <= 5 && h >= 8 && h < 20;
+  }
+  setInterval(function() {
+    if (devePuxar()) {
+      console.log('[3MV] Auto-refresh — recarregando dados...');
+      location.reload();
+    }
+  }, INTERVALO_MS);
+})();
 
 // Não chama carregar() aqui — o checkAuth() chama quando autenticado
 
@@ -5359,7 +5433,6 @@ function ajustarFonteCards() {
   });
 }
 // Roda após cada render (debounce com requestAnimationFrame)
-let __ajusteFonteRAF = null;
 function agendarAjusteFonte() {
   if (__ajusteFonteRAF) cancelAnimationFrame(__ajusteFonteRAF);
   __ajusteFonteRAF = requestAnimationFrame(() => { ajustarFonteCards(); __ajusteFonteRAF = null; });
@@ -5626,7 +5699,7 @@ function renderMetasDashboard() {
       elMtime.textContent = 'aguardando primeira execução do pipeline (rode Atualizar_Painel_AUTO.command)';
     }
   }
-  const h = dadosCache.historico || {};
+  const h = getHistoricoFiltrado();
   const ind_mes_26 = h.ind_mes_26 || {};
   const mensal_26 = h.mensal_26 || [];
   const mesAtual = (typeof getMesAtual === 'function') ? getMesAtual() : 12;
@@ -5731,8 +5804,8 @@ function renderMetasDashboard() {
 // =====================================================================
 function renderVendasGeral() {
   if (!dadosCache) return;
-  const h = dadosCache.historico || {};
-  const peds = dadosCache.pedidos_2026 || [];
+  const h = getHistoricoFiltrado();
+  const peds = aplicarF_pedidos(dadosCache.pedidos_2026 || []);
   const itens = dadosCache.itens || [];
   const ind_mes_25 = h.ind_mes_25 || {};
   const ind_mes_26 = h.ind_mes_26 || {};
@@ -5918,7 +5991,7 @@ function renderVendasGeral() {
 function exportarVendasGeral(formato) {
   if (typeof XLSX === 'undefined') { alert('Biblioteca de exportação não carregou.'); return; }
   if (!dadosCache) return;
-  const peds = dadosCache.pedidos_2026 || [];
+  const peds = aplicarF_pedidos(dadosCache.pedidos_2026 || []);
   const itens = dadosCache.itens || [];
   const saldoPorPed = new Map();
   itens.forEach(i => saldoPorPed.set(i.pedido_id, (saldoPorPed.get(i.pedido_id)||0) + (i.valor_saldo||0)));
@@ -5947,7 +6020,7 @@ function exportarVendasGeral(formato) {
 // =====================================================================
 function renderEntregas() {
   if (!dadosCache) return;
-  const peds = (dadosCache.pedidos_2026 || []).filter(p => p.fatura_status === 'Total' || p.fatura_status === 'Parcial');
+  const peds = aplicarF_pedidos(dadosCache.pedidos_2026 || []).filter(p => p.fatura_status === 'Total' || p.fatura_status === 'Parcial');
   // Agrega itens por pedido pra pegar dados de NF e datas (que estão no nível item)
   const itensPorPed = {};
   (dadosCache.itens || []).forEach(i => {
@@ -6017,7 +6090,14 @@ function renderEntregas() {
   const fStat = (document.getElementById('f-ent-status')||{}).value || '';
   const fIndV = (fInd||{}).value || '';
   const fCliV = (fCli||{}).value || '';
+  // FIX: aplica filtros globais do cabeçalho (f-grupo/f-cliente/f-industria/f-mes/f-busca)
+  const _fg1 = getFiltrosGlobais();
   let filtradas = linhas;
+  if (_fg1.grupo)     filtradas = filtradas.filter(l => grupoDoCliente(l.cliente) === _fg1.grupo);
+  if (_fg1.cliente)   filtradas = filtradas.filter(l => l.cliente === _fg1.cliente);
+  if (_fg1.industria) filtradas = filtradas.filter(l => normalizaIndustria(l.industria) === normalizaIndustria(_fg1.industria));
+  if (_fg1.mes)       filtradas = filtradas.filter(l => String(l.mes) === String(_fg1.mes));
+  if (_fg1.busca)     filtradas = filtradas.filter(l => (l.cliente+' '+l.industria+' '+l.pedido).toLowerCase().includes(_fg1.busca));
   if (fStat) filtradas = filtradas.filter(l => l._key === fStat);
   if (fIndV) filtradas = filtradas.filter(l => l.industria === fIndV);
   if (fCliV) filtradas = filtradas.filter(l => l.cliente === fCliV);
@@ -6098,7 +6178,7 @@ Abraços,
 // =====================================================================
 function renderSemFaturar() {
   if (!dadosCache) return;
-  const peds = (dadosCache.pedidos_2026 || []).filter(p => p.fatura_status === 'Sem fatura');
+  const peds = aplicarF_pedidos(dadosCache.pedidos_2026 || []).filter(p => p.fatura_status === 'Sem fatura');
   const hoje = new Date();
   const linhas = peds.map(p => {
     const dPed = p.data ? new Date(p.data) : null;
@@ -6147,7 +6227,14 @@ function renderSemFaturar() {
   const fStat = (document.getElementById('f-sf-status')||{}).value || '';
   const fIndV = (fInd||{}).value || '';
   const fCliV = (fCli||{}).value || '';
+  // FIX: aplica filtros globais do cabeçalho (f-grupo/f-cliente/f-industria/f-mes/f-busca)
+  const _fg2 = getFiltrosGlobais();
   let filtradas = linhas;
+  if (_fg2.grupo)     filtradas = filtradas.filter(l => grupoDoCliente(l.cliente) === _fg2.grupo);
+  if (_fg2.cliente)   filtradas = filtradas.filter(l => l.cliente === _fg2.cliente);
+  if (_fg2.industria) filtradas = filtradas.filter(l => normalizaIndustria(l.industria) === normalizaIndustria(_fg2.industria));
+  if (_fg2.mes)       filtradas = filtradas.filter(l => String(l.mes) === String(_fg2.mes));
+  if (_fg2.busca)     filtradas = filtradas.filter(l => (l.cliente+' '+l.industria+' '+l.pedido).toLowerCase().includes(_fg2.busca));
   if (fStat) filtradas = filtradas.filter(l => l._key === fStat);
   if (fIndV) filtradas = filtradas.filter(l => l.industria === fIndV);
   if (fCliV) filtradas = filtradas.filter(l => l.cliente === fCliV);
@@ -6223,8 +6310,8 @@ function alertarPedido(pedidoId, tipo) {
 // =====================================================================
 function renderAvaliacao() {
   if (!dadosCache) return;
-  const h = dadosCache.historico || {};
-  const peds = dadosCache.pedidos_2026 || [];
+  const h = getHistoricoFiltrado();
+  const peds = aplicarF_pedidos(dadosCache.pedidos_2026 || []);
   const cli_mes_25 = h.cli_mes_25 || {};
   const cli_mes_26 = h.cli_mes_26 || {};
   const por_cli = h.por_cliente || {};
@@ -7075,7 +7162,7 @@ function renderAvaliacao() {
   // FASE 9.49: Detalhe de Pedidos com Produtos por Cliente ABC
   // ===========================================================
   const itensTodos = dadosCache.itens || [];
-  const pedsTodos = dadosCache.pedidos_2026 || [];
+  const pedsTodos = aplicarF_pedidos(dadosCache.pedidos_2026 || []);
   // Indexa pedidos por id pra puxar fatura_status etc
   const pedById = {};
   pedsTodos.forEach(p => { pedById[p.pedido_id] = p; });
@@ -7089,7 +7176,7 @@ function renderAvaliacao() {
     // Junta linhas (com fat 26 > 0) + clientes só com pedidos (peds) sem faturamento ainda
     const todosClientes = new Map();
     linhas.forEach(l => todosClientes.set(l.cliente, { cliente: l.cliente, classe: l.classe, fat26: l.fat26 }));
-    (dadosCache.pedidos_2026 || []).forEach(p => {
+    aplicarF_pedidos(dadosCache.pedidos_2026 || []).forEach(p => {
       if (p.cliente && !todosClientes.has(p.cliente) && !isClienteExcluido(p.cliente)) {
         todosClientes.set(p.cliente, { cliente: p.cliente, classe: '', fat26: 0 });
       }
@@ -7216,7 +7303,7 @@ function categoriaDoCodigo(cod) {
 function renderProdutos() {
   if (!dadosCache) return;
   const itens = dadosCache.itens || [];
-  const h = dadosCache.historico || {};
+  const h = getHistoricoFiltrado();
   const indMes25 = h.ind_mes_25 || {};
   const indMes26 = h.ind_mes_26 || {};
   const crmCli = (dadosCache.crm && dadosCache.crm.clientes) || {};
@@ -7690,9 +7777,15 @@ function renderHistorico() {
   const fCli = (selCli||{}).value || '';
   const fInd = (selInd||{}).value || '';
 
+  // FIX: filtros globais do cabeçalho
+  const _fgH = getFiltrosGlobais();
+
   // Aplica filtro
   let f24 = 0, f25 = 0, f26 = 0;
   let topsFiltrados = tops.slice();
+  if (_fgH.cliente)   topsFiltrados = topsFiltrados.filter(t => t.cliente === _fgH.cliente);
+  if (_fgH.grupo)     topsFiltrados = topsFiltrados.filter(t => grupoDoCliente(t.cliente) === _fgH.grupo);
+  if (_fgH.industria) topsFiltrados = topsFiltrados.filter(t => (t.industrias || []).some(i => normalizaIndustria(i) === normalizaIndustria(_fgH.industria)));
   if (fCli) topsFiltrados = topsFiltrados.filter(t => t.cliente === fCli);
   if (fInd) topsFiltrados = topsFiltrados.filter(t => (t.industrias || []).includes(fInd));
   // Recalcula totais aplicando o filtro
@@ -8009,8 +8102,11 @@ function renderCRM() {
     const inds = crmCfg.industrias || {};
     tbInd.innerHTML = '';
     Object.entries(inds).forEach(([nome, d]) => {
+      // Oculta indústrias inativas/excluídas — só mostra status "ativo" (ou sem status definido)
+      const st = (d.status_erp || '').toLowerCase();
+      if (st && !st.includes('ativ')) return;
       const c = d.contatos || {};
-      const corStatus = (d.status_erp||'').toLowerCase().includes('ativ') ? '#10B981' : '#94A3B8';
+      const corStatus = '#10B981'; // só ativos chegam aqui
       const fmtMail = (s) => {
         const e = (c[s]||{}).email || '';
         return e ? `<a href="mailto:${esc(e)}" style="color:#1E40AF;">${esc(e)}</a>` : '<small style="color:#94A3B8;">—</small>';
@@ -8129,10 +8225,10 @@ function enviarEmailCRM(cliente) {
 // =====================================================================
 function renderVendasConsolid() {
   if (!dadosCache) return;
-  const h = dadosCache.historico || {};
+  const h = getHistoricoFiltrado();
   const cli_mes_25 = h.cli_mes_25 || {};
   const cli_mes_26 = h.cli_mes_26 || {};
-  const peds = dadosCache.pedidos_2026 || [];
+  const peds = aplicarF_pedidos(dadosCache.pedidos_2026 || []);
   const mesAtual = (typeof getMesAtual === 'function') ? getMesAtual() : 12;
   const mesNome = MESES[mesAtual-1] || '';
 
@@ -8400,8 +8496,8 @@ function renderVendasConsolid() {
 // =====================================================================
 function renderCicloVendas() {
   if (!dadosCache) return;
-  const peds = dadosCache.pedidos_2026 || [];
-  const h = dadosCache.historico || {};
+  const peds = aplicarF_pedidos(dadosCache.pedidos_2026 || []);
+  const h = getHistoricoFiltrado();
   const cli_mes_25 = h.cli_mes_25 || {};
   const cli_mes_26 = h.cli_mes_26 || {};
   const mesAtual = (typeof getMesAtual === 'function') ? getMesAtual() : 12;
@@ -8613,6 +8709,215 @@ function renderCicloVendas() {
       </tr>`;
     });
   }
+}
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     ENVIAR TAREFA PARA O ESCRITÓRIO — botão flutuante + modal
+     WhatsApp: +55 31 99940-3675 (Lais / Rafaela)
+     Email: adm@ + adm1@3mvrepresentacao.com
+════════════════════════════════════════════════════════════════ -->
+<style>
+#btn-tarefa-float {
+  position: fixed;
+  bottom: 24px;
+  right: 20px;
+  z-index: 8800;
+  background: #0EA5E9;
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 4px 18px rgba(14,165,233,.45);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background .2s;
+}
+#btn-tarefa-float:hover { background: #0284C7; }
+
+#modal-tarefa {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,.75);
+  z-index: 9900;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+#modal-tarefa.open { display: flex; }
+
+#modal-tarefa-box {
+  background: var(--card, #1e293b);
+  border-radius: 20px 20px 0 0;
+  padding: 24px 20px 36px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.tarefa-templates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.tarefa-tpl-btn {
+  background: rgba(14,165,233,.15);
+  color: #38BDF8;
+  border: 1px solid rgba(14,165,233,.3);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tarefa-tpl-btn:hover { background: rgba(14,165,233,.3); }
+#tarefa-texto {
+  width: 100%;
+  min-height: 100px;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 10px;
+  color: var(--txt, #f1f5f9);
+  padding: 12px;
+  font-size: 14px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.tarefa-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+.tarefa-actions button {
+  flex: 1;
+  padding: 13px 10px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-wpp  { background: #25D366; color: #fff; }
+.btn-mail { background: #0EA5E9; color: #fff; }
+.btn-ambos { background: #7C3AED; color: #fff; flex: 2; }
+</style>
+
+<!-- Botão flutuante -->
+<button id="btn-tarefa-float" onclick="abrirModalTarefa()">
+  📋 Tarefa p/ escritório
+</button>
+
+<!-- Modal -->
+<div id="modal-tarefa">
+  <div id="modal-tarefa-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div>
+        <div style="font-size:17px;font-weight:700;">📋 Enviar tarefa ao escritório</div>
+        <div style="font-size:12px;color:var(--mut,#94a3b8);margin-top:2px;">Lais / Rafaela — WhatsApp + Email</div>
+      </div>
+      <button onclick="fecharModalTarefa()" style="background:none;border:none;color:var(--mut,#94a3b8);font-size:22px;cursor:pointer;padding:0;">✕</button>
+    </div>
+
+    <!-- Templates rápidos -->
+    <div style="font-size:11px;color:var(--mut,#94a3b8);margin-bottom:8px;">ATALHOS RÁPIDOS</div>
+    <div class="tarefa-templates">
+      <button class="tarefa-tpl-btn" onclick="usarTemplate('Faturar saldo do pedido [NÚMERO] — cliente [NOME]')">🧾 Faturar saldo</button>
+      <button class="tarefa-tpl-btn" onclick="usarTemplate('Cancelar saldo do pedido [NÚMERO] — produto descontinuado')">❌ Cancelar saldo</button>
+      <button class="tarefa-tpl-btn" onclick="usarTemplate('Verificar status do pedido [NÚMERO] com a indústria [MARCA]')">🔍 Verificar pedido</button>
+      <button class="tarefa-tpl-btn" onclick="usarTemplate('Enviar saldo de pedidos para o cliente [NOME] — aguardando confirmação')">📤 Enviar saldos</button>
+      <button class="tarefa-tpl-btn" onclick="usarTemplate('Agendar ligação com [NOME] sobre pedido [NÚMERO]')">📞 Agendar ligação</button>
+      <button class="tarefa-tpl-btn" onclick="usarTemplate('Emitir NF do pedido [NÚMERO] — cliente [NOME] — prazo: hoje')">🗂️ Emitir NF</button>
+    </div>
+
+    <!-- Campo texto -->
+    <textarea id="tarefa-texto" placeholder="Descreva a tarefa para Lais / Rafaela..."></textarea>
+
+    <!-- Prioridade -->
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <label style="font-size:12px;color:var(--mut,#94a3b8);">Prioridade:</label>
+      <select id="tarefa-prioridade" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--txt,#f1f5f9);border-radius:6px;padding:3px 8px;font-size:12px;">
+        <option value="🔴 URGENTE">🔴 URGENTE</option>
+        <option value="🟡 Normal" selected>🟡 Normal</option>
+        <option value="🟢 Sem pressa">🟢 Sem pressa</option>
+      </select>
+    </div>
+
+    <!-- Botões de envio -->
+    <div class="tarefa-actions">
+      <button class="btn-wpp"  onclick="enviarTarefaWhatsApp()">💬 WhatsApp</button>
+      <button class="btn-mail" onclick="enviarTarefaEmail()">📧 Email</button>
+      <button class="btn-ambos" onclick="enviarTarefaAmbos()">🚀 Enviar os dois</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Modal tarefa ─────────────────────────────────────────────────────────────
+function abrirModalTarefa() {
+  document.getElementById('modal-tarefa').classList.add('open');
+}
+function fecharModalTarefa() {
+  document.getElementById('modal-tarefa').classList.remove('open');
+}
+// Fecha ao clicar no fundo
+document.getElementById('modal-tarefa').addEventListener('click', function(e) {
+  if (e.target === this) fecharModalTarefa();
+});
+
+function usarTemplate(txt) {
+  document.getElementById('tarefa-texto').value = txt;
+  document.getElementById('tarefa-texto').focus();
+}
+
+function _montarMensagemTarefa() {
+  const txt  = (document.getElementById('tarefa-texto').value || '').trim();
+  const prio = document.getElementById('tarefa-prioridade').value;
+  if (!txt) { alert('Escreva a tarefa antes de enviar.'); return null; }
+  const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  return `${prio} — TAREFA 3MV\n\n${txt}\n\n_(enviado por Marcelo às ${agora})_`;
+}
+
+const _WPP_NUM = '5531999403675'; // Lais / Rafaela
+const _MAIL_TO = 'adm@3mvrepresentacao.com,adm1@3mvrepresentacao.com';
+
+function enviarTarefaWhatsApp() {
+  const msg = _montarMensagemTarefa();
+  if (!msg) return;
+  const url = 'https://wa.me/' + _WPP_NUM + '?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+  fecharModalTarefa();
+}
+
+function enviarTarefaEmail() {
+  const msg = _montarMensagemTarefa();
+  if (!msg) return;
+  const prio = document.getElementById('tarefa-prioridade').value;
+  const subj = encodeURIComponent('[3MV] ' + prio + ' — Tarefa do Marcelo');
+  const body = encodeURIComponent(msg);
+  window.location.href = 'mailto:' + _MAIL_TO + '?subject=' + subj + '&body=' + body;
+  fecharModalTarefa();
+}
+
+function enviarTarefaAmbos() {
+  const msg = _montarMensagemTarefa();
+  if (!msg) return;
+  // 1. Abre WhatsApp em nova aba
+  const url = 'https://wa.me/' + _WPP_NUM + '?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+  // 2. Abre email após 800ms (evita conflito de navegação)
+  setTimeout(() => {
+    const prio = document.getElementById('tarefa-prioridade').value;
+    const subj = encodeURIComponent('[3MV] ' + prio + ' — Tarefa do Marcelo');
+    const body = encodeURIComponent(msg);
+    window.location.href = 'mailto:' + _MAIL_TO + '?subject=' + subj + '&body=' + body;
+  }, 800);
+  fecharModalTarefa();
 }
 </script>
 </body>
