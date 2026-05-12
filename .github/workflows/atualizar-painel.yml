@@ -14,7 +14,7 @@ permissions:
 jobs:
   atualizar:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 35
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -47,7 +47,7 @@ jobs:
       - name: Etapa 1 — Extrair saldos da API Suas Vendas
         run: |
           mkdir -p outputs
-          python -u scripts/extrair_saldos.py \
+          python scripts/extrair_saldos.py \
             --config config.json \
             --output-json outputs/dados.json \
             --output-xlsx outputs/saldos.xlsx \
@@ -57,30 +57,30 @@ jobs:
         run: cp outputs/dados.json dados.json
 
       - name: Etapa 3 — Injetar Conta Corrente + NFD (planilhas snapshot)
-        run: python -u injetar_conta_corrente.py
+        run: python injetar_conta_corrente.py
         continue-on-error: true
 
       - name: Etapa 4 — Injetar Histórico
-        run: python -u injetar_historico.py
+        run: python injetar_historico.py
         continue-on-error: true
 
       - name: Etapa 4b — Injetar Metas
-        run: python -u injetar_metas.py
+        run: python injetar_metas.py
         continue-on-error: true
 
       - name: Etapa 4c — Injetar CRM
-        run: python -u injetar_crm.py
+        run: python injetar_crm.py
         continue-on-error: true
 
       - name: Etapa 4d — Injetar Histórico de Pedidos 24/25/26
-        run: python -u injetar_historico_pedidos.py
+        run: python injetar_historico_pedidos.py
         continue-on-error: true
 
       - name: Etapa 4e — Injetar Field (opcional — atas/visitas/tarefas do Painel Mobile)
         env:
           FIELD_API_URL: ${{ secrets.FIELD_API_URL }}
           FIELD_API_TOKEN: ${{ secrets.FIELD_API_TOKEN }}
-        run: python -u injetar_field.py
+        run: python injetar_field.py
         continue-on-error: true
 
       - name: Etapa 4f — Injetar Agenda Google Calendar (opcional)
@@ -89,11 +89,11 @@ jobs:
           GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
           GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
-        run: python -u injetar_agenda.py
+        run: python injetar_agenda.py
         continue-on-error: true
 
       - name: Etapa 5 — Gerar painel HTML
-        run: python -u gerar_painel.py
+        run: python gerar_painel.py
 
       - name: Preparar diretório de deploy Cloudflare
         run: |
@@ -118,7 +118,7 @@ jobs:
           done
 
           # Logos / ícones gerais
-          for f in logo_3mv.png logo_3mv_branca.png logo_3mv_quadrado.png logo_3mv_completa.png icon-192.png icon-512.png; do
+          for f in logo_3mv.png logo_3mv_branca.png logo_3mv_quadrado.png icon-192.png icon-512.png; do
             [ -f "$f" ] && cp "$f" cf-deploy/
           done
 
@@ -151,11 +151,24 @@ jobs:
           cd cf-deploy
           npx wrangler@latest deploy
 
-      - name: Commitar dados.json + arquivos atualizados
+      - name: Copiar painel_atual.html para index.html (GitHub Pages serve da raiz)
+        run: |
+          cp painel_atual.html index.html
+          echo "✓ index.html atualizado ($(wc -c < index.html) bytes)"
+
+      - name: Commitar TODOS os arquivos publicáveis (GitHub Pages serve do branch main)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add dados.json painel_atual.html 2>/dev/null || true
+          # Painel principal
+          git add dados.json painel_atual.html index.html 2>/dev/null || true
+          # 3MV Mobile + Painel Mobile + manifests + sw
+          git add 3mv-mobile.html painel-mobile.html manifest.json manifest-mobile.json sw.js 2>/dev/null || true
+          # Logos e ícones
+          git add logo_3mv.png logo_3mv_branca.png logo_3mv_quadrado.png logo_3mv_completa.png icon-192.png icon-512.png 2>/dev/null || true
+          git add mobile-icon-32.png mobile-icon-48.png mobile-icon-96.png mobile-icon-128.png mobile-icon-192.png mobile-icon-512.png mobile-banner-220x140.png 2>/dev/null || true
+          # Páginas extras
+          git add 404.html privacidade.html suporte.html _headers robots.txt 2>/dev/null || true
           git diff --cached --quiet || git commit -m "auto: pipeline $(date -u +%Y-%m-%dT%H:%M)Z"
           git push
         continue-on-error: true
