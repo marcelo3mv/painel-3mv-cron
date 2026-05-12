@@ -29,7 +29,14 @@ def _gd_base():
 
 
 GD = _gd_base()
+
+# Fallback para GitHub Actions: usar planilhas-snapshot/ do repo se Drive nao existe
+_SNAPSHOT = Path(__file__).parent / 'planilhas-snapshot' / 'pedidos 2024_2025_2026.xlsx'
 HIST_XLSX = GD / '3MV/BI/2026/pedidos 2024_2025_2026.xlsx'
+if not HIST_XLSX.exists() and _SNAPSHOT.exists():
+    HIST_XLSX = _SNAPSHOT
+    print(f'  -> usando snapshot do repo: {HIST_XLSX}')
+
 DADOS_JSON = Path(__file__).parent / 'dados.json'
 
 # Mapeamento: indústrias renomeadas/incorporadas — fundem o histórico com a marca atual.

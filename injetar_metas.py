@@ -44,7 +44,14 @@ def _gd_base():
 
 
 GD = _gd_base()
+
+# Fallback para GitHub Actions: usar planilhas-snapshot/ do repo se Drive nao existe
+_SNAPSHOT = Path(__file__).parent / 'planilhas-snapshot' / 'Metas.xlsx'
 METAS_XLSX = GD / '3MV/BI/2026/Metas.xlsx'
+if not METAS_XLSX.exists() and _SNAPSHOT.exists():
+    METAS_XLSX = _SNAPSHOT
+    print(f'  -> usando snapshot do repo: {METAS_XLSX}')
+
 DADOS_JSON = Path(__file__).parent / 'dados.json'
 
 # Mapa MES (string) → número

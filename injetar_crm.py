@@ -44,7 +44,14 @@ def _gd_base():
 
 
 GD = _gd_base()
+
+# Fallback para GitHub Actions: usar planilhas-snapshot/ do repo se Drive nao existe
+_SNAPSHOT = Path(__file__).parent / 'planilhas-snapshot' / 'CRM_3MV.xlsx'
 CRM_XLSX = GD / '3MV/CRM 3MV/CRM_3MV.xlsx'
+if not CRM_XLSX.exists() and _SNAPSHOT.exists():
+    CRM_XLSX = _SNAPSHOT
+    print(f'  -> usando snapshot do repo: {CRM_XLSX}')
+
 DADOS_JSON = Path(__file__).parent / 'dados.json'
 
 
