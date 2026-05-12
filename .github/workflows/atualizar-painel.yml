@@ -2,10 +2,11 @@ name: Atualizar Painel 3MV (Painel + 3MV Mobile)
 
 on:
   schedule:
-    - cron: '0 12 * * 1-5'   # 09:00 BRT
-    - cron: '0 16 * * 1-5'   # 13:00 BRT
-    - cron: '0 20 * * 1-5'   # 17:00 BRT
-    - cron: '0 1 * * 2-6'    # 22:00 BRT do dia anterior
+    # Sync rápido — hora em hora em horário comercial dias úteis (07h-19h BRT)
+    # Pra capturar alterações no CRM/Metas/ContaCorrente/Histórico em ~1h
+    - cron: '0 10-22 * * 1-5'  # 07:00-19:00 BRT seg-sex (13 runs/dia)
+    # Sync extra fim de expediente (22h BRT)
+    - cron: '0 1 * * 2-6'      # 22:00 BRT do dia anterior
   workflow_dispatch:
 
 permissions:

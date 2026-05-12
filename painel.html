@@ -1606,6 +1606,35 @@ body.modo-crm #pane-crm { display: block !important; }
         <th>Trocas (email)</th>
         <th class="right">Lead time</th>
       </tr></thead><tbody></tbody></table></div>
+
+      <!-- FASE 9.66: Base de Clientes — Centrais e Compradores -->
+      <h2 style="margin-top:24px">🛒 Base de Clientes — Centrais &amp; Compradores <span class="small">(atualiza automaticamente da planilha CRM)</span></h2>
+      <div class="filtros" style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+        <input type="search" id="f-crm-cli-busca" placeholder="🔎 buscar cliente, central ou comprador..." oninput="renderCRMClientes()" style="flex:1;min-width:220px;padding:6px 10px;border:1px solid var(--linha);border-radius:6px;font-size:12px">
+        <select id="f-crm-cli-canal" onchange="renderCRMClientes()" style="padding:6px 10px;border:1px solid var(--linha);border-radius:6px;font-size:12px">
+          <option value="">Todos os canais</option>
+        </select>
+        <select id="f-crm-cli-uf" onchange="renderCRMClientes()" style="padding:6px 10px;border:1px solid var(--linha);border-radius:6px;font-size:12px">
+          <option value="">Todas UFs</option>
+        </select>
+        <select id="f-crm-cli-comprador" onchange="renderCRMClientes()" style="padding:6px 10px;border:1px solid var(--linha);border-radius:6px;font-size:12px">
+          <option value="">Com/sem comprador</option>
+          <option value="com">Só com comprador cadastrado</option>
+          <option value="sem">Só sem comprador (preencher)</option>
+        </select>
+        <span class="info" id="crm-cli-info" style="margin-left:auto;color:#666">—</span>
+      </div>
+      <div class="tabwrap"><table id="t-crm-clientes"><thead><tr>
+        <th>Cliente</th>
+        <th>Grupo/Rede</th>
+        <th>Canal</th>
+        <th>Cidade/UF</th>
+        <th>Central</th>
+        <th>Comprador</th>
+        <th>E-mail comprador</th>
+        <th>Contato comprador</th>
+        <th>Status</th>
+      </tr></thead><tbody></tbody></table></div>
     </div>
 
     <!-- ========== VENDAS CONSOLIDADAS (FASE 7) ========== -->
@@ -8100,6 +8129,86 @@ function renderCRM() {
   if (elInfo) elInfo.textContent = `${linhasF.length} clientes`;
 
   window.__crm_linhas__ = linhas;
+
+  // FASE 9.66 — Base de Clientes (centrais e compradores)
+  renderCRMClientes();
+}
+
+// === FASE 9.66: Base de Clientes do CRM — centrais e compradores ===
+function renderCRMClientes() {
+  const crmCli = (dadosCache && dadosCache.crm && dadosCache.crm.clientes) || {};
+  const lista = Object.entries(crmCli).map(([nome, d]) => ({
+    nome,
+    nome_fantasia: d.nome_fantasia || nome,
+    grupo: d.grupo || '',
+    canal: d.canal || '',
+    cidade: d.cidade || '',
+    uf: d.uf || '',
+    status: d.status || '',
+    central: d.central || '',
+    comprador: d.comprador || '',
+    comprador_email: d.comprador_email || '',
+    comprador_contato: d.comprador_contato || '',
+  }));
+
+  // popula selects de filtro (canal, UF) — só na primeira render
+  const elCanal = document.getElementById('f-crm-cli-canal');
+  const elUF = document.getElementById('f-crm-cli-uf');
+  if (elCanal && elCanal.options.length <= 1) {
+    const canais = [...new Set(lista.map(l => l.canal).filter(Boolean))].sort();
+    canais.forEach(c => elCanal.innerHTML += `<option value="${esc(c)}">${esc(c)}</option>`);
+  }
+  if (elUF && elUF.options.length <= 1) {
+    const ufs = [...new Set(lista.map(l => l.uf).filter(Boolean))].sort();
+    ufs.forEach(u => elUF.innerHTML += `<option value="${esc(u)}">${esc(u)}</option>`);
+  }
+
+  const busca = (document.getElementById('f-crm-cli-busca')||{}).value || '';
+  const fCanal = (document.getElementById('f-crm-cli-canal')||{}).value || '';
+  const fUF = (document.getElementById('f-crm-cli-uf')||{}).value || '';
+  const fComp = (document.getElementById('f-crm-cli-comprador')||{}).value || '';
+  const q = busca.trim().toLowerCase();
+
+  const filt = lista.filter(l => {
+    if (fCanal && l.canal !== fCanal) return false;
+    if (fUF && l.uf !== fUF) return false;
+    if (fComp === 'com' && !l.comprador) return false;
+    if (fComp === 'sem' && l.comprador) return false;
+    if (q) {
+      const hay = (l.nome_fantasia + ' ' + l.grupo + ' ' + l.central + ' ' + l.comprador + ' ' + l.comprador_email).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  }).sort((a,b) => a.nome_fantasia.localeCompare(b.nome_fantasia, 'pt-BR'));
+
+  const tb = document.querySelector('#t-crm-clientes tbody');
+  if (tb) {
+    tb.innerHTML = '';
+    const slice = filt.slice(0, 500);
+    slice.forEach(l => {
+      const mailto = l.comprador_email ? `<a href="mailto:${esc(l.comprador_email)}" style="color:#1E40AF">${esc(l.comprador_email)}</a>` : '<small style="color:#94A3B8">—</small>';
+      const tel = l.comprador_contato ? esc(l.comprador_contato) : '<small style="color:#94A3B8">—</small>';
+      const cid = (l.cidade ? esc(l.cidade) : '') + (l.uf ? '/<b>'+esc(l.uf)+'</b>' : '');
+      const stCor = /ativ/i.test(l.status) ? '#16A34A' : /inat/i.test(l.status) ? '#DC2626' : '#64748B';
+      tb.innerHTML += `<tr>
+        <td><b>${esc(l.nome_fantasia)}</b></td>
+        <td>${esc(l.grupo||'—')}</td>
+        <td>${esc(l.canal||'—')}</td>
+        <td>${cid||'—'}</td>
+        <td>${esc(l.central||'—')}</td>
+        <td><b>${esc(l.comprador||'—')}</b></td>
+        <td>${mailto}</td>
+        <td>${tel}</td>
+        <td><span style="color:${stCor};font-weight:600">${esc(l.status||'—')}</span></td>
+      </tr>`;
+    });
+    if (filt.length > slice.length) {
+      tb.innerHTML += `<tr><td colspan="9" style="text-align:center;color:#64748b;font-style:italic;padding:8px">+ ${filt.length - slice.length} clientes (refine a busca pra ver mais)</td></tr>`;
+    }
+  }
+  const elInfo = document.getElementById('crm-cli-info');
+  const comComprador = filt.filter(l => l.comprador).length;
+  if (elInfo) elInfo.textContent = `${filt.length} clientes · ${comComprador} com comprador cadastrado`;
 }
 
 function exportarCRMTodos() {

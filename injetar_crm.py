@@ -146,6 +146,11 @@ def ler_clientes(wb):
                 'responsavel': _val(row[18]) if len(row) > 18 else '',
                 'observacoes': _val(row[19]) if len(row) > 19 else '',
             },
+            # Comprador (colunas U/V/W/X - adicionadas 12/05/2026)
+            'central': _val(row[20]) if len(row) > 20 else '',
+            'comprador': _val(row[21]) if len(row) > 21 else '',
+            'comprador_email': _val(row[22]) if len(row) > 22 else '',
+            'comprador_contato': _val(row[23]) if len(row) > 23 else '',
         }
         clientes[nome] = d
         # Compat: campos planos pra usar no painel (contatos + setores)
