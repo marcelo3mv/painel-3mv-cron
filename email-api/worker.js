@@ -65,17 +65,37 @@ async function gmailAccessToken(env) {
   return j.access_token;
 }
 
-function buildRfc822({ from, to, cc, subject, body }) {
+function encodeSubjectUtf8(s) {
+  // RFC 2047 — codifica subject UTF-8 em base64 pra preservar acentos
+  if (!/[^\x00-\x7F]/.test(s)) return s;
+  const b64 = btoa(unescape(encodeURIComponent(s)));
+  return '=?UTF-8?B?' + b64 + '?=';
+}
+
+function detectaHtml(body) {
+  if (typeof body !== 'string') return false;
+  const trimmed = body.trim().toLowerCase();
+  return trimmed.startsWith('<!doctype') ||
+         trimmed.startsWith('<html') ||
+         /<(p|div|span|table|h[1-6]|br|a|b|strong|em|ul|ol|li|img|body)\b/i.test(trimmed.slice(0, 500));
+}
+
+function buildRfc822({ from, to, cc, subject, body, tipo }) {
+  const isHtml = (tipo === 'html') || (tipo !== 'plain' && detectaHtml(body));
+  const contentType = isHtml ? 'text/html; charset=UTF-8' : 'text/plain; charset=UTF-8';
+  // base64 pra qualquer corpo (HTML ou plain) — garante que acentos cheguem inteiros
+  const b64body = btoa(unescape(encodeURIComponent(body)))
+                    .replace(/(.{76})/g, '$1\r\n');
   const headers = [
     `From: ${from}`,
     `To: ${(Array.isArray(to) ? to : [to]).join(', ')}`,
     cc && cc.length ? `Cc: ${(Array.isArray(cc) ? cc : [cc]).join(', ')}` : '',
-    `Subject: ${subject}`,
+    `Subject: ${encodeSubjectUtf8(subject)}`,
     'MIME-Version: 1.0',
-    'Content-Type: text/plain; charset=UTF-8',
-    'Content-Transfer-Encoding: 7bit',
+    `Content-Type: ${contentType}`,
+    'Content-Transfer-Encoding: base64',
   ].filter(x => x).join('\r\n');
-  return headers + '\r\n\r\n' + body;
+  return headers + '\r\n\r\n' + b64body;
 }
 
 function b64UrlEncode(str) {
@@ -101,7 +121,7 @@ export default {
     if (req.method === 'POST' && path === '/api/email/send') {
       try {
         const data = await req.json();
-        const { para, assunto, corpo, cc, tarefa_id } = data;
+        const { para, assunto, corpo, cc, tipo, tarefa_id } = data;
         if (!para || !assunto || !corpo) {
           return jsonResp({ erro: 'campos obrigatorios: para, assunto, corpo' }, 400);
         }
@@ -112,6 +132,7 @@ export default {
           cc: cc,
           subject: assunto,
           body: corpo,
+          tipo: tipo,
         });
         const raw = b64UrlEncode(rfc);
         const sendResp = await fetch(

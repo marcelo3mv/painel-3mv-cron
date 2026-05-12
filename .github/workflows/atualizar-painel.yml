@@ -107,6 +107,14 @@ jobs:
       - name: Etapa 5 — Gerar painel HTML
         run: python gerar_painel.py
 
+      - name: Etapa 5b — Enviar alertas automáticos (Lais + Rafaela + Marcelo)
+        env:
+          EMAIL_API_URL: ${{ secrets.EMAIL_API_URL }}
+          EMAIL_TOKEN: ${{ secrets.EMAIL_TOKEN }}
+          ALERTAS_FORCE: '0'
+        run: python enviar_alertas.py
+        continue-on-error: true
+
       - name: Preparar diretório de deploy Cloudflare
         run: |
           mkdir -p cf-deploy
