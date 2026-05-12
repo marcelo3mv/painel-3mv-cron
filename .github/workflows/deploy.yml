@@ -4,8 +4,8 @@
 # O QUE FAZ AUTOMATICAMENTE:
 #   1. Baixa pedidos do Suas Vendas (API)
 #   2. Injeta dados no HTML (gerar_painel.py)
-#   3. Publica no Cloudflare Pages (app mobile + desktop)
-#   4. Envia email de alertas para Lais, Rafaela e Marcelo
+#   3. Publica no GitHub Pages (painel online no celular e desktop)
+#   4. Envia email de alertas para Lais, Rafaela e Marcelo (opcional)
 #
 # QUANDO RODA:
 #   - Push em main (deploy imediato)
@@ -13,11 +13,9 @@
 #   - Quinta-feira  8h BRT (atualização semanal + alertas)
 #   - Manualmente via GitHub → Actions → "Run workflow"
 #
-# SECRETS NECESSÁRIOS (GitHub → Settings → Secrets → Actions):
-#   CLOUDFLARE_API_TOKEN  — Cloudflare Dashboard → My Profile → API Tokens → "Edit Cloudflare Pages"
-#   CLOUDFLARE_ACCOUNT_ID — Cloudflare Dashboard → lado direito da home
-#   SV_TOKEN              — Suas Vendas → Configurações → API → Token
-#   RESEND_API_KEY        — resend.com → API Keys → Create API Key (gratuito)
+# SECRETS OPCIONAIS (GitHub → Settings → Secrets → Actions):
+#   SV_TOKEN     — Suas Vendas → Configurações → API → Token (para dados ao vivo)
+#   RESEND_API_KEY — resend.com → API Keys (para alertas por email)
 
 name: 🚀 Deploy + Alertas 3MV
 
@@ -36,15 +34,20 @@ on:
         type: choice
         options: ['false', 'true']
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 env:
   PYTHON_VERSION: '3.11'
 
 jobs:
   # ─────────────────────────────────────────────────────────────────────────────
-  # JOB 1: Baixar dados e gerar HTML
+  # JOB 1: Baixar dados, gerar HTML e publicar no GitHub Pages
   # ─────────────────────────────────────────────────────────────────────────────
-  build:
-    name: 📦 Baixar dados + Gerar painel
+  build-and-deploy:
+    name: 📦 Build + Deploy GitHub Pages
     runs-on: ubuntu-latest
     outputs:
       tem_pendencias: ${{ steps.check.outputs.tem_pendencias }}
@@ -55,16 +58,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
 
       - name: Instalar dependências
-        run: |
-          pip install requests openpyxl python-dateutil --quiet
+        run: pip install requests openpyxl python-dateutil --quiet
 
       - name: 📡 Baixar pedidos do Suas Vendas
         id: sv
@@ -74,144 +77,88 @@ jobs:
           python3 extrair_saldos.py && echo "sv_ok=true" >> $GITHUB_OUTPUT \
             || (echo "sv_ok=false" >> $GITHUB_OUTPUT && echo "⚠️ Suas Vendas falhou — usando último dados.json")
 
-      - name: 📊 Gerar painel HTML (com fix filtros automático)
+      - name: 📊 Gerar painel HTML
         run: python3 gerar_painel.py
 
-      - name: Renomear para index.html
+      - name: Preparar index.html
         run: |
           cp painel_atual.html index.html
-          # Garantir que sw.js e manifest.json existem
-          ls sw.js manifest.json || echo "⚠️ sw.js / manifest.json não encontrados no repo"
+          ls -la index.html sw.js manifest.json 2>/dev/null || true
 
       - name: 🔍 Verificar pendências para alertas
         id: check
-        env:
-          SV_TOKEN: ${{ secrets.SV_TOKEN }}
         run: |
           python3 - << 'PYEOF'
           import json, os, sys
-          from datetime import datetime, date
+          from datetime import date, timedelta
 
           try:
               with open('dados.json', 'r', encoding='utf-8') as f:
                   dados = json.load(f)
           except:
-              print("sem dados.json")
               sys.exit(0)
 
           hoje = date.today()
           peds = dados.get('pedidos_2026', [])
 
-          # Sem fatura críticos (> 5 dias)
-          criticos = 0
-          for p in peds:
-              if p.get('fatura_status') == 'Sem fatura' and p.get('data'):
-                  try:
-                      d = date.fromisoformat(str(p['data'])[:10])
-                      if (hoje - d).days > 5:
-                          criticos += 1
-                  except:
-                      pass
-
-          # Entregas atrasadas
-          atrasados = 0
-          for p in peds:
-              if p.get('fatura_status') in ('Total', 'Parcial') and not p.get('data_entrega'):
-                  if p.get('data_fatura'):
-                      try:
-                          from datetime import timedelta
-                          df = date.fromisoformat(str(p['data_fatura'])[:10])
-                          if (hoje - (df + timedelta(days=7))).days > 0:
-                              atrasados += 1
-                      except:
-                          pass
-
-          # Saldos parciais
+          criticos = sum(
+              1 for p in peds
+              if p.get('fatura_status') == 'Sem fatura' and p.get('data')
+              and (hoje - date.fromisoformat(str(p['data'])[:10])).days > 5
+          )
+          atrasados = sum(
+              1 for p in peds
+              if p.get('fatura_status') in ('Total','Parcial') and not p.get('data_entrega') and p.get('data_fatura')
+              and (hoje - (date.fromisoformat(str(p['data_fatura'])[:10]) + timedelta(days=7))).days > 0
+          )
           saldos = sum(1 for p in peds if p.get('fatura_status') == 'Parcial')
-
           tem = 'true' if (criticos + atrasados) > 0 else 'false'
+
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write(f"tem_pendencias={tem}\n")
               f.write(f"total_criticos={criticos}\n")
               f.write(f"total_atrasados={atrasados}\n")
               f.write(f"total_saldos={saldos}\n")
 
-          print(f"Críticos sem fatura: {criticos}")
-          print(f"Entregas atrasadas:  {atrasados}")
-          print(f"Saldos parciais:     {saldos}")
-          print(f"Tem pendências:      {tem}")
+          print(f"Críticos: {criticos} | Atrasados: {atrasados} | Saldos: {saldos}")
           PYEOF
 
-      - name: Upload artefatos de build
-        uses: actions/upload-artifact@v4
-        with:
-          name: painel-build
-          path: |
-            index.html
-            sw.js
-            manifest.json
-            icon-192.png
-            icon-512.png
-            dados.json
-          retention-days: 7
+      - name: 🚀 Commit e push do painel atualizado
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html dados.json painel_atual.html 2>/dev/null || true
+          git diff --cached --quiet && echo "(sem mudanças)" || \
+            git commit -m "auto: atualiza painel $(date +'%d/%m/%Y %H:%M BRT')" && \
+            git push origin main
+
+      - name: ✅ Painel publicado
+        run: |
+          echo "✅ Painel publicado em: https://marcelo3mv.github.io/painel-3mv-cron/"
+          echo "✅ Também disponível em: https://raw.githack.com/marcelo3mv/painel-3mv-cron/main/index.html"
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # JOB 2: Deploy no Cloudflare Pages
-  # ─────────────────────────────────────────────────────────────────────────────
-  deploy:
-    name: ☁️ Deploy Cloudflare Pages
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download build
-        uses: actions/download-artifact@v4
-        with:
-          name: painel-build
-          path: ./dist
-
-      - name: Deploy para Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy ./dist --project-name painel-3mv --commit-dirty=true
-
-      - name: ✅ Confirmar URL do painel
-        run: echo "✅ Painel publicado em https://painel-3mv.pages.dev"
-
-  # ─────────────────────────────────────────────────────────────────────────────
-  # JOB 3: Alertas automáticos por email (Resend API)
+  # JOB 2: Alertas automáticos por email (Resend API — opcional)
   # ─────────────────────────────────────────────────────────────────────────────
   alertas:
     name: 📧 Alertas automáticos
-    needs: [build, deploy]
+    needs: [build-and-deploy]
     runs-on: ubuntu-latest
-    # Só envia se: (cron OU forcar_alertas=true) E houver pendências
     if: |
       (github.event_name == 'schedule' || github.event.inputs.forcar_alertas == 'true')
-      && (needs.build.outputs.tem_pendencias == 'true' || github.event.inputs.forcar_alertas == 'true')
+      && (needs.build-and-deploy.outputs.tem_pendencias == 'true' || github.event.inputs.forcar_alertas == 'true')
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Download dados
-        uses: actions/download-artifact@v4
-        with:
-          name: painel-build
-          path: ./dist
 
       - name: 📧 Enviar email de alertas (Resend)
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          CRITICOS: ${{ needs.build.outputs.total_criticos }}
-          ATRASADOS: ${{ needs.build.outputs.total_atrasados }}
-          SALDOS: ${{ needs.build.outputs.total_saldos }}
-          PAINEL_URL: 'https://painel-3mv.pages.dev'
+          CRITICOS: ${{ needs.build-and-deploy.outputs.total_criticos }}
+          ATRASADOS: ${{ needs.build-and-deploy.outputs.total_atrasados }}
+          SALDOS: ${{ needs.build-and-deploy.outputs.total_saldos }}
+          PAINEL_URL: 'https://marcelo3mv.github.io/painel-3mv-cron/'
         run: |
           python3 - << 'PYEOF'
           import os, json, urllib.request, urllib.error
@@ -219,7 +166,7 @@ jobs:
 
           api_key = os.environ.get('RESEND_API_KEY', '')
           if not api_key:
-              print("❌ RESEND_API_KEY não configurada — email não enviado")
+              print("⚠️ RESEND_API_KEY não configurada — email não enviado (opcional)")
               exit(0)
 
           criticos  = int(os.environ.get('CRITICOS', '0'))
@@ -229,87 +176,26 @@ jobs:
           hoje      = date.today().strftime('%d/%m/%Y')
           total     = criticos + atrasados
 
-          # Carregar dados para lista detalhada
-          peds = []
-          try:
-              with open('dist/dados.json', encoding='utf-8') as f:
-                  peds = json.load(f).get('pedidos_2026', [])
-          except:
-              pass
-
-          # Montar linhas críticas
-          from datetime import date as d, timedelta
-          hoje_d = d.today()
-          sf_lista = []
-          for p in peds:
-              if p.get('fatura_status') == 'Sem fatura' and p.get('data'):
-                  try:
-                      dias = (hoje_d - d.fromisoformat(str(p['data'])[:10])).days
-                      if dias > 5:
-                          sf_lista.append(f"<tr><td style='padding:4px 8px'><b>{p.get('cliente','—')}</b></td>"
-                                          f"<td style='padding:4px 8px'>{p.get('industria','—')}</td>"
-                                          f"<td style='padding:4px 8px;color:#DC2626;font-weight:700'>{dias}d</td></tr>")
-                  except: pass
-
-          atr_lista = []
-          for p in peds:
-              if p.get('fatura_status') in ('Total','Parcial') and not p.get('data_entrega') and p.get('data_fatura'):
-                  try:
-                      df = d.fromisoformat(str(p['data_fatura'])[:10])
-                      dias = (hoje_d - (df + timedelta(days=7))).days
-                      if dias > 0:
-                          atr_lista.append(f"<tr><td style='padding:4px 8px'><b>{p.get('cliente','—')}</b></td>"
-                                           f"<td style='padding:4px 8px'>{p.get('industria','—')}</td>"
-                                           f"<td style='padding:4px 8px;color:#DC2626;font-weight:700'>{dias}d atraso</td></tr>")
-                  except: pass
-
-          html_body = f"""<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
-          <body style="font-family:sans-serif;color:#1a1a1a;max-width:600px;margin:0 auto;padding:20px">
+          html_body = f"""<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px">
           <div style="background:#0556AD;padding:16px 20px;border-radius:8px 8px 0 0">
             <h1 style="color:#fff;margin:0;font-size:20px">🚨 Alertas 3MV — {hoje}</h1>
-            <p style="color:rgba(255,255,255,0.8);margin:4px 0 0;font-size:13px">Relatório automático · {total} pendência{'s' if total!=1 else ''} crítica{'s' if total!=1 else ''}</p>
+            <p style="color:rgba(255,255,255,0.8);margin:4px 0 0;font-size:13px">{total} pendência(s) crítica(s)</p>
           </div>
           <div style="background:#fff;border:1px solid #e2e8f0;border-top:0;padding:20px;border-radius:0 0 8px 8px">
-            {'<h2 style="color:#DC2626;font-size:15px;margin:0 0 8px">🔴 Sem fatura — Críticos (' + str(criticos) + ')</h2><table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px"><tr style="background:#FEF2F2"><th style="padding:6px 8px;text-align:left">Cliente</th><th style="padding:6px 8px;text-align:left">Indústria</th><th style="padding:6px 8px;text-align:left">Dias</th></tr>' + "".join(sf_lista[:15]) + '</table>' if criticos > 0 else ''}
-            {'<h2 style="color:#DC2626;font-size:15px;margin:16px 0 8px">📦 Entregas atrasadas (' + str(atrasados) + ')</h2><table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px"><tr style="background:#FEF2F2"><th style="padding:6px 8px;text-align:left">Cliente</th><th style="padding:6px 8px;text-align:left">Indústria</th><th style="padding:6px 8px;text-align:left">Atraso</th></tr>' + "".join(atr_lista[:15]) + '</table>' if atrasados > 0 else ''}
-            {'<p style="color:#F59E0B;font-weight:700">📋 ' + str(saldos) + ' pedido(s) com faturamento parcial (saldo em aberto)</p>' if saldos > 0 else ''}
-            <div style="margin-top:20px;padding:12px 16px;background:#EEF4FC;border-radius:6px;font-size:13px">
-              <a href="{painel}" style="color:#0556AD;font-weight:700">Abrir Painel 3MV</a> para ver detalhes e exportar Excel.
-            </div>
-            <p style="font-size:11px;color:#999;margin-top:16px">Enviado automaticamente · segunda e quinta 8h BRT · 3MV Representação</p>
+            <p>🔴 Sem fatura críticos: <b>{criticos}</b></p>
+            <p>📦 Entregas atrasadas: <b>{atrasados}</b></p>
+            <p>📋 Saldos parciais: <b>{saldos}</b></p>
+            <a href="{painel}" style="color:#0556AD;font-weight:700">Abrir Painel 3MV</a>
           </div></body></html>"""
 
-          destinatarios = [
-              ("Lais",    "adm@3mvrepresentacao.com"),
-              ("Rafaela", "adm1@3mvrepresentacao.com"),
-              ("Marcelo", "marcelo@3mvrepresentacao.com"),
-          ]
-
-          for nome, email in destinatarios:
-              payload = json.dumps({
-                  "from": "alertas@3mvrepresentacao.com",
-                  "to": [f"{nome} <{email}>"],
-                  "subject": f"[3MV] 🚨 {total} pendência{'s' if total!=1 else ''} comercial{'is' if total!=1 else ''} — {hoje}",
-                  "html": html_body,
-              }).encode()
-              req = urllib.request.Request(
-                  "https://api.resend.com/emails",
-                  data=payload,
-                  headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                  method="POST"
-              )
+          for nome, email in [("Lais","adm@3mvrepresentacao.com"),("Rafaela","adm1@3mvrepresentacao.com"),("Marcelo","marcelo@3mvrepresentacao.com")]:
+              payload = json.dumps({"from":"alertas@3mvrepresentacao.com","to":[f"{nome} <{email}>"],
+                  "subject":f"[3MV] 🚨 {total} pendência(s) — {hoje}","html":html_body}).encode()
+              req = urllib.request.Request("https://api.resend.com/emails",data=payload,
+                  headers={"Authorization":f"Bearer {api_key}","Content-Type":"application/json"},method="POST")
               try:
                   with urllib.request.urlopen(req) as r:
                       print(f"✅ Email para {email}: HTTP {r.status}")
               except urllib.error.HTTPError as e:
-                  print(f"❌ Email para {email}: HTTP {e.code} — {e.read().decode()}")
+                  print(f"❌ {email}: {e.code} — {e.read().decode()[:100]}")
           PYEOF
-
-      - name: 📱 Resumo dos alertas enviados
-        run: |
-          echo "## 📧 Alertas enviados" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔴 Sem fatura críticos: ${{ needs.build.outputs.total_criticos }}" >> $GITHUB_STEP_SUMMARY
-          echo "- 📦 Entregas atrasadas: ${{ needs.build.outputs.total_atrasados }}" >> $GITHUB_STEP_SUMMARY
-          echo "- 📋 Saldos parciais: ${{ needs.build.outputs.total_saldos }}" >> $GITHUB_STEP_SUMMARY
-          echo "- 📬 Destinatários: Lais, Rafaela, Marcelo" >> $GITHUB_STEP_SUMMARY
-
