@@ -8312,16 +8312,26 @@ function renderVendasConsolid() {
   };
 
   // Por indústria
+  // FASE 9.22: pace — projetar valor do mês corrente proporcional aos dias decorridos
+  const hojeDate = new Date();
+  const diasNoMes = new Date(hojeDate.getFullYear(), hojeDate.getMonth()+1, 0).getDate();
+  const diaAtual = hojeDate.getDate();
+  const paceFator = diaAtual > 0 ? diasNoMes / diaAtual : 1;  // ex: dia 12 de 31 → multiplica por 2.58 pra projetar
+
   const ind_mes_26 = h.ind_mes_26 || {};
   const indMensal = Object.entries(ind_mes_26)
     .filter(([nome]) => isIndustriaAtiva(nome))
-    .map(([nome, arr]) => ({
-      nome,
-      mesAtual: (arr||[])[mesAtual-1] || 0,
-      mesAnt: (arr||[])[mesAnt-1] || 0,
-    }))
+    .map(([nome, arr]) => {
+      const real = (arr||[])[mesAtual-1] || 0;
+      return {
+        nome,
+        mesAtual: real,
+        mesAtualProj: Math.round(real * paceFator),
+        mesAnt: (arr||[])[mesAnt-1] || 0,
+      };
+    })
     .filter(it => (it.mesAtual + it.mesAnt) > 0)
-    .sort((a,b) => b.mesAtual - a.mesAtual);
+    .sort((a,b) => b.mesAtualProj - a.mesAtualProj);
   const elIndCh = document.getElementById('ch-vc-mensal-ind');
   if (elIndCh) {
     if (charts['ch-vc-mensal-ind']) charts['ch-vc-mensal-ind'].destroy();
@@ -8330,11 +8340,13 @@ function renderVendasConsolid() {
       data: {
         labels: indMensal.map(it => it.nome.length > 14 ? it.nome.slice(0,14)+'…' : it.nome),
         datasets: [
-          { label: mesAntNome + ' (anterior)', data: indMensal.map(it => it.mesAnt), backgroundColor: '#94A3B8AA', borderColor: '#94A3B8', borderWidth: 1.5, borderRadius: 4 },
-          { label: mesNome + ' (vigente)', data: indMensal.map(it => it.mesAtual),
-            backgroundColor: indMensal.map(it => it.mesAtual >= it.mesAnt ? '#10B981CC' : '#DC2626CC'),
-            borderColor: indMensal.map(it => it.mesAtual >= it.mesAnt ? '#10B981' : '#DC2626'),
+          { label: mesAntNome + ' (anterior — completo)', data: indMensal.map(it => it.mesAnt), backgroundColor: '#94A3B8AA', borderColor: '#94A3B8', borderWidth: 1.5, borderRadius: 4 },
+          { label: mesNome + ' (vigente — '+diaAtual+'/'+diasNoMes+' dias real)', data: indMensal.map(it => it.mesAtual),
+            backgroundColor: indMensal.map(it => it.mesAtualProj >= it.mesAnt ? '#10B981CC' : '#DC2626CC'),
+            borderColor: indMensal.map(it => it.mesAtualProj >= it.mesAnt ? '#10B981' : '#DC2626'),
             borderWidth: 2, borderRadius: 4 },
+          { label: mesNome + ' (projetado x'+paceFator.toFixed(2)+')', data: indMensal.map(it => it.mesAtualProj),
+            backgroundColor: 'rgba(59,130,246,0.25)', borderColor: '#3B82F6', borderWidth: 2, borderDash: [4,4], borderRadius: 4 },
         ],
       },
       options: {
@@ -8364,10 +8376,12 @@ function renderVendasConsolid() {
     if (isClienteExcluido(cli)) return;
     const g = (typeof grupoDoCliente === 'function' ? grupoDoCliente(cli) : null) || cli;
     if (isGrupoInativo(g)) return;
-    if (!grpMensal[g]) grpMensal[g] = { mesAtual: 0, mesAnt: 0 };
+    if (!grpMensal[g]) grpMensal[g] = { mesAtual: 0, mesAnt: 0, mesAtualProj: 0 };
     grpMensal[g].mesAtual += (arr||[])[mesAtual-1] || 0;
     grpMensal[g].mesAnt += (arr||[])[mesAnt-1] || 0;
   });
+  // Aplicar pace nos grupos
+  Object.values(grpMensal).forEach(v => v.mesAtualProj = Math.round((v.mesAtual||0) * paceFator));
   const grpArr = Object.entries(grpMensal)
     .map(([nome, d]) => ({nome, ...d}))
     .filter(it => (it.mesAtual + it.mesAnt) > 0)
