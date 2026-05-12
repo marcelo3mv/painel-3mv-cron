@@ -323,6 +323,17 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
   <div class="kpi-row" id="kpi-industrias"></div>
   <div class="section" style="margin-top:16px;"><div class="section-title">Indústrias <span class="badge-count" id="contador-industrias">0</span></div><div id="lista-industrias"></div></div>
 </div>
+<!-- TELA: A/B SEM COMPRA NOS ÚLTIMOS 2 MESES -->
+<div class="tela" id="tela-abnocompra">
+  <div class="header"><div class="header-top"><img src="logo_3mv_completa.png" alt="3MV" class="logo-img"><div class="header-date">A/B sem compra 2 meses</div></div></div>
+  <div class="section" style="margin-top:14px;">
+    <div class="section-title">Clientes Curva A e B sem compra desde o mês anterior</div>
+    <div id="kpi-abnc" class="kpi-row"></div>
+    <div id="contador-abnc" style="text-align:center;color:var(--muted);font-size:12px;font-weight:700;padding:6px;"></div>
+    <div id="lista-abnc"></div>
+  </div>
+</div>
+
 <div class="tela" id="tela-tarefas">
   <div class="header">
     <div class="header-top"><img src="logo_3mv_completa.png" alt="3MV" class="logo-img"><div class="header-date">Tarefas</div></div>
@@ -476,6 +487,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
   <button class="nav-item" onclick="irPara('industrias',this)"><span class="nav-icon">🏭</span><span class="nav-label">Indústrias</span></button>
   <button class="nav-item" onclick="irPara('nfd',this)"><span class="nav-icon">📄</span><span class="nav-label">NFD</span></button>
   <button class="nav-item" onclick="irPara('cc',this)"><span class="nav-icon">💰</span><span class="nav-label">CC</span></button>
+  <button class="nav-item" onclick="irPara('abnocompra',this)"><span class="nav-icon">🚨</span><span class="nav-label">A/B sem</span></button>
   <button class="nav-item" onclick="irPara('tarefas',this)"><span class="nav-icon">✅</span><span class="nav-label">Tarefas</span></button>
 </nav>
 <div class="modal" id="modal-cliente"><div class="modal-sheet"><div class="modal-handle"></div><div class="modal-header"><div><div class="modal-titulo" id="modal-nome"></div><div class="chip-row" id="modal-chips"></div></div><button class="modal-fechar" onclick="fecharModal()">Fechar</button></div><div id="modal-body"></div></div></div>
@@ -591,7 +603,7 @@ function renderAgenda(){
   if(CLIENTES.length>0) renderClientes(document.getElementById('busca-input').value||'');
 }
 
-async function carregarDados(){const banner=document.getElementById('banner-dados');banner.className='banner-status banner-loading';banner.innerHTML='⏳ Carregando... <button class="btn-refresh" onclick="recarregarDados()">↻</button>';try{if(window.__DADOS__){DADOS_RAW=window.__DADOS__;}else{const r=await fetch('/dados.json',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);DADOS_RAW=await r.json();}CLIENTES=transformarParaCLIENTES(DADOS_RAW);NFD_LISTA=extrairNFD(DADOS_RAW);CC_LISTA=extrairCC(DADOS_RAW);PRODUTOS_POR_CLIENTE=extrairProdutos(DADOS_RAW);banner.className='banner-status banner-ok';banner.innerHTML='✓ '+CLIENTES.length+' clientes · '+NFD_LISTA.length+' NFD · '+CC_LISTA.length+' parcelas <button class="btn-refresh" onclick="recarregarDados()">↻</button>';}catch(e){console.error(e);banner.className='banner-status banner-erro';banner.innerHTML='⚠️ Sem conexão — usando demo <button class="btn-refresh" onclick="recarregarDados()">↻</button>';CLIENTES=clientesDemo();NFD_LISTA=nfdDemo();CC_LISTA=ccDemo();PRODUTOS_POR_CLIENTE=produtosDemo();}renderClientes();renderNFD();renderCC();calcularIndustriasAgreg();renderIndustrias();
+async function carregarDados(){const banner=document.getElementById('banner-dados');banner.className='banner-status banner-loading';banner.innerHTML='⏳ Carregando... <button class="btn-refresh" onclick="recarregarDados()">↻</button>';try{if(window.__DADOS__){DADOS_RAW=window.__DADOS__;}else{const r=await fetch('/dados.json',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);DADOS_RAW=await r.json();}CLIENTES=transformarParaCLIENTES(DADOS_RAW);NFD_LISTA=extrairNFD(DADOS_RAW);CC_LISTA=extrairCC(DADOS_RAW);PRODUTOS_POR_CLIENTE=extrairProdutos(DADOS_RAW);banner.className='banner-status banner-ok';banner.innerHTML='✓ '+CLIENTES.length+' clientes · '+NFD_LISTA.length+' NFD · '+CC_LISTA.length+' parcelas <button class="btn-refresh" onclick="recarregarDados()">↻</button>';}catch(e){console.error(e);banner.className='banner-status banner-erro';banner.innerHTML='⚠️ Sem conexão — usando demo <button class="btn-refresh" onclick="recarregarDados()">↻</button>';CLIENTES=clientesDemo();NFD_LISTA=nfdDemo();CC_LISTA=ccDemo();PRODUTOS_POR_CLIENTE=produtosDemo();}renderClientes();renderABSemCompra();renderNFD();renderCC();calcularIndustriasAgreg();renderIndustrias();
 }
 function transformarParaCLIENTES(dados){const hp=dados&&dados.historico_pedidos&&dados.historico_pedidos.por_cliente_industria_ano||{};const itens=dados&&dados.itens||[];const cfg=dados&&dados.clientes_config||{};const inativos=new Set((cfg.inativos||[]).map(s=>s.toUpperCase()));const excluidos=new Set((cfg.excluidos||[]).map(s=>s.toUpperCase()));const saldosPorCliente={};for(const it of itens){const cli=(it.cliente||it.razao_social||'').toUpperCase().trim();if(!cli)continue;saldosPorCliente[cli]=saldosPorCliente[cli]||[];saldosPorCliente[cli].push({prod:it.produto||it.descricao||'-',qtd:it.qtd_saldo||it.quantidade||0,pedido:it.pedido_numero||it.numero||'',valor:it.valor_saldo||0,industria:(it.industria||'').toUpperCase()});}const out=[];let id=1;for(const cliente in hp){if(excluidos.has(cliente.toUpperCase()))continue;const indMap=hp[cliente];const industrias=[];for(const ind in indMap){const a26=indMap[ind]['2026']||{};const valor26=a26.valor||0;const qtd=a26.qtd_pedidos||0;const ciclo=qtd>0?Math.round(365/qtd):60;const saldosInd=(saldosPorCliente[cliente]||[]).filter(s=>!s.industria||s.industria===ind.toUpperCase());industrias.push({nome:ind,ultimaCompra:a26.ultima_data||'-',ciclo:ciclo,diasSemComprar:30,valor2026:valor26,qtdPedidos:qtd,saldo:saldosInd});}industrias.sort((a,b)=>b.valor2026-a.valor2026);out.push({id:id++,nome:cliente,cidade:'',segmento:inativos.has(cliente.toUpperCase())?'Inativo':'Ativo',industrias:industrias,todosSaldos:saldosPorCliente[cliente]||[]});}out.sort((a,b)=>{const va=a.industrias.reduce((s,i)=>s+i.valor2026,0);const vb=b.industrias.reduce((s,i)=>s+i.valor2026,0);return vb-va;});return out;}
 function extrairProdutos(dados){if(dados&&dados.produtos_por_cliente)return dados.produtos_por_cliente;const itens=dados&&dados.itens||[];const out={};for(const it of itens){const cli=(it.cliente||it.razao_social||'').toUpperCase().trim();if(!cli)continue;const prod=it.produto||it.descricao||'-';out[cli]=out[cli]||{};out[cli][prod]=(out[cli][prod]||0)+(it.qtd_saldo||it.quantidade||1);}return out;}
@@ -640,6 +652,94 @@ let _prioSel = 'media';
 let _respSel = []; // array de responsaveis selecionados
 
 // ============== TAREFAS RENDER ==============
+function calcularCurvaABC(){
+  // Curva ABC dos clientes baseado em valor 2026 total
+  const arr = CLIENTES.map(c => ({c, total: c.industrias.reduce((s,i)=>s+(i.valor2026||0), 0)}));
+  arr.sort((a,b)=> b.total - a.total);
+  const valTotal = arr.reduce((s,x)=>s+x.total, 0);
+  const out = new Map();
+  let acc = 0;
+  for(const {c, total} of arr){
+    acc += total;
+    const p = valTotal>0 ? acc/valTotal : 1;
+    const classe = p <= 0.80 ? 'A' : (p <= 0.95 ? 'B' : 'C');
+    out.set(c.id, {classe, valor: total});
+  }
+  return out;
+}
+
+function renderABSemCompra(){
+  const cont = document.getElementById('lista-abnc');
+  const kpi = document.getElementById('kpi-abnc');
+  const counter = document.getElementById('contador-abnc');
+  cont.innerHTML = ''; kpi.innerHTML = ''; counter.textContent = '';
+
+  if(!CLIENTES || CLIENTES.length === 0){
+    cont.innerHTML = '<div class="vazio"><div class="vazio-icon">⏳</div>Aguardando dados...</div>';
+    return;
+  }
+
+  const abc = calcularCurvaABC();
+
+  // Definir limite: dia 1 do mês anterior ao mês vigente
+  const hoje = new Date();
+  const limite = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+  const limiteISO = limite.toISOString().slice(0, 10);
+
+  // Para cada cliente, achar a data da última compra (entre todas as indústrias)
+  const semCompra = [];
+  for(const c of CLIENTES){
+    const info = abc.get(c.id);
+    if(!info || (info.classe !== 'A' && info.classe !== 'B')) continue;
+    // Última compra do cliente: max das ultimaCompra de cada industria
+    let ultimas = c.industrias.map(i => i.ultimaCompra).filter(d => d && d !== '-' && d.length >= 10);
+    let ultimaCompra = ultimas.length > 0 ? ultimas.sort().reverse()[0] : null;
+    if(!ultimaCompra || ultimaCompra < limiteISO){
+      semCompra.push({c, classe: info.classe, valor: info.valor, ultima: ultimaCompra || 'Nunca'});
+    }
+  }
+
+  // Ordenar: A primeiro, depois B; dentro de cada, por valor desc
+  semCompra.sort((a,b) => {
+    if(a.classe !== b.classe) return a.classe === 'A' ? -1 : 1;
+    return b.valor - a.valor;
+  });
+
+  const totalA = semCompra.filter(x => x.classe === 'A').length;
+  const totalB = semCompra.filter(x => x.classe === 'B').length;
+
+  kpi.innerHTML =
+    '<div class="kpi-card urgente"><div class="kpi-label">Curva A sem compra</div><div class="kpi-valor">'+totalA+'</div><div class="kpi-sub">2+ meses sem comprar</div></div>'+
+    '<div class="kpi-card destaque"><div class="kpi-label">Curva B sem compra</div><div class="kpi-valor">'+totalB+'</div><div class="kpi-sub">2+ meses sem comprar</div></div>';
+
+  counter.textContent = 'Limite: desde ' + limiteISO.split('-').reverse().join('/') + ' (' + semCompra.length + ' clientes)';
+
+  if(semCompra.length === 0){
+    cont.innerHTML = '<div class="vazio" style="padding:30px 20px;background:var(--verde-claro);border-radius:var(--raio);color:var(--verde);font-weight:600;"><div class="vazio-icon">🎉</div>Todos os clientes A e B compraram nos últimos 2 meses!</div>';
+    return;
+  }
+
+  cont.innerHTML = semCompra.slice(0, 100).map(({c, classe, valor, ultima}) => {
+    const ultimaDataFmt = ultima === 'Nunca' ? 'Nunca' : ultima.split('-').reverse().join('/');
+    const corCurva = classe === 'A' ? 'badge-vermelho' : 'badge-laranja';
+    return '<div class="card" style="cursor:pointer;" onclick="abrirCliente('+c.id+')">'+
+      '<div class="card-header"><div class="card-nome">'+c.nome+'</div>'+
+      '<div class="card-meta">'+
+        '<span class="badge '+corCurva+'">Curva '+classe+'</span>'+
+        (c.cidade?'<span>📍 '+c.cidade+'</span>':'')+
+        '<span class="badge badge-laranja">📅 Últ. '+ultimaDataFmt+'</span>'+
+      '</div></div>'+
+      '<div class="industria-lista">'+
+        '<div class="industria-row"><div class="industria-nome">Valor 2026 (anual)</div><div class="industria-info"><div class="industria-valor">'+fmt(valor)+'</div></div></div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  if(semCompra.length > 100){
+    cont.innerHTML += '<div class="vazio" style="padding:14px;font-size:12px;">+ '+(semCompra.length-100)+' clientes adicionais — refine usando a busca de Clientes</div>';
+  }
+}
+
 function renderTarefas(){
   const tFiltradas = aplicarFiltroTarefas(TAREFAS||[]);
   const p=tFiltradas.filter(t=>!t.feita),c=tFiltradas.filter(t=>t.feita);
@@ -1069,7 +1169,7 @@ function irPara(t,b){
   if(t==='nfd')renderNFD(document.getElementById('busca-nfd').value);
   if(t==='cc')renderCC(document.getElementById('busca-cc').value);
   if(t==='industrias')renderIndustrias(document.getElementById('busca-industria').value);
-}
+if(t==="abnocompra")renderABSemCompra();}
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('visivel');setTimeout(()=>t.classList.remove('visivel'),2500);}
 function clientesDemo(){return[{id:1,nome:'SUPERMERCADO CENTRAL',cidade:'Ipatinga',segmento:'Ativo',industrias:[{nome:'CASA MADEIRA',ultimaCompra:'Mar/26',ciclo:45,diasSemComprar:52,valor2026:18400,qtdPedidos:8,saldo:[]}],todosSaldos:[]},{id:2,nome:'MERCADO BOM PRECO',cidade:'Coronel Fabriciano',segmento:'Ativo',industrias:[{nome:'CASA MADEIRA',ultimaCompra:'Fev/26',ciclo:60,diasSemComprar:88,valor2026:22100,qtdPedidos:6,saldo:[]}],todosSaldos:[]}];}
 function nfdDemo(){return[];}
