@@ -633,6 +633,16 @@ function extrairProdutos(dados){if(dados&&dados.produtos_por_cliente)return dado
 function extrairNFD(dados){if(dados&&Array.isArray(dados.nfd))return dados.nfd;if(dados&&dados.notas_devolvidas)return dados.notas_devolvidas;return [];}
 function extrairCC(dados){if(dados&&Array.isArray(dados.conta_corrente))return dados.conta_corrente;if(dados&&Array.isArray(dados.contacorrente))return dados.contacorrente;if(dados&&dados.cc)return dados.cc;return [];}
 async function carregarTarefas(){try{const r=await fetch('/tasks-from-onenote.json',{cache:'no-store'});if(r.ok){TAREFAS=await r.json();}else{throw new Error('indisp');}}catch(e){TAREFAS=JSON.parse(localStorage.getItem('3mv_tarefas')||'[]');if(TAREFAS.length===0){TAREFAS=[{id:1,texto:'Enviar tabela de preços atualizada',responsavel:'Lais',email:'adm@',cliente:'Supermercado Central',data:'10/05/2026',feita:false,fonte_onenote:'Visita 10/05'},{id:2,texto:'Confirmar saldo do pedido P-2234',responsavel:'Rafa',email:'adm1@',cliente:'Supermercado Central',data:'10/05/2026',feita:false,fonte_onenote:'Visita 10/05'},{id:3,texto:'Ligar pra logística',responsavel:'Marcelo',email:'marcelo@',cliente:'Mercado Bom Preço',data:'09/05/2026',feita:true,fonte_onenote:'Visita 09/05'}];}}renderTarefas();}
+
+// FASE 9.23 — Helper de toast pra confirmações
+function mostrarToast(msg, tipo){
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:'+(tipo==='erro'?'#dc2626':'#10b981')+';color:white;padding:14px 24px;border-radius:24px;font-weight:700;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,0.3);animation:fadeInUp .25s ease;';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(()=>t.remove(), 300); }, 2800);
+}
+
 function recarregarDados(){carregarDados();}
 const ms=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];const ds=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];const dh=new Date();
 document.getElementById('data-atual').textContent=ds[dh.getDay()]+', '+dh.getDate()+' '+ms[dh.getMonth()];
@@ -652,6 +662,32 @@ document.getElementById('busca-nfd').addEventListener('input',e=>renderNFD(e.tar
 function renderCC(filtro){filtro=filtro||'';const f=filtro.toLowerCase();let lista=f?CC_LISTA.filter(p=>(p.cliente||'').toLowerCase().includes(f)||(p.parcela||'').toLowerCase().includes(f)||(p.numero||'').toString().includes(f)):CC_LISTA;lista=aplicarFiltroCC(lista);const aberto=lista.filter(p=>(p.situacao||'').toLowerCase()!=='pago');const vencido=aberto.filter(p=>{const v=p.vencimento;if(!v)return false;return new Date(v)<new Date();});const valorAberto=aberto.reduce((s,p)=>s+(p.valor||0),0);document.getElementById('kpi-cc').innerHTML='<div class="kpi-card destaque"><div class="kpi-label">Em aberto</div><div class="kpi-valor">'+fmt(valorAberto)+'</div><div class="kpi-sub">'+aberto.length+' parcela'+(aberto.length!==1?'s':'')+'</div></div><div class="kpi-card '+(vencido.length>0?'urgente':'')+'"><div class="kpi-label">Vencidas</div><div class="kpi-valor">'+vencido.length+'</div><div class="kpi-sub">a cobrar</div></div>';document.getElementById('contador-cc').textContent=aberto.length;const ul=document.getElementById('lista-cc');if(aberto.length===0&&lista.length===0){ul.innerHTML='<div class="vazio"><div class="vazio-icon">💰</div>'+(CC_LISTA.length===0?'Dados de Conta Corrente ainda não disponíveis':'Nenhuma parcela em aberto')+'</div>';return;}const renderArr=aberto.length>0?aberto:lista;ul.innerHTML=renderArr.slice(0,100).map(p=>{const sit=(p.situacao||'aberto').toLowerCase();const venc=p.vencimento?new Date(p.vencimento):null;const isVencido=venc&&venc<new Date()&&sit!=='pago';const cls=sit==='pago'?'pago':(isVencido?'vencido':'aberto');return '<div class="cc-row"><div class="cc-info"><div class="cc-cliente">'+(p.cliente||'-')+'</div><div class="cc-meta">Vence '+fmtData(p.vencimento)+' · '+(p.parcela||'-')+(p.numero?' #'+p.numero:'')+(isVencido?' · ⚠️ vencida':'')+'</div></div><div class="cc-valor '+cls+'">'+fmt(p.valor||0)+'</div></div>';}).join('');}
 document.getElementById('busca-cc').addEventListener('input',e=>renderCC(e.target.value));
 // ============== EQUIPE (gerenciada via Settings) ==============
+
+// FASE 9.23 — Grupos de clientes (mesma config do painel principal)
+const GRUPOS_CLIENTES = {
+  'Coelho Diniz': ['coelho diniz'],
+  'DPC': ['dpc '],
+  'Aladim / DAC / DCA': ['casa aladim', ' dca ', 'dca centro', ' dac ', 'dac centro'],
+  'Garcia': ['garcia super', 'cd garcia'],
+  'Monlevade': ['monlevade'],
+  'Avenida / Cevalori / OPA': ['varejao avenida', 'varejão avenida', 'cevalori', 'sup opa', 'opa supermerc', 'opa carnes'],
+  'Carrefour': ['carrefour'],
+  'Atacadão': ['atacadao', 'atacadão'],
+  'Assaí': ['assai', 'assaí'],
+  'BIG / Bompreço': ['bompreco', 'bompreço', ' big '],
+  'Mateus': ['grupo mateus', 'mateus '],
+  'Muffato': ['muffato'],
+  'GPA / Pão de Açúcar': ['gpa ', 'pao de acucar', 'pão de açúcar', 'extra '],
+};
+function grupoDoCliente(nomeCliente){
+  if(!nomeCliente) return null;
+  const nome = String(nomeCliente).toLowerCase();
+  for(const [grupo, padroes] of Object.entries(GRUPOS_CLIENTES)){
+    if(padroes.some(p => nome.includes(p))) return grupo;
+  }
+  return null;
+}
+
 const EQUIPE_DEFAULT = [
   {nome:'Lais', email:'adm@3mvrepresentacao.com', whats:'5531999403675'},
   {nome:'Rafa', email:'adm1@3mvrepresentacao.com', whats:'5531999403675'},
@@ -786,12 +822,48 @@ function renderABSemCompraInd(){
           '<span class="badge '+cor+'">Curva '+classe+'</span>'+
           '<span class="badge badge-laranja">📅 Últ. '+ultFmt+'</span>'+
           (ind.valor2026?'<span>'+fmt(ind.valor2026)+'/ano</span>':'')+
+        renderStatusBadge(c.nome, ind.nome)+
         '</div>'+
       '</div>'+
+      renderStatusBtns(c.nome, ind.nome)+
     '</div>';
   }).join('');
   if(lista.length > 100) cont.innerHTML += '<div class="vazio">+ '+(lista.length-100)+' pares</div>';
 }
+
+
+// FASE 9.23 — Status de atendimento por cliente×indústria pra abas A/B sem, A/B ind, Lembretes
+function statusAtendKey(cli, ind){
+  return 'atendStatus|' + (cli||'') + '|' + (ind||'');
+}
+function getStatusAtend(cli, ind){
+  try { return JSON.parse(localStorage.getItem(statusAtendKey(cli, ind)) || 'null'); } catch(e) { return null; }
+}
+function setStatusAtend(cli, ind, status, obs){
+  const data = { status, obs: obs||'', timestamp: Date.now() };
+  localStorage.setItem(statusAtendKey(cli, ind), JSON.stringify(data));
+  // Re-render abas relevantes
+  if(document.getElementById('tela-abnocompra').classList.contains('ativa')) renderABSemCompra();
+  if(document.getElementById('tela-abnocompraind').classList.contains('ativa')) renderABSemCompraInd();
+}
+function renderStatusBadge(cli, ind){
+  const s = getStatusAtend(cli, ind);
+  if(!s) return '';
+  const cls = s.status === 'atendi' ? 'badge-verde' : (s.status === 'aguardando' ? 'badge-amarelo' : 'badge-vermelho');
+  const icon = s.status === 'atendi' ? '✓' : (s.status === 'aguardando' ? '⏳' : '✗');
+  const txt = s.status === 'atendi' ? 'Atendi' : (s.status === 'aguardando' ? 'Aguardando feedback' : 'Não atendi');
+  return '<span class="badge '+cls+'">'+icon+' '+txt+'</span>';
+}
+function renderStatusBtns(cli, ind){
+  const cliEsc = (cli||'').replace(/\'/g,"\\'").replace(/"/g,'&quot;');
+  const indEsc = (ind||'').replace(/\'/g,"\\'").replace(/"/g,'&quot;');
+  return '<div class="card-acoes" style="padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;background:#fafbfc;">'+
+    '<button class="btn-mini" style="background:#dcfce7;color:#15803d;" onclick="event.stopPropagation();setStatusAtend(\''+cliEsc+'\',\''+indEsc+'\',\'atendi\')">✓ Atendi</button>'+
+    '<button class="btn-mini" style="background:#fef9c3;color:#854d0e;" onclick="event.stopPropagation();setStatusAtend(\''+cliEsc+'\',\''+indEsc+'\',\'aguardando\')">⏳ Aguardando</button>'+
+    '<button class="btn-mini" style="background:#fee2e2;color:#991b1b;" onclick="event.stopPropagation();const obs=prompt(\'Motivo (opcional):\')||\'\';setStatusAtend(\''+cliEsc+'\',\''+indEsc+'\',\'naoatendi\',obs)">✗ Não atendi</button>'+
+  '</div>';
+}
+
 
 function calcularCurvaABC(){
   // Curva ABC dos clientes baseado em valor 2026 total
@@ -869,10 +941,12 @@ function renderABSemCompra(){
         '<span class="badge '+corCurva+'">Curva '+classe+'</span>'+
         (c.cidade?'<span>📍 '+c.cidade+'</span>':'')+
         '<span class="badge badge-laranja">📅 Últ. '+ultimaDataFmt+'</span>'+
+        renderStatusBadge(c.nome, '')+
       '</div></div>'+
       '<div class="industria-lista">'+
         '<div class="industria-row"><div class="industria-nome">Valor 2026 (anual)</div><div class="industria-info"><div class="industria-valor">'+fmt(valor)+'</div></div></div>'+
       '</div>'+
+      renderStatusBtns(c.nome, '')+
     '</div>';
   }).join('');
 
@@ -915,9 +989,12 @@ function renderTarefaItem(t, concluida){
     }
     if(canais.includes('whats')){
       const whats = EQUIPE.filter(m=>respList.includes(m.nome) && m.whats).map(m=>({nome:m.nome,num:m.whats}));
-      whats.forEach(w=>{if(!w.num)return; acoes+='<a class="btn-mini whats" href="https://wa.me/'+w.num+'?text='+txtMsg+'" target="_blank" onclick="abrirConfirmarEnvio('+t.id+',\'whats\')">💬 '+w.nome+'</a>';});
+      whats.forEach(w=>{if(!w.num)return; acoes+='<a class="btn-mini whats" href="https://api.whatsapp.com/send?phone='+w.num+'&text='+txtMsg+'" target="_blank" onclick="abrirConfirmarEnvio('+t.id+',\'whats\')">💬 '+w.nome+'</a>';});
     }
     
+    // FASE 9.23 — botão editar
+    acoes += '<button class="btn-mini" style="background:#e0e7ff;color:#3730a3;font-weight:700;" onclick="event.stopPropagation();abrirEditarTarefa('+t.id+')">✏️ Editar</button>';
+
     // Status de envios
     if(t.envios && t.envios.length>0){
       const enviosE = t.envios.filter(e=>e.canal==='email').length;
@@ -1073,7 +1150,12 @@ function abrirNovaTarefa(){
     + '<div class="chip-resp" data-resp="todos" onclick="selecionarTodos(this)">@todos</div>';
   
   // Datalists
-  document.getElementById('datalist-clientes').innerHTML = (CLIENTES||[]).slice(0,200).map(c=>'<option value="'+c.nome.replace(/"/g,'&quot;')+'">').join('');
+  // FASE 9.23 — Datalist de clientes inclui GRUPOS antes (ex: "Aladim / DAC / DCA" vira opção). Indústrias só ativas.
+  const gruposUsados = new Set();
+  (CLIENTES||[]).forEach(c => { const g = grupoDoCliente(c.nome); if(g) gruposUsados.add(g); });
+  const optionsGrupos = Array.from(gruposUsados).sort().map(g => '<option value="'+g.replace(/"/g,'&quot;')+'">');
+  const optionsCli = (CLIENTES||[]).slice(0,200).map(c => '<option value="'+c.nome.replace(/"/g,'&quot;')+'">');
+  document.getElementById('datalist-clientes').innerHTML = optionsGrupos.join('') + optionsCli.join('');
   document.getElementById('datalist-industrias').innerHTML = (INDUSTRIAS_AGREG||[]).slice(0,200).map(ind=>'<option value="'+ind.nome.replace(/"/g,'&quot;')+'">').join('');
   
   document.getElementById('modal-tarefa').classList.add('aberto');
@@ -1196,6 +1278,39 @@ function setPrio(el, p){
   _prioSel = p;
 }
 
+
+// FASE 9.23 — Editar tarefa existente
+let _editandoTarefaId = null;
+function abrirEditarTarefa(id){
+  const t = TAREFAS.find(x => x.id === id);
+  if(!t){ mostrarToast('Tarefa não encontrada', 'erro'); return; }
+  _editandoTarefaId = id;
+  abrirNovaTarefa();  // Reusa o modal
+  // Preencher
+  setTimeout(() => {
+    document.getElementById('t-texto').value = t.texto || '';
+    if(t.cliente){
+      document.getElementById('t-cliente').value = t.cliente;
+      toggleDest('cliente');
+    }
+    if(t.industria){
+      document.getElementById('t-industria').value = t.industria;
+      toggleDest('industria');
+    }
+    _prioSel = t.prioridade || 'media';
+    document.querySelectorAll('.chip-prio').forEach(el => el.classList.toggle('ativo', el.dataset.prio === _prioSel));
+    _respSel = Array.isArray(t.responsavel) ? t.responsavel.slice() : [t.responsavel];
+    document.querySelectorAll('#chips-resp .chip-resp').forEach(el => {
+      const r = el.dataset.resp;
+      if(_respSel.includes(r)) el.classList.add('ativo');
+    });
+    _canalSel = Array.isArray(t.canais) ? t.canais.slice() : ['email','whats'];
+    document.getElementById('canal-email').classList.toggle('ativo', _canalSel.includes('email'));
+    document.getElementById('canal-whats').classList.toggle('ativo', _canalSel.includes('whats'));
+    document.querySelector('.modal-form-titulo').textContent = '✏️ Editar tarefa';
+  }, 50);
+}
+
 function salvarTarefa(){
   const texto = document.getElementById('t-texto').value.trim();
   const cliente = document.getElementById('t-cliente').value.trim();
@@ -1208,6 +1323,27 @@ function salvarTarefa(){
   if(_destSel.includes('industria') && !industria){alert('Preencha o nome da indústria');return;}
   if(_canalSel.length===0){alert('Marque pelo menos 1 canal de envio');return;}
 
+  // FASE 9.23 — se _editandoTarefaId, atualizar a tarefa em vez de criar nova
+  if(typeof _editandoTarefaId !== 'undefined' && _editandoTarefaId){
+    const idx = TAREFAS.findIndex(x => x.id === _editandoTarefaId);
+    if(idx >= 0){
+      TAREFAS[idx] = Object.assign({}, TAREFAS[idx], {
+        texto: texto,
+        cliente: _destSel.includes('cliente') ? cliente : '',
+        industria: _destSel.includes('industria') ? industria : '',
+        destinatarios_tipo: _destSel.slice(),
+        responsavel: _respSel.slice(),
+        canais: _canalSel.slice(),
+        prioridade: _prioSel,
+      });
+      localStorage.setItem('3mv_tarefas', JSON.stringify(TAREFAS));
+      renderTarefas();
+      _editandoTarefaId = null;
+      fecharNovaTarefa();
+      mostrarToast('✏️ Tarefa atualizada!');
+      return;
+    }
+  }
   const novaTarefa = {
     id: Date.now(),
     texto: texto,
@@ -1225,6 +1361,7 @@ function salvarTarefa(){
   TAREFAS.unshift(novaTarefa);
   localStorage.setItem('3mv_tarefas',JSON.stringify(TAREFAS));
   fecharNovaTarefa();
+  mostrarToast('✓ Tarefa criada com sucesso!');
   renderTarefas();
   showToast('✓ Tarefa criada! Use os botões pra enviar.');
 }
