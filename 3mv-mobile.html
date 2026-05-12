@@ -728,8 +728,8 @@ let _respSel = []; // array de responsaveis selecionados
 
 // FASE 9.24 — Envio automático via Worker email-api
 const EMAIL_API_DEFAULT = {
-  url: 'https://email-api.3mvrepresentacao.com',  // ou .marcelo-778.workers.dev
-  token: '',  // configurar via config
+  url: 'https://email-api.marcelo-778.workers.dev',
+  token: '54610344760641d602a2495be99cc88d073bb45621bfbdaccaa6b25c3176f1dd',
 };
 function getEmailCfg(){
   try { return Object.assign({}, EMAIL_API_DEFAULT, JSON.parse(localStorage.getItem('3mv_email_cfg')||'{}')); }
