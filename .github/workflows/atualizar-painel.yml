@@ -47,7 +47,7 @@ jobs:
       - name: Etapa 1 — Extrair saldos da API Suas Vendas
         run: |
           mkdir -p outputs
-          python scripts/extrair_saldos.py \
+          python -u scripts/extrair_saldos.py \
             --config config.json \
             --output-json outputs/dados.json \
             --output-xlsx outputs/saldos.xlsx \
@@ -57,30 +57,30 @@ jobs:
         run: cp outputs/dados.json dados.json
 
       - name: Etapa 3 — Injetar Conta Corrente + NFD (planilhas snapshot)
-        run: python injetar_conta_corrente.py
+        run: python -u injetar_conta_corrente.py
         continue-on-error: true
 
       - name: Etapa 4 — Injetar Histórico
-        run: python injetar_historico.py
+        run: python -u injetar_historico.py
         continue-on-error: true
 
       - name: Etapa 4b — Injetar Metas
-        run: python injetar_metas.py
+        run: python -u injetar_metas.py
         continue-on-error: true
 
       - name: Etapa 4c — Injetar CRM
-        run: python injetar_crm.py
+        run: python -u injetar_crm.py
         continue-on-error: true
 
       - name: Etapa 4d — Injetar Histórico de Pedidos 24/25/26
-        run: python injetar_historico_pedidos.py
+        run: python -u injetar_historico_pedidos.py
         continue-on-error: true
 
       - name: Etapa 4e — Injetar Field (opcional — atas/visitas/tarefas do Painel Mobile)
         env:
           FIELD_API_URL: ${{ secrets.FIELD_API_URL }}
           FIELD_API_TOKEN: ${{ secrets.FIELD_API_TOKEN }}
-        run: python injetar_field.py
+        run: python -u injetar_field.py
         continue-on-error: true
 
       - name: Etapa 4f — Injetar Agenda Google Calendar (opcional)
@@ -89,11 +89,11 @@ jobs:
           GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
           GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
-        run: python injetar_agenda.py
+        run: python -u injetar_agenda.py
         continue-on-error: true
 
       - name: Etapa 5 — Gerar painel HTML
-        run: python gerar_painel.py
+        run: python -u gerar_painel.py
 
       - name: Preparar diretório de deploy Cloudflare
         run: |
