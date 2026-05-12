@@ -80,22 +80,66 @@ function detectaHtml(body) {
          /<(p|div|span|table|h[1-6]|br|a|b|strong|em|ul|ol|li|img|body)\b/i.test(trimmed.slice(0, 500));
 }
 
-function buildRfc822({ from, to, cc, subject, body, tipo }) {
+function chunkB64(b64) {
+  return b64.replace(/(.{76})/g, '$1\r\n');
+}
+
+function buildRfc822({ from, to, cc, subject, body, tipo, anexos }) {
   const isHtml = (tipo === 'html') || (tipo !== 'plain' && detectaHtml(body));
-  const contentType = isHtml ? 'text/html; charset=UTF-8' : 'text/plain; charset=UTF-8';
-  // base64 pra qualquer corpo (HTML ou plain) — garante que acentos cheguem inteiros
-  const b64body = btoa(unescape(encodeURIComponent(body)))
-                    .replace(/(.{76})/g, '$1\r\n');
+  const bodyContentType = isHtml ? 'text/html; charset=UTF-8' : 'text/plain; charset=UTF-8';
+  const b64body = chunkB64(btoa(unescape(encodeURIComponent(body))));
+
+  const subjectEnc = encodeSubjectUtf8(subject);
+  const toLine = (Array.isArray(to) ? to : [to]).join(', ');
+  const ccLine = cc && cc.length ? (Array.isArray(cc) ? cc : [cc]).join(', ') : '';
+
+  const semAnexo = !anexos || !anexos.length;
+  if (semAnexo) {
+    const headers = [
+      `From: ${from}`,
+      `To: ${toLine}`,
+      ccLine ? `Cc: ${ccLine}` : '',
+      `Subject: ${subjectEnc}`,
+      'MIME-Version: 1.0',
+      `Content-Type: ${bodyContentType}`,
+      'Content-Transfer-Encoding: base64',
+    ].filter(x => x).join('\r\n');
+    return headers + '\r\n\r\n' + b64body;
+  }
+
+  // mensagem multipart/mixed
+  const boundary = '----3mv-boundary-' + Math.random().toString(36).slice(2);
   const headers = [
     `From: ${from}`,
-    `To: ${(Array.isArray(to) ? to : [to]).join(', ')}`,
-    cc && cc.length ? `Cc: ${(Array.isArray(cc) ? cc : [cc]).join(', ')}` : '',
-    `Subject: ${encodeSubjectUtf8(subject)}`,
+    `To: ${toLine}`,
+    ccLine ? `Cc: ${ccLine}` : '',
+    `Subject: ${subjectEnc}`,
     'MIME-Version: 1.0',
-    `Content-Type: ${contentType}`,
-    'Content-Transfer-Encoding: base64',
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
   ].filter(x => x).join('\r\n');
-  return headers + '\r\n\r\n' + b64body;
+
+  const partes = [];
+  partes.push(
+    `--${boundary}\r\n` +
+    `Content-Type: ${bodyContentType}\r\n` +
+    `Content-Transfer-Encoding: base64\r\n\r\n` +
+    b64body
+  );
+  for (const a of anexos) {
+    const nome = a.nome || a.filename || 'anexo.bin';
+    const mime = a.mime || a.mimeType || 'application/octet-stream';
+    const data = a.base64 || a.data || '';
+    partes.push(
+      `--${boundary}\r\n` +
+      `Content-Type: ${mime}; name="${nome}"\r\n` +
+      `Content-Disposition: attachment; filename="${nome}"\r\n` +
+      `Content-Transfer-Encoding: base64\r\n\r\n` +
+      chunkB64(data)
+    );
+  }
+  partes.push(`--${boundary}--`);
+
+  return headers + '\r\n\r\n' + partes.join('\r\n');
 }
 
 function b64UrlEncode(str) {
@@ -121,7 +165,7 @@ export default {
     if (req.method === 'POST' && path === '/api/email/send') {
       try {
         const data = await req.json();
-        const { para, assunto, corpo, cc, tipo, tarefa_id } = data;
+        const { para, assunto, corpo, cc, tipo, anexos, tarefa_id } = data;
         if (!para || !assunto || !corpo) {
           return jsonResp({ erro: 'campos obrigatorios: para, assunto, corpo' }, 400);
         }
@@ -133,6 +177,7 @@ export default {
           subject: assunto,
           body: corpo,
           tipo: tipo,
+          anexos: anexos,
         });
         const raw = b64UrlEncode(rfc);
         const sendResp = await fetch(
