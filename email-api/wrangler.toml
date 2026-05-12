@@ -1,0 +1,15 @@
+name = "email-api"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# Custom domain (opcional, depois)
+# routes = [
+#   { pattern = "email-api.3mvrepresentacao.com", custom_domain = true }
+# ]
+
+# Secrets (configure com wrangler secret put):
+#   EMAIL_TOKEN          - Bearer token pra autenticar requests
+#   GMAIL_CLIENT_ID      - OAuth 2.0 Client ID
+#   GMAIL_CLIENT_SECRET  - OAuth 2.0 Client Secret
+#   GMAIL_REFRESH_TOKEN  - Refresh token gerado no oauthplayground
+#   GMAIL_FROM           - email "From" (marcelo@3mvrepresentacao.com)

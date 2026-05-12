@@ -725,6 +725,53 @@ let _prioSel = 'media';
 let _respSel = []; // array de responsaveis selecionados
 
 // ============== TAREFAS RENDER ==============
+
+// FASE 9.24 — Envio automático via Worker email-api
+const EMAIL_API_DEFAULT = {
+  url: 'https://email-api.3mvrepresentacao.com',  // ou .marcelo-778.workers.dev
+  token: '',  // configurar via config
+};
+function getEmailCfg(){
+  try { return Object.assign({}, EMAIL_API_DEFAULT, JSON.parse(localStorage.getItem('3mv_email_cfg')||'{}')); }
+  catch(e) { return Object.assign({}, EMAIL_API_DEFAULT); }
+}
+async function enviarEmailAuto(tarefa){
+  const cfg = getEmailCfg();
+  if(!cfg.url || !cfg.token){
+    mostrarToast('Configure URL+token do Email API em ⚙️', 'erro');
+    return false;
+  }
+  const respList = Array.isArray(tarefa.responsavel) ? tarefa.responsavel : [tarefa.responsavel];
+  const emails = EQUIPE.filter(m => respList.includes(m.nome)).map(m => m.email).filter(x => x);
+  if(emails.length === 0){
+    mostrarToast('Sem destinatários de email', 'erro'); return false;
+  }
+  const assunto = '[3MV] ' + (tarefa.cliente||tarefa.industria||'Tarefa') + ' - ' + (tarefa.texto||'').substring(0,60);
+  const corpo = montarMsgEmail(tarefa);
+  try {
+    const r = await fetch(cfg.url.replace(/\/$/,'') + '/api/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer '+cfg.token },
+      body: JSON.stringify({ para: emails, assunto, corpo, tarefa_id: tarefa.id }),
+    });
+    const j = await r.json();
+    if(j.ok){
+      // Registra envio na tarefa
+      if(!tarefa.envios) tarefa.envios = [];
+      tarefa.envios.push({ canal:'email', data: new Date().toISOString(), por: 'auto', message_id: j.message_id });
+      localStorage.setItem('3mv_tarefas', JSON.stringify(TAREFAS));
+      mostrarToast('📧 Email enviado automaticamente!');
+      renderTarefas();
+      if(document.getElementById('tela-lembretes').classList.contains('ativa')) renderMeusLembretes();
+      return true;
+    }
+    mostrarToast('Falha: '+(j.erro||'?'), 'erro');
+    return false;
+  } catch(e) {
+    mostrarToast('Erro de rede: '+e.message, 'erro'); return false;
+  }
+}
+
 function renderMeusLembretes(){
   const cont = document.getElementById('lista-lemb');
   const kpi = document.getElementById('kpi-lemb');
@@ -1099,6 +1146,10 @@ function renderTarefaItem(t, concluida){
       whats.forEach(w=>{if(!w.num)return; acoes+='<a class="btn-mini whats" href="https://api.whatsapp.com/send?phone='+w.num+'&text='+txtMsg+'" target="_blank" onclick="abrirConfirmarEnvio('+t.id+',\'whats\')">💬 '+w.nome+'</a>';});
     }
     
+    // FASE 9.24 — botão enviar email automático
+    if(canais.includes('email') && !(t.envios||[]).some(e => e.canal==='email')){
+      acoes += '<button class="btn-mini" style="background:#10b981;color:white;font-weight:700;" onclick="event.stopPropagation();enviarEmailAuto(TAREFAS.find(x=>x.id==='+t.id+'))">📤 Enviar email auto</button>';
+    }
     // FASE 9.23 — botão editar
     acoes += '<button class="btn-mini" style="background:#e0e7ff;color:#3730a3;font-weight:700;" onclick="event.stopPropagation();abrirEditarTarefa('+t.id+')">✏️ Editar</button>';
 
