@@ -327,7 +327,21 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 <div class="tela" id="tela-lembretes">
   <div class="header"><div class="header-top"><img src="logo_3mv_completa.png" alt="3MV" class="logo-img"><div class="header-date">Meus Lembretes</div></div></div>
   <div class="section" style="margin-top:14px;">
-    <div class="section-title">Minhas tarefas não resolvidas</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap;">
+      <button class="btn-primary" onclick="abrirNovaTarefaLembrete()" style="background:linear-gradient(135deg,#1d8ad6,#1565a8);color:white;padding:10px 18px;border-radius:12px;font-weight:700;font-size:13px;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(29,138,214,0.3);">+ Nova tarefa</button>
+      <select id="filt-lemb-ind" onchange="renderMeusLembretes()" style="padding:8px 10px;border-radius:10px;border:1.5px solid #d4d4d8;font-weight:600;font-size:12px;background:white;flex:1;min-width:120px;">
+        <option value="">🏭 Todas indústrias</option>
+      </select>
+      <select id="filt-lemb-cli" onchange="renderMeusLembretes()" style="padding:8px 10px;border-radius:10px;border:1.5px solid #d4d4d8;font-weight:600;font-size:12px;background:white;flex:1;min-width:120px;">
+        <option value="">📋 Todos clientes/grupos</option>
+      </select>
+      <select id="filt-lemb-status" onchange="renderMeusLembretes()" style="padding:8px 10px;border-radius:10px;border:1.5px solid #d4d4d8;font-weight:600;font-size:12px;background:white;">
+        <option value="pendentes">⏳ Pendentes</option>
+        <option value="todas">Todas</option>
+        <option value="feitas">✓ Feitas</option>
+      </select>
+    </div>
+    <div class="section-title">Minhas tarefas</div>
     <div id="kpi-lemb" class="kpi-row"></div>
     <div id="lista-lemb" style="margin-top:10px;"></div>
   </div>
@@ -717,8 +731,52 @@ function renderMeusLembretes(){
   if(!cont) return;
   cont.innerHTML = ''; kpi.innerHTML = '';
   const USUARIO = (window.USUARIO_LOGADO && window.USUARIO_LOGADO.nome) || 'Marcelo';
-  // Tarefas onde responsável = Marcelo (ou nome do usuário logado) e feita = false
-  const minhas = (TAREFAS || []).filter(t => !t.feita && (t.responsavel || '').toUpperCase().includes('MARCELO'));
+
+  // Popular filtros (1ª vez)
+  const filIndEl = document.getElementById('filt-lemb-ind');
+  const filCliEl = document.getElementById('filt-lemb-cli');
+  if(filIndEl && filIndEl.options.length <= 1){
+    const inds = new Set();
+    (TAREFAS||[]).forEach(t => { if(t.industria) inds.add(t.industria); });
+    (INDUSTRIAS_AGREG||[]).forEach(ind => { if(ind.nome) inds.add(ind.nome); });
+    Array.from(inds).sort().forEach(ind => {
+      const opt = document.createElement('option'); opt.value = ind; opt.textContent = ind;
+      filIndEl.appendChild(opt);
+    });
+  }
+  if(filCliEl && filCliEl.options.length <= 1){
+    const cliSet = new Set();
+    (TAREFAS||[]).forEach(t => {
+      if(!t.cliente) return;
+      const g = grupoDoCliente(t.cliente) || t.cliente;
+      cliSet.add(g);
+    });
+    (CLIENTES||[]).forEach(c => {
+      const g = grupoDoCliente(c.nome) || c.nome;
+      cliSet.add(g);
+    });
+    Array.from(cliSet).sort().forEach(c => {
+      const opt = document.createElement('option'); opt.value = c; opt.textContent = c;
+      filCliEl.appendChild(opt);
+    });
+  }
+  const filtroInd = (filIndEl && filIndEl.value) || '';
+  const filtroCli = (filCliEl && filCliEl.value) || '';
+  const filtroStatus = (document.getElementById('filt-lemb-status') && document.getElementById('filt-lemb-status').value) || 'pendentes';
+
+  // Filtrar tarefas do Marcelo
+  let minhas = (TAREFAS || []).filter(t => (t.responsavel || []).indexOf('Marcelo') >= 0 ||
+                                            (Array.isArray(t.responsavel) ? t.responsavel : [t.responsavel]).some(r => (r||'').toUpperCase().includes('MARCELO')));
+  // Filtro de status
+  if(filtroStatus === 'pendentes') minhas = minhas.filter(t => !t.feita);
+  else if(filtroStatus === 'feitas') minhas = minhas.filter(t => t.feita);
+  // Filtros de indústria e cliente
+  if(filtroInd) minhas = minhas.filter(t => (t.industria||'') === filtroInd);
+  if(filtroCli) minhas = minhas.filter(t => {
+    const g = grupoDoCliente(t.cliente||'') || t.cliente || '';
+    return g === filtroCli;
+  });
+
   const hoje = new Date();
   function diasAt(dataStr){
     if(!dataStr) return 0;
@@ -730,46 +788,95 @@ function renderMeusLembretes(){
     return Math.max(0, Math.round((hoje - d) / 86400000));
   }
   minhas.forEach(t => t._dias = diasAt(t.data));
-  // Escala
-  const verdes = minhas.filter(t => t._dias <= 3);
-  const amarelas = minhas.filter(t => t._dias > 3 && t._dias <= 7);
-  const vermelhas = minhas.filter(t => t._dias > 7);
+
+  const verdes = minhas.filter(t => !t.feita && t._dias <= 3);
+  const amarelas = minhas.filter(t => !t.feita && t._dias > 3 && t._dias <= 7);
+  const vermelhas = minhas.filter(t => !t.feita && t._dias > 7);
+
   // Badge no nav
   const badge = document.getElementById('nav-lembretes-badge');
   if(badge){
-    if(vermelhas.length > 0){ badge.style.display='inline-block'; badge.textContent = vermelhas.length; }
+    if(vermelhas.length > 0){ badge.style.display='inline-block'; badge.textContent = vermelhas.length; badge.style.background = '#dc2626'; }
     else if(amarelas.length > 0){ badge.style.display='inline-block'; badge.textContent = amarelas.length; badge.style.background = '#f59e0b'; }
     else { badge.style.display='none'; }
   }
+
   kpi.innerHTML =
     '<div class="kpi-card '+(vermelhas.length?'urgente':'')+'"><div class="kpi-label">🚨 Atrasadas (8+ dias)</div><div class="kpi-valor">'+vermelhas.length+'</div><div class="kpi-sub">precisam ação agora</div></div>'+
     '<div class="kpi-card"><div class="kpi-label">⚠️ Atenção (4-7 dias)</div><div class="kpi-valor">'+amarelas.length+'</div><div class="kpi-sub">resolver esta semana</div></div>';
-  const sorted = minhas.sort((a,b) => b._dias - a._dias);
+
+  const sorted = minhas.sort((a,b) => {
+    if(a.feita !== b.feita) return a.feita ? 1 : -1;
+    return b._dias - a._dias;
+  });
+
   if(sorted.length === 0){
-    cont.innerHTML = '<div class="vazio" style="padding:30px 20px;background:var(--verde-claro);border-radius:var(--raio);color:var(--verde);font-weight:600;"><div class="vazio-icon">🎉</div>Sem lembretes pendentes!</div>';
+    cont.innerHTML = '<div class="vazio" style="padding:30px 20px;background:var(--verde-claro);border-radius:var(--raio);color:var(--verde);font-weight:600;"><div class="vazio-icon">🎉</div>Nenhum lembrete neste filtro!</div>';
     return;
   }
-  cont.innerHTML = sorted.slice(0, 50).map(t => {
-    const cls = t._dias > 7 ? 'urgente' : (t._dias > 3 ? 'proximo' : 'normal');
-    const bgPulse = t._dias > 7 ? 'animation:pulse 2s infinite;' : '';
-    return '<div class="card '+cls+'" style="cursor:pointer;'+bgPulse+'">'+
+
+  cont.innerHTML = sorted.slice(0, 60).map(t => {
+    const cls = t.feita ? 'normal' : (t._dias > 7 ? 'urgente' : (t._dias > 3 ? 'proximo' : 'normal'));
+    const bgPulse = (!t.feita && t._dias > 7) ? 'animation:pulse 2s infinite;' : '';
+    const prio = t.prioridade==='alta'?'🔴':(t.prioridade==='baixa'?'🟢':'🟡');
+    return '<div class="card '+cls+'" style="cursor:default;'+bgPulse+(t.feita?'opacity:0.6;':'')+'">'+
       '<div class="card-header">'+
-        '<div class="card-nome">'+(t.texto||'(sem descrição)')+'</div>'+
+        '<div class="card-nome">'+prio+' '+(t.texto||'(sem descrição)')+'</div>'+
         '<div class="card-meta">'+
-          '<span class="badge '+(t._dias>7?'badge-vermelho':t._dias>3?'badge-amarelo':'badge-verde')+'">'+t._dias+' dia'+(t._dias!==1?'s':'')+'</span>'+
-          (t.cliente?'<span>📍 '+t.cliente+'</span>':'')+
-          (t.fonte_onenote?'<span class="chip">📝 '+t.fonte_onenote+'</span>':'')+
+          '<span class="badge '+(t.feita?'badge-verde':(t._dias>7?'badge-vermelho':t._dias>3?'badge-amarelo':'badge-verde'))+'">'+(t.feita?'✓ Feita':(t._dias+' dia'+(t._dias!==1?'s':'')))+'</span>'+
+          (t.cliente?'<span class="badge badge-azul">📍 '+(grupoDoCliente(t.cliente)||t.cliente)+'</span>':'')+
+          (t.industria?'<span class="badge" style="background:#e0e7ff;color:#3730a3;">🏭 '+t.industria+'</span>':'')+
+          (t.envios && t.envios.length>0?'<span class="badge badge-verde">✓ enviado '+t.envios.length+'x</span>':'')+
         '</div>'+
       '</div>'+
-      '<div class="card-acoes" style="padding:8px 14px;display:flex;gap:6px;">'+
-        '<button class="btn-mini" onclick="toggleTarefa('+t.id+')">✓ Marcar feita</button>'+
+      '<div class="card-acoes" style="padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;">'+
+        (!t.feita ? '<button class="btn-mini" style="background:#10b981;color:white;font-weight:700;" onclick="efetivarLembrete('+t.id+')">✓ Efetivei</button>':'')+
+        '<button class="btn-mini" style="background:#e0e7ff;color:#3730a3;" onclick="abrirEditarTarefa('+t.id+')">✏️ Editar</button>'+
+        (t.feita ? '<button class="btn-mini" onclick="reabrirLembrete('+t.id+')">↺ Reabrir</button>':'')+
       '</div>'+
     '</div>';
   }).join('');
-  if(sorted.length > 50){
-    cont.innerHTML += '<div class="vazio" style="padding:14px;">+ '+(sorted.length-50)+' tarefas — abra aba Tarefas pra ver todas</div>';
+
+  if(sorted.length > 60){
+    cont.innerHTML += '<div class="vazio" style="padding:14px;">+ '+(sorted.length-60)+' tarefas — refine os filtros pra ver</div>';
   }
 }
+
+function efetivarLembrete(id){
+  const t = (TAREFAS||[]).find(x => x.id === id);
+  if(!t) return;
+  t.feita = true;
+  t.feita_em = new Date().toISOString();
+  localStorage.setItem('3mv_tarefas', JSON.stringify(TAREFAS));
+  mostrarToast('✓ Tarefa efetivada!');
+  renderMeusLembretes();
+  renderTarefas();
+}
+
+function reabrirLembrete(id){
+  const t = (TAREFAS||[]).find(x => x.id === id);
+  if(!t) return;
+  t.feita = false;
+  delete t.feita_em;
+  localStorage.setItem('3mv_tarefas', JSON.stringify(TAREFAS));
+  mostrarToast('↺ Tarefa reaberta!');
+  renderMeusLembretes();
+  renderTarefas();
+}
+
+function abrirNovaTarefaLembrete(){
+  // Reusa o modal de nova tarefa mas pré-marca Marcelo como responsável
+  abrirNovaTarefa();
+  setTimeout(() => {
+    // Marcar Marcelo automaticamente
+    const chipMarcelo = document.querySelector('#chips-resp [data-resp="Marcelo"]');
+    if(chipMarcelo && !chipMarcelo.classList.contains('ativo')){
+      chipMarcelo.click();
+    }
+  }, 100);
+}
+
+
 
 function renderABSemCompraInd(){
   const cont = document.getElementById('lista-abnci');

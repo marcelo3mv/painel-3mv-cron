@@ -44,6 +44,16 @@ jobs:
           EOF
           echo "✓ Credenciais criadas"
 
+      - name: Etapa 0b — Baixar planilhas do Drive (Service Account, opcional)
+        env:
+          GOOGLE_SA_KEY: ${{ secrets.GOOGLE_SA_KEY }}
+          DRIVE_ID_CRM: ${{ secrets.DRIVE_ID_CRM }}
+          DRIVE_ID_CC: ${{ secrets.DRIVE_ID_CC }}
+          DRIVE_ID_METAS: ${{ secrets.DRIVE_ID_METAS }}
+          DRIVE_ID_HIST: ${{ secrets.DRIVE_ID_HIST }}
+        run: python -u scripts/baixar_planilhas_drive.py
+        continue-on-error: true
+
       - name: Etapa 1 — Extrair saldos da API Suas Vendas
         run: |
           mkdir -p outputs
