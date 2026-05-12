@@ -323,6 +323,27 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
   <div class="kpi-row" id="kpi-industrias"></div>
   <div class="section" style="margin-top:16px;"><div class="section-title">Indústrias <span class="badge-count" id="contador-industrias">0</span></div><div id="lista-industrias"></div></div>
 </div>
+<!-- TELA: MEUS LEMBRETES -->
+<div class="tela" id="tela-lembretes">
+  <div class="header"><div class="header-top"><img src="logo_3mv_completa.png" alt="3MV" class="logo-img"><div class="header-date">Meus Lembretes</div></div></div>
+  <div class="section" style="margin-top:14px;">
+    <div class="section-title">Minhas tarefas não resolvidas</div>
+    <div id="kpi-lemb" class="kpi-row"></div>
+    <div id="lista-lemb" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+<!-- TELA: A/B SEM COMPRA POR INDÚSTRIA (mês atual + anterior) -->
+<div class="tela" id="tela-abnocompraind">
+  <div class="header"><div class="header-top"><img src="logo_3mv_completa.png" alt="3MV" class="logo-img"><div class="header-date">A/B sem compra por indústria</div></div></div>
+  <div class="section" style="margin-top:14px;">
+    <div class="section-title">Clientes A/B sem compra mês atual + anterior — por indústria</div>
+    <div id="kpi-abnci" class="kpi-row"></div>
+    <div id="contador-abnci" style="text-align:center;color:var(--muted);font-size:12px;font-weight:700;padding:6px;"></div>
+    <div id="lista-abnci"></div>
+  </div>
+</div>
+
 <!-- TELA: A/B SEM COMPRA NOS ÚLTIMOS 2 MESES -->
 <div class="tela" id="tela-abnocompra">
   <div class="header"><div class="header-top"><img src="logo_3mv_completa.png" alt="3MV" class="logo-img"><div class="header-date">A/B sem compra 2 meses</div></div></div>
@@ -487,6 +508,8 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
   <button class="nav-item" onclick="irPara('industrias',this)"><span class="nav-icon">🏭</span><span class="nav-label">Indústrias</span></button>
   <button class="nav-item" onclick="irPara('nfd',this)"><span class="nav-icon">📄</span><span class="nav-label">NFD</span></button>
   <button class="nav-item" onclick="irPara('cc',this)"><span class="nav-icon">💰</span><span class="nav-label">CC</span></button>
+  <button class="nav-item" onclick="irPara('lembretes',this)" style="position:relative;"><span class="nav-icon">📋</span><span class="nav-label">Lembretes</span><span id="nav-lembretes-badge" class="nav-badge" style="display:none;position:absolute;top:6px;right:14px;background:#dc2626;color:#fff;font-size:9px;font-weight:800;padding:2px 5px;border-radius:10px;min-width:14px;text-align:center;"></span></button>
+  <button class="nav-item" onclick="irPara('abnocompraind',this)"><span class="nav-icon">⚠️</span><span class="nav-label">A/B ind</span></button>
   <button class="nav-item" onclick="irPara('abnocompra',this)"><span class="nav-icon">🚨</span><span class="nav-label">A/B sem</span></button>
   <button class="nav-item" onclick="irPara('tarefas',this)"><span class="nav-icon">✅</span><span class="nav-label">Tarefas</span></button>
 </nav>
@@ -603,9 +626,9 @@ function renderAgenda(){
   if(CLIENTES.length>0) renderClientes(document.getElementById('busca-input').value||'');
 }
 
-async function carregarDados(){const banner=document.getElementById('banner-dados');banner.className='banner-status banner-loading';banner.innerHTML='⏳ Carregando... <button class="btn-refresh" onclick="recarregarDados()">↻</button>';try{if(window.__DADOS__){DADOS_RAW=window.__DADOS__;}else{const r=await fetch('/dados.json',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);DADOS_RAW=await r.json();}CLIENTES=transformarParaCLIENTES(DADOS_RAW);NFD_LISTA=extrairNFD(DADOS_RAW);CC_LISTA=extrairCC(DADOS_RAW);PRODUTOS_POR_CLIENTE=extrairProdutos(DADOS_RAW);banner.className='banner-status banner-ok';banner.innerHTML='✓ '+CLIENTES.length+' clientes · '+NFD_LISTA.length+' NFD · '+CC_LISTA.length+' parcelas <button class="btn-refresh" onclick="recarregarDados()">↻</button>';}catch(e){console.error(e);banner.className='banner-status banner-erro';banner.innerHTML='⚠️ Sem conexão — usando demo <button class="btn-refresh" onclick="recarregarDados()">↻</button>';CLIENTES=clientesDemo();NFD_LISTA=nfdDemo();CC_LISTA=ccDemo();PRODUTOS_POR_CLIENTE=produtosDemo();}renderClientes();renderABSemCompra();renderNFD();renderCC();calcularIndustriasAgreg();renderIndustrias();
+async function carregarDados(){const banner=document.getElementById('banner-dados');banner.className='banner-status banner-loading';banner.innerHTML='⏳ Carregando... <button class="btn-refresh" onclick="recarregarDados()">↻</button>';try{if(window.__DADOS__){DADOS_RAW=window.__DADOS__;}else{const r=await fetch('/dados.json',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);DADOS_RAW=await r.json();}CLIENTES=transformarParaCLIENTES(DADOS_RAW);NFD_LISTA=extrairNFD(DADOS_RAW);CC_LISTA=extrairCC(DADOS_RAW);PRODUTOS_POR_CLIENTE=extrairProdutos(DADOS_RAW);banner.className='banner-status banner-ok';banner.innerHTML='✓ '+CLIENTES.length+' clientes · '+NFD_LISTA.length+' NFD · '+CC_LISTA.length+' parcelas <button class="btn-refresh" onclick="recarregarDados()">↻</button>';}catch(e){console.error(e);banner.className='banner-status banner-erro';banner.innerHTML='⚠️ Sem conexão — usando demo <button class="btn-refresh" onclick="recarregarDados()">↻</button>';CLIENTES=clientesDemo();NFD_LISTA=nfdDemo();CC_LISTA=ccDemo();PRODUTOS_POR_CLIENTE=produtosDemo();}renderClientes();renderABSemCompra();renderABSemCompraInd();renderMeusLembretes();renderNFD();renderCC();calcularIndustriasAgreg();renderIndustrias();
 }
-function transformarParaCLIENTES(dados){const hp=dados&&dados.historico_pedidos&&dados.historico_pedidos.por_cliente_industria_ano||{};const itens=dados&&dados.itens||[];const cfg=dados&&dados.clientes_config||{};const inativos=new Set((cfg.inativos||[]).map(s=>s.toUpperCase()));const excluidos=new Set((cfg.excluidos||[]).map(s=>s.toUpperCase()));const saldosPorCliente={};for(const it of itens){const cli=(it.cliente||it.razao_social||'').toUpperCase().trim();if(!cli)continue;saldosPorCliente[cli]=saldosPorCliente[cli]||[];saldosPorCliente[cli].push({prod:it.produto||it.descricao||'-',qtd:it.qtd_saldo||it.quantidade||0,pedido:it.pedido_numero||it.numero||'',valor:it.valor_saldo||0,industria:(it.industria||'').toUpperCase()});}const out=[];let id=1;for(const cliente in hp){if(excluidos.has(cliente.toUpperCase()))continue;const indMap=hp[cliente];const industrias=[];for(const ind in indMap){const a26=indMap[ind]['2026']||{};const valor26=a26.valor||0;const qtd=a26.qtd_pedidos||0;const ciclo=qtd>0?Math.round(365/qtd):60;const saldosInd=(saldosPorCliente[cliente]||[]).filter(s=>!s.industria||s.industria===ind.toUpperCase());industrias.push({nome:ind,ultimaCompra:a26.ultima_data||'-',ciclo:ciclo,diasSemComprar:30,valor2026:valor26,qtdPedidos:qtd,saldo:saldosInd});}industrias.sort((a,b)=>b.valor2026-a.valor2026);out.push({id:id++,nome:cliente,cidade:'',segmento:inativos.has(cliente.toUpperCase())?'Inativo':'Ativo',industrias:industrias,todosSaldos:saldosPorCliente[cliente]||[]});}out.sort((a,b)=>{const va=a.industrias.reduce((s,i)=>s+i.valor2026,0);const vb=b.industrias.reduce((s,i)=>s+i.valor2026,0);return vb-va;});return out;}
+function transformarParaCLIENTES(dados){const hp=dados&&dados.historico_pedidos&&dados.historico_pedidos.por_cliente_industria_ano||{};const itens=dados&&dados.itens||[];const cfg=dados&&dados.clientes_config||{};const inativos=new Set((cfg.inativos||[]).map(s=>s.toUpperCase()));const excluidos=new Set((cfg.excluidos||[]).map(s=>s.toUpperCase()));const crmInd=dados&&dados.crm&&dados.crm.industrias||{};const INDS_ATIVAS=new Set();Object.entries(crmInd).forEach(([nome,info])=>{if(!info||(info.status_erp||'').toUpperCase()==='ATIVO')INDS_ATIVAS.add((nome||'').toUpperCase());});const filtrarInd=INDS_ATIVAS.size>0;const datasPorCliInd={};const ultimaEntrega={};const pedidos=(dados&&dados.pedidos_2026)||[];pedidos.forEach(p=>{const k=((p.cliente||'').toUpperCase().trim())+'||'+((p.industria||'').toUpperCase().trim());if(!datasPorCliInd[k])datasPorCliInd[k]=[];if(p.data&&p.data.length>=10)datasPorCliInd[k].push(p.data);});itens.forEach(it=>{if(!it.data_entrega)return;const k=((it.cliente||'').toUpperCase().trim())+'||'+((it.industria||'').toUpperCase().trim());if(!ultimaEntrega[k]||it.data_entrega>ultimaEntrega[k])ultimaEntrega[k]=it.data_entrega;});function calcCiclo(datas){if(!datas||datas.length<2)return 60;const ord=datas.slice().sort();const gaps=[];for(let i=1;i<ord.length;i++){const a=new Date(ord[i-1]),b=new Date(ord[i]);const d=Math.round((b-a)/86400000);if(d>0)gaps.push(d);}if(gaps.length===0)return 60;gaps.sort((a,b)=>a-b);const mid=Math.floor(gaps.length/2);return gaps.length%2?gaps[mid]:Math.round((gaps[mid-1]+gaps[mid])/2);}function diasDesde(dataStr){if(!dataStr||dataStr.length<10)return 999;const d=new Date(dataStr);return Math.max(0,Math.round((Date.now()-d)/86400000));}const saldosPorCliente={};for(const it of itens){const cli=(it.cliente||it.razao_social||'').toUpperCase().trim();if(!cli)continue;saldosPorCliente[cli]=saldosPorCliente[cli]||[];saldosPorCliente[cli].push({prod:it.produto||it.descricao||'-',qtd:it.qtd_saldo||it.quantidade||0,pedido:it.pedido_numero||it.numero||'',valor:it.valor_saldo||0,industria:(it.industria||'').toUpperCase()});}const out=[];let id=1;for(const cliente in hp){if(excluidos.has(cliente.toUpperCase()))continue;const indMap=hp[cliente];const industrias=[];for(const ind in indMap){if(filtrarInd&&!INDS_ATIVAS.has((ind||'').toUpperCase()))continue;const a26=indMap[ind]['2026']||{};const valor26=a26.valor||0;const qtd=a26.qtd_pedidos||0;const k=cliente.toUpperCase()+'||'+ind.toUpperCase();const datas=datasPorCliInd[k]||[];const ciclo=calcCiclo(datas);const ultimaCompra=a26.ultima_data||(datas.length>0?datas.slice().sort().pop():'-');const ultEntrega=ultimaEntrega[k]||'-';const diasSemComprar=diasDesde(ultimaCompra!=='-'?ultimaCompra:null);const saldosInd=(saldosPorCliente[cliente]||[]).filter(s=>!s.industria||s.industria===ind.toUpperCase());industrias.push({nome:ind,ultimaCompra:ultimaCompra,ultimaEntrega:ultEntrega,ciclo:ciclo,diasSemComprar:diasSemComprar,valor2026:valor26,qtdPedidos:qtd,saldo:saldosInd});}industrias.sort((a,b)=>b.valor2026-a.valor2026);out.push({id:id++,nome:cliente,cidade:'',segmento:inativos.has(cliente.toUpperCase())?'Inativo':'Ativo',industrias:industrias,todosSaldos:saldosPorCliente[cliente]||[]});}out.sort((a,b)=>{const va=a.industrias.reduce((s,i)=>s+i.valor2026,0);const vb=b.industrias.reduce((s,i)=>s+i.valor2026,0);return vb-va;});return out;}
 function extrairProdutos(dados){if(dados&&dados.produtos_por_cliente)return dados.produtos_por_cliente;const itens=dados&&dados.itens||[];const out={};for(const it of itens){const cli=(it.cliente||it.razao_social||'').toUpperCase().trim();if(!cli)continue;const prod=it.produto||it.descricao||'-';out[cli]=out[cli]||{};out[cli][prod]=(out[cli][prod]||0)+(it.qtd_saldo||it.quantidade||1);}return out;}
 function extrairNFD(dados){if(dados&&Array.isArray(dados.nfd))return dados.nfd;if(dados&&dados.notas_devolvidas)return dados.notas_devolvidas;return [];}
 function extrairCC(dados){if(dados&&Array.isArray(dados.conta_corrente))return dados.conta_corrente;if(dados&&Array.isArray(dados.contacorrente))return dados.contacorrente;if(dados&&dados.cc)return dados.cc;return [];}
@@ -652,6 +675,124 @@ let _prioSel = 'media';
 let _respSel = []; // array de responsaveis selecionados
 
 // ============== TAREFAS RENDER ==============
+function renderMeusLembretes(){
+  const cont = document.getElementById('lista-lemb');
+  const kpi = document.getElementById('kpi-lemb');
+  if(!cont) return;
+  cont.innerHTML = ''; kpi.innerHTML = '';
+  const USUARIO = (window.USUARIO_LOGADO && window.USUARIO_LOGADO.nome) || 'Marcelo';
+  // Tarefas onde responsável = Marcelo (ou nome do usuário logado) e feita = false
+  const minhas = (TAREFAS || []).filter(t => !t.feita && (t.responsavel || '').toUpperCase().includes('MARCELO'));
+  const hoje = new Date();
+  function diasAt(dataStr){
+    if(!dataStr) return 0;
+    const partes = dataStr.includes('/') ? dataStr.split('/') : null;
+    let d;
+    if(partes && partes.length === 3) d = new Date(+partes[2], +partes[1]-1, +partes[0]);
+    else d = new Date(dataStr);
+    if(isNaN(d.getTime())) return 0;
+    return Math.max(0, Math.round((hoje - d) / 86400000));
+  }
+  minhas.forEach(t => t._dias = diasAt(t.data));
+  // Escala
+  const verdes = minhas.filter(t => t._dias <= 3);
+  const amarelas = minhas.filter(t => t._dias > 3 && t._dias <= 7);
+  const vermelhas = minhas.filter(t => t._dias > 7);
+  // Badge no nav
+  const badge = document.getElementById('nav-lembretes-badge');
+  if(badge){
+    if(vermelhas.length > 0){ badge.style.display='inline-block'; badge.textContent = vermelhas.length; }
+    else if(amarelas.length > 0){ badge.style.display='inline-block'; badge.textContent = amarelas.length; badge.style.background = '#f59e0b'; }
+    else { badge.style.display='none'; }
+  }
+  kpi.innerHTML =
+    '<div class="kpi-card '+(vermelhas.length?'urgente':'')+'"><div class="kpi-label">🚨 Atrasadas (8+ dias)</div><div class="kpi-valor">'+vermelhas.length+'</div><div class="kpi-sub">precisam ação agora</div></div>'+
+    '<div class="kpi-card"><div class="kpi-label">⚠️ Atenção (4-7 dias)</div><div class="kpi-valor">'+amarelas.length+'</div><div class="kpi-sub">resolver esta semana</div></div>';
+  const sorted = minhas.sort((a,b) => b._dias - a._dias);
+  if(sorted.length === 0){
+    cont.innerHTML = '<div class="vazio" style="padding:30px 20px;background:var(--verde-claro);border-radius:var(--raio);color:var(--verde);font-weight:600;"><div class="vazio-icon">🎉</div>Sem lembretes pendentes!</div>';
+    return;
+  }
+  cont.innerHTML = sorted.slice(0, 50).map(t => {
+    const cls = t._dias > 7 ? 'urgente' : (t._dias > 3 ? 'proximo' : 'normal');
+    const bgPulse = t._dias > 7 ? 'animation:pulse 2s infinite;' : '';
+    return '<div class="card '+cls+'" style="cursor:pointer;'+bgPulse+'">'+
+      '<div class="card-header">'+
+        '<div class="card-nome">'+(t.texto||'(sem descrição)')+'</div>'+
+        '<div class="card-meta">'+
+          '<span class="badge '+(t._dias>7?'badge-vermelho':t._dias>3?'badge-amarelo':'badge-verde')+'">'+t._dias+' dia'+(t._dias!==1?'s':'')+'</span>'+
+          (t.cliente?'<span>📍 '+t.cliente+'</span>':'')+
+          (t.fonte_onenote?'<span class="chip">📝 '+t.fonte_onenote+'</span>':'')+
+        '</div>'+
+      '</div>'+
+      '<div class="card-acoes" style="padding:8px 14px;display:flex;gap:6px;">'+
+        '<button class="btn-mini" onclick="toggleTarefa('+t.id+')">✓ Marcar feita</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  if(sorted.length > 50){
+    cont.innerHTML += '<div class="vazio" style="padding:14px;">+ '+(sorted.length-50)+' tarefas — abra aba Tarefas pra ver todas</div>';
+  }
+}
+
+function renderABSemCompraInd(){
+  const cont = document.getElementById('lista-abnci');
+  const kpi = document.getElementById('kpi-abnci');
+  const counter = document.getElementById('contador-abnci');
+  if(!cont) return;
+  cont.innerHTML = ''; kpi.innerHTML = ''; counter.textContent = '';
+  if(!CLIENTES || CLIENTES.length === 0){
+    cont.innerHTML = '<div class="vazio">⏳ Aguardando dados...</div>';
+    return;
+  }
+  const abc = calcularCurvaABC();
+  const hoje = new Date();
+  const primDiaMesAnterior = new Date(hoje.getFullYear(), hoje.getMonth()-1, 1);
+  const limiteISO = primDiaMesAnterior.toISOString().slice(0,10);
+
+  const lista = [];
+  for(const c of CLIENTES){
+    const info = abc.get(c.id);
+    if(!info || (info.classe !== 'A' && info.classe !== 'B')) continue;
+    for(const ind of c.industrias){
+      const ultima = ind.ultimaCompra;
+      if(!ultima || ultima === '-' || ultima < limiteISO){
+        lista.push({c, ind, classe: info.classe, ultima: ultima === '-' ? null : ultima});
+      }
+    }
+  }
+  // Ordenar: A antes, depois pelo valor decrescente
+  lista.sort((a,b) => {
+    if(a.classe !== b.classe) return a.classe === 'A' ? -1 : 1;
+    return (b.ind.valor2026||0) - (a.ind.valor2026||0);
+  });
+  const totA = lista.filter(x => x.classe === 'A').length;
+  const totB = lista.filter(x => x.classe === 'B').length;
+  kpi.innerHTML =
+    '<div class="kpi-card urgente"><div class="kpi-label">Pares A sem compra</div><div class="kpi-valor">'+totA+'</div><div class="kpi-sub">mês atual + anterior</div></div>'+
+    '<div class="kpi-card destaque"><div class="kpi-label">Pares B sem compra</div><div class="kpi-valor">'+totB+'</div><div class="kpi-sub">mês atual + anterior</div></div>';
+  counter.textContent = 'Limite: desde ' + limiteISO.split('-').reverse().join('/') + ' (' + lista.length + ' pares cliente×indústria)';
+  if(lista.length === 0){
+    cont.innerHTML = '<div class="vazio" style="padding:30px;background:var(--verde-claro);color:var(--verde);font-weight:600;border-radius:var(--raio);"><div class="vazio-icon">🎉</div>Todas indústrias A/B compraram!</div>';
+    return;
+  }
+  cont.innerHTML = lista.slice(0,100).map(({c, ind, classe, ultima}) => {
+    const ultFmt = ultima ? ultima.split('-').reverse().join('/') : 'Nunca';
+    const cor = classe === 'A' ? 'badge-vermelho' : 'badge-laranja';
+    return '<div class="card" style="cursor:pointer;" onclick="abrirCliente('+c.id+')">'+
+      '<div class="card-header">'+
+        '<div class="card-nome">'+c.nome+' — <span style="color:#1565a8;">'+ind.nome+'</span></div>'+
+        '<div class="card-meta">'+
+          '<span class="badge '+cor+'">Curva '+classe+'</span>'+
+          '<span class="badge badge-laranja">📅 Últ. '+ultFmt+'</span>'+
+          (ind.valor2026?'<span>'+fmt(ind.valor2026)+'/ano</span>':'')+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  if(lista.length > 100) cont.innerHTML += '<div class="vazio">+ '+(lista.length-100)+' pares</div>';
+}
+
 function calcularCurvaABC(){
   // Curva ABC dos clientes baseado em valor 2026 total
   const arr = CLIENTES.map(c => ({c, total: c.industrias.reduce((s,i)=>s+(i.valor2026||0), 0)}));
@@ -1169,7 +1310,7 @@ function irPara(t,b){
   if(t==='nfd')renderNFD(document.getElementById('busca-nfd').value);
   if(t==='cc')renderCC(document.getElementById('busca-cc').value);
   if(t==='industrias')renderIndustrias(document.getElementById('busca-industria').value);
-if(t==="abnocompra")renderABSemCompra();}
+if(t==="abnocompra")renderABSemCompra();if(t==="lembretes")renderMeusLembretes();if(t==="abnocompraind")renderABSemCompraInd();}
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('visivel');setTimeout(()=>t.classList.remove('visivel'),2500);}
 function clientesDemo(){return[{id:1,nome:'SUPERMERCADO CENTRAL',cidade:'Ipatinga',segmento:'Ativo',industrias:[{nome:'CASA MADEIRA',ultimaCompra:'Mar/26',ciclo:45,diasSemComprar:52,valor2026:18400,qtdPedidos:8,saldo:[]}],todosSaldos:[]},{id:2,nome:'MERCADO BOM PRECO',cidade:'Coronel Fabriciano',segmento:'Ativo',industrias:[{nome:'CASA MADEIRA',ultimaCompra:'Fev/26',ciclo:60,diasSemComprar:88,valor2026:22100,qtdPedidos:6,saldo:[]}],todosSaldos:[]}];}
 function nfdDemo(){return[];}

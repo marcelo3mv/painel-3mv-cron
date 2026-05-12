@@ -2670,9 +2670,13 @@ function renderComp25x26() {
     if (tb) {
       tb.innerHTML = '';
       lista.forEach((e, i) => {
-        const indP = comInd ? indPrincipalCli(e.nome) : null;
+        // FIX 9.18: se for grupo (tem .filiais), usar industriaPrincipal calculada; senão lookup por nome
+        const isGrupo = Array.isArray(e.filiais) && e.filiais.length > 0;
+        const indP = comInd ? (isGrupo ? (e.industriaPrincipal || '—') : indPrincipalCli(e.nome)) : null;
+        // Nome do grupo já vem com HTML <small>(N filiais)</small> — NÃO escapar; cliente avulso SIM
+        const nomeHtml = isGrupo ? e.nome : esc(e.nome);
         tb.innerHTML += `<tr>
-          <td>${i+1}</td><td>${esc(e.nome)}</td>${comInd?'<td>'+esc(indP)+'</td>':''}
+          <td>${i+1}</td><td>${nomeHtml}</td>${comInd?'<td>'+esc(indP)+'</td>':''}
           <td class="right">R$ ${fmt(e.ano2024)}</td>
           <td class="right">R$ ${fmt(e.y25)}</td>
           <td class="right">R$ ${fmt(e.y26)}</td>
@@ -2694,12 +2698,23 @@ function renderComp25x26() {
     porGrupo[g].ano2024 += e.ano2024;
     porGrupo[g].filiais.push(e.nome);
   });
-  const gruposArr = Object.values(porGrupo).map(g => ({
-    nome: g.nome + (g.filiais.length > 1 ? ` <small style="color:#888;font-weight:normal;">(${g.filiais.length} filiais)</small>` : ''),
-    y25: g.y25, y26: g.y26, ano2024: g.ano2024,
-    dr: g.y26 - g.y25,
-    dp: g.y25 > 0 ? (g.y26 - g.y25) / g.y25 : null,
-  })).sort((a,b) => b.y26 - a.y26);
+  const gruposArr = Object.values(porGrupo).map(g => {
+    // FIX 9.18: calcular industriaPrincipal somando vendas de todas as filiais do grupo
+    const indSoma = {};
+    g.filiais.forEach(filial => {
+      const m = indPrinPorCli[filial] || {};
+      Object.entries(m).forEach(([ind, v]) => { indSoma[ind] = (indSoma[ind]||0) + v; });
+    });
+    const top = Object.entries(indSoma).sort((a,b)=>b[1]-a[1])[0];
+    return {
+      nome: g.nome + (g.filiais.length > 1 ? ` <small style="color:#888;font-weight:normal;">(${g.filiais.length} filiais)</small>` : ''),
+      industriaPrincipal: top ? top[0] : '—',
+      filiais: g.filiais,
+      y25: g.y25, y26: g.y26, ano2024: g.ano2024,
+      dr: g.y26 - g.y25,
+      dp: g.y25 > 0 ? (g.y26 - g.y25) / g.y25 : null,
+    };
+  }).sort((a,b) => b.y26 - a.y26);
   renderCompCliTable('#t-comp-cli-ativas', gruposArr, true);
 
   const tbCli = document.querySelector('#t-comp-cli tbody');
