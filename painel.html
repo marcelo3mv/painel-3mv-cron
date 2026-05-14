@@ -8315,27 +8315,61 @@ function renderSellin() {
     });
   }
 
-  // === TABELA 1: Comparativo Acumulado Jan-mes 25×26 ===
-  setTbody('t-sellin-acum', cats, 8, (c, i) => {
-    const delta = c.ytd26 - c.ytd25;
-    const pct = c.ytd25 > 0 ? ((c.ytd26/c.ytd25 - 1) * 100) : (c.ytd26 > 0 ? 100 : 0);
-    const pct25 = ytd25 > 0 ? (c.ytd25/ytd25 * 100) : 0;
-    const pct26 = ytd26 > 0 ? (c.ytd26/ytd26 * 100) : 0;
-    const corPct = pct >= 0 ? '#16a34a' : '#dc2626';
-    const status = pct > 5 ? '<span style="color:#16a34a;font-weight:700;">▲</span>' :
-                   pct < -5 ? '<span style="color:#dc2626;font-weight:700;">▼</span>' :
-                              '<span style="color:#94a3b8;">→</span>';
-    return '<td><b>' + esc(c.nome) + '</b></td>' +
-           '<td class="right">R$ ' + fmt(c.ytd25) + '</td>' +
-           '<td class="right">R$ ' + fmt(c.ytd26) + '</td>' +
-           '<td class="right" style="color:' + corPct + ';font-weight:600;">R$ ' + fmt(delta) + '</td>' +
-           '<td class="right" style="color:' + corPct + ';font-weight:700;">' + (pct>=0?'+':'') + pct.toFixed(1) + '%</td>' +
-           '<td>' + status + '</td>' +
-           '<td class="right">' + pct25.toFixed(1) + '%</td>' +
-           '<td class="right">' + pct26.toFixed(1) + '%</td>';
-  });
-  // Adicionar linha de TOTAL
+  // === TABELA 1: Comparativo Acumulado Jan-mes 25×26 — AGRUPADO POR INDÚSTRIA ===
+  // FASE 9.72: extrai indústria do prefixo da categoria e cria cabeçalhos
+  function extraiInd(nome) {
+    const semIcon = (nome || '').replace(/^⏳\s*/, '');
+    if (semIcon.startsWith('__TOTAL_HIST__') || semIcon.startsWith('__TOTAL_')) return '📊 TOTAL CONSOLIDADO';
+    const m = semIcon.match(/^([^·]+?)\s*·\s*(.+)$/);
+    return m ? m[1].trim() : '— Sem indústria —';
+  }
+  function nomeSemInd(nome) {
+    const semIcon = (nome || '').replace(/^⏳\s*/, '');
+    if (semIcon.startsWith('__TOTAL_HIST__')) return '📊 Total (histórico filtrado)';
+    const m = semIcon.match(/^([^·]+?)\s*·\s*(.+)$/);
+    return m ? (nome.startsWith('⏳') ? '⏳ '+m[2] : m[2]) : nome;
+  }
   const tbody1 = document.querySelector('#t-sellin-acum tbody');
+  if (tbody1) tbody1.innerHTML = '';
+  if (tbody1 && cats.length > 0) {
+    const grupos1 = {};
+    cats.forEach(c => {
+      const ind = extraiInd(c.nome);
+      if (!grupos1[ind]) grupos1[ind] = [];
+      grupos1[ind].push(c);
+    });
+    Object.entries(grupos1)
+      .map(([ind, lista]) => ({ind, lista, total: lista.reduce((a,c)=>a+c.ytd26+c.ytd25, 0)}))
+      .sort((a,b) => b.total - a.total)
+      .forEach(({ind, lista}) => {
+        const trH = document.createElement('tr');
+        trH.style.background = 'var(--azul-card)';
+        trH.style.fontWeight = '700';
+        trH.style.color = 'var(--azul-d)';
+        trH.innerHTML = '<td colspan="8" style="padding:8px 10px;font-size:12px;border-top:2px solid var(--azul);text-transform:uppercase;letter-spacing:.5px;">▸ ' + esc(ind) + '</td>';
+        tbody1.appendChild(trH);
+        lista.forEach(c => {
+          const delta = c.ytd26 - c.ytd25;
+          const pct = c.ytd25 > 0 ? ((c.ytd26/c.ytd25 - 1) * 100) : (c.ytd26 > 0 ? 100 : 0);
+          const pct25 = ytd25 > 0 ? (c.ytd25/ytd25 * 100) : 0;
+          const pct26 = ytd26 > 0 ? (c.ytd26/ytd26 * 100) : 0;
+          const corPct = pct >= 0 ? '#16a34a' : '#dc2626';
+          const status = pct > 5 ? '<span style="color:#16a34a;font-weight:700;">▲</span>' :
+                         pct < -5 ? '<span style="color:#dc2626;font-weight:700;">▼</span>' :
+                                    '<span style="color:#94a3b8;">→</span>';
+          const tr = document.createElement('tr');
+          tr.innerHTML = '<td style="padding-left:18px;"><b>' + esc(nomeSemInd(c.nome)) + '</b></td>' +
+                 '<td class="right">R$ ' + fmt(c.ytd25) + '</td>' +
+                 '<td class="right">R$ ' + fmt(c.ytd26) + '</td>' +
+                 '<td class="right" style="color:' + corPct + ';font-weight:600;">R$ ' + fmt(delta) + '</td>' +
+                 '<td class="right" style="color:' + corPct + ';font-weight:700;">' + (pct>=0?'+':'') + pct.toFixed(1) + '%</td>' +
+                 '<td>' + status + '</td>' +
+                 '<td class="right">' + pct25.toFixed(1) + '%</td>' +
+                 '<td class="right">' + pct26.toFixed(1) + '%</td>';
+          tbody1.appendChild(tr);
+        });
+      });
+  }
   if (tbody1 && cats.length > 0) {
     const totDelta = ytd26 - ytd25;
     const totPct = ytd25 > 0 ? ((ytd26/ytd25 - 1) * 100) : (ytd26 > 0 ? 100 : 0);
@@ -8351,23 +8385,46 @@ function renderSellin() {
     tbody1.appendChild(trTot);
   }
 
-  // === TABELA 2: Sell-in por Categoria × Ano (incluindo proj 2026) ===
-  setTbody('t-sellin-anos', cats, 9, (c, i) => {
-    const projDelta = c.t25 > 0 ? ((c.projAnual26/c.t25 - 1) * 100) : (c.projAnual26 > 0 ? 100 : 0);
-    const pct24 = tot24 > 0 ? (c.t24/tot24 * 100) : 0;
-    const pct25 = tot25 > 0 ? (c.t25/tot25 * 100) : 0;
-    const pct26 = ytd26 > 0 ? (c.ytd26/ytd26 * 100) : 0;
-    const corDelta = projDelta >= 0 ? '#16a34a' : '#dc2626';
-    return '<td><b>' + esc(c.nome) + '</b></td>' +
-           '<td class="right">R$ ' + fmt(c.t24) + '</td>' +
-           '<td class="right">' + pct24.toFixed(1) + '%</td>' +
-           '<td class="right">R$ ' + fmt(c.t25) + '</td>' +
-           '<td class="right">' + pct25.toFixed(1) + '%</td>' +
-           '<td class="right">R$ ' + fmt(c.ytd26) + '</td>' +
-           '<td class="right">' + pct26.toFixed(1) + '%</td>' +
-           '<td class="right" style="font-weight:600;">R$ ' + fmt(c.projAnual26) + '</td>' +
-           '<td class="right" style="color:' + corDelta + ';font-weight:700;">' + (projDelta>=0?'+':'') + projDelta.toFixed(1) + '%</td>';
-  });
+  // === TABELA 2: Sell-in por Categoria × Ano (incluindo proj 2026) — AGRUPADO POR INDÚSTRIA ===
+  const tbody2pre = document.querySelector('#t-sellin-anos tbody');
+  if (tbody2pre) tbody2pre.innerHTML = '';
+  if (tbody2pre && cats.length > 0) {
+    const grupos2 = {};
+    cats.forEach(c => {
+      const ind = extraiInd(c.nome);
+      if (!grupos2[ind]) grupos2[ind] = [];
+      grupos2[ind].push(c);
+    });
+    Object.entries(grupos2)
+      .map(([ind, lista]) => ({ind, lista, total: lista.reduce((a,c)=>a+c.t26+c.t25+c.t24, 0)}))
+      .sort((a,b) => b.total - a.total)
+      .forEach(({ind, lista}) => {
+        const trH = document.createElement('tr');
+        trH.style.background = 'var(--azul-card)';
+        trH.style.fontWeight = '700';
+        trH.style.color = 'var(--azul-d)';
+        trH.innerHTML = '<td colspan="9" style="padding:8px 10px;font-size:12px;border-top:2px solid var(--azul);text-transform:uppercase;letter-spacing:.5px;">▸ ' + esc(ind) + '</td>';
+        tbody2pre.appendChild(trH);
+        lista.forEach(c => {
+          const projDelta = c.t25 > 0 ? ((c.projAnual26/c.t25 - 1) * 100) : (c.projAnual26 > 0 ? 100 : 0);
+          const pct24 = tot24 > 0 ? (c.t24/tot24 * 100) : 0;
+          const pct25 = tot25 > 0 ? (c.t25/tot25 * 100) : 0;
+          const pct26 = ytd26 > 0 ? (c.ytd26/ytd26 * 100) : 0;
+          const corDelta = projDelta >= 0 ? '#16a34a' : '#dc2626';
+          const tr = document.createElement('tr');
+          tr.innerHTML = '<td style="padding-left:18px;"><b>' + esc(nomeSemInd(c.nome)) + '</b></td>' +
+                 '<td class="right">R$ ' + fmt(c.t24) + '</td>' +
+                 '<td class="right">' + pct24.toFixed(1) + '%</td>' +
+                 '<td class="right">R$ ' + fmt(c.t25) + '</td>' +
+                 '<td class="right">' + pct25.toFixed(1) + '%</td>' +
+                 '<td class="right">R$ ' + fmt(c.ytd26) + '</td>' +
+                 '<td class="right">' + pct26.toFixed(1) + '%</td>' +
+                 '<td class="right" style="font-weight:600;">R$ ' + fmt(c.projAnual26) + '</td>' +
+                 '<td class="right" style="color:' + corDelta + ';font-weight:700;">' + (projDelta>=0?'+':'') + projDelta.toFixed(1) + '%</td>';
+          tbody2pre.appendChild(tr);
+        });
+      });
+  }
   // Linha total
   const projTot = cats.reduce((a,c)=>a+c.projAnual26, 0);
   const projDeltaTot = tot25 > 0 ? ((projTot/tot25 - 1) * 100) : (projTot > 0 ? 100 : 0);
@@ -8592,11 +8649,17 @@ function renderSellinMensal() {
   if (tb3) {
     tb3.innerHTML = '';
     // FASE 9.71: agrupa categorias por indústria (extraída do prefixo "INDÚSTRIA · CATEGORIA")
-    // e ordena dentro de cada grupo. Insere linha-cabeçalho cinza entre indústrias.
+    // FASE 9.72: aceita prefixo ⏳ (saldos pendentes) e nomes especiais como __TOTAL_HIST__
     const catsAgrupadas = {};
     catsLista.forEach(c => {
-      const m = c.nome.match(/^([^·⏳]+?)\s*·\s*(.+)$/);
-      const ind = m ? m[1].trim() : '— Sem indústria —';
+      const semIcon = c.nome.replace(/^⏳\s*/, '');  // tira ⏳ se houver
+      const m = semIcon.match(/^([^·]+?)\s*·\s*(.+)$/);
+      let ind;
+      if (semIcon.startsWith('__TOTAL_HIST__') || semIcon.startsWith('__TOTAL_')) {
+        ind = '📊 TOTAL CONSOLIDADO';
+      } else {
+        ind = m ? m[1].trim() : '— Sem indústria —';
+      }
       if (!catsAgrupadas[ind]) catsAgrupadas[ind] = [];
       catsAgrupadas[ind].push(c);
     });
