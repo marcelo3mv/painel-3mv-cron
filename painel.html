@@ -8117,9 +8117,17 @@ function renderSellin() {
 
   const warn = document.getElementById('sellin-warn');
   if (warn) {
+    const fGrp_w = (document.getElementById('f-grupo')||{}).value || '';
+    const fCli_w = (document.getElementById('f-cliente')||{}).value || '';
+    const fInd_w = (document.getElementById('f-industria')||{}).value || '';
+    const bothCliInd = (fCli_w || fGrp_w) && fInd_w;
     if (!sellin_hist || Object.keys(sellin_hist).length === 0) {
       warn.style.display = 'block';
-      warn.innerHTML = '⚠️ <b>Histórico de categorias 2024/2025 ainda não disponível</b>. Rode <code>injetar_sellin_historico.py</code> (Etapa 4i no workflow GitHub Actions, ~5-15 min) pra puxar pedidos antigos da API e cruzar com categoria. Por enquanto, mostrando 2026 (real) + indústrias.';
+      let msg = '⚠️ <b>Histórico de categorias 2024/2025 ainda não disponível</b> (sellin_historico falhou por timeout da API Suas Vendas). Por enquanto: 2026 (faturado real) + categorias só dos saldos pendentes.';
+      if (bothCliInd) {
+        msg += '<br>📌 Com <b>Cliente+Indústria juntos</b>: 2026 ok (via pedidos), <b>2025 = 0</b> (sem cruzamento cli×ind histórico).';
+      }
+      warn.innerHTML = msg;
     } else {
       warn.style.display = 'none';
     }
@@ -8172,6 +8180,22 @@ function renderSellin() {
       const cliMap = ano === 2025 ? histLegacy.cli_mes_25 : (ano === 2026 ? histLegacy.cli_mes_26 : null);
       const indMap = ano === 2025 ? histLegacy.ind_mes_25 : (ano === 2026 ? histLegacy.ind_mes_26 : null);
       const totMes = ano === 2025 ? histLegacy.mensal_25 : (ano === 2026 ? histLegacy.mensal_26 : null);
+      const pedsAll = dadosCache.pedidos_2026 || [];
+      // FASE 9.73: cli+ind ou grp+ind — intersecta via pedidos_2026 (só 2026)
+      if ((fCli && fInd) || (fGrp && fInd)) {
+        if (ano !== 2026) return null;
+        const acc = Array(12).fill(0);
+        pedsAll.forEach(p => {
+          if (p.industria !== fInd) return;
+          if (fCli && p.cliente !== fCli) return;
+          if (fGrp && grupoDoCli(p.cliente) !== fGrp) return;
+          const dt = p.data || '';
+          if (!dt || dt.slice(0,4) !== '2026') return;
+          const m = parseInt(dt.slice(5,7), 10) - 1;
+          if (m >= 0 && m < 12) acc[m] += (p.valor_total || 0);
+        });
+        return acc.some(v=>v>0) ? acc : null;
+      }
       if (fCli && cliMap && cliMap[fCli]) return cliMap[fCli];
       if (fInd && indMap && indMap[fInd]) return indMap[fInd];
       if (fGrp) {
@@ -8517,11 +8541,40 @@ function renderSellinMensal() {
     }
   } else {
     // FALLBACK: usa historico (faturado completo) pra TOTAIS 2025 e 2026 + itens (saldos) só pra quebra de categoria
-    // Helper: tira array mensal filtrado
+    // FASE 9.73: quando fCli+fInd ambos ativos, INTERSECTA via pedidos_2026 (só 2026 — 2025 fica 0)
+    const pedsAll = dadosCache.pedidos_2026 || [];
     function getMensalFiltrado(ano) {
       const cliMap = ano === 2025 ? histLegacy.cli_mes_25 : histLegacy.cli_mes_26;
       const indMap = ano === 2025 ? histLegacy.ind_mes_25 : histLegacy.ind_mes_26;
       const totMes = ano === 2025 ? histLegacy.mensal_25 : histLegacy.mensal_26;
+      // Caso especial: cliente + indústria juntos — só funciona pra 2026 (pedidos têm ambos os campos)
+      if (fCli && fInd) {
+        if (ano !== 2026) return null;  // não temos 2025 por cli×ind
+        const acc = zera();
+        pedsAll.forEach(p => {
+          if (p.cliente !== fCli) return;
+          if (p.industria !== fInd) return;
+          const dt = p.data || '';
+          if (!dt || dt.slice(0,4) !== '2026') return;
+          const m = parseInt(dt.slice(5,7), 10) - 1;
+          if (m >= 0 && m < 12) acc[m] += (p.valor_total || 0);
+        });
+        return acc.some(v=>v>0) ? acc : null;
+      }
+      // Grupo + indústria juntos — também via pedidos
+      if (fGrp && fInd) {
+        if (ano !== 2026) return null;
+        const acc = zera();
+        pedsAll.forEach(p => {
+          if (p.industria !== fInd) return;
+          if (grupoDoCli(p.cliente) !== fGrp) return;
+          const dt = p.data || '';
+          if (!dt || dt.slice(0,4) !== '2026') return;
+          const m = parseInt(dt.slice(5,7), 10) - 1;
+          if (m >= 0 && m < 12) acc[m] += (p.valor_total || 0);
+        });
+        return acc.some(v=>v>0) ? acc : null;
+      }
       if (fCli && cliMap && cliMap[fCli]) return cliMap[fCli];
       if (fInd && indMap && indMap[fInd]) return indMap[fInd];
       if (fGrp) {
