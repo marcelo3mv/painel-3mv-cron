@@ -110,6 +110,11 @@ jobs:
         continue-on-error: true
         timeout-minutes: 10
 
+      - name: Etapa 4i — Injetar histórico Sell-in por categoria 24/25/26 (FASE 9.67b)
+        run: python injetar_sellin_historico.py
+        continue-on-error: true
+        timeout-minutes: 20
+
       - name: Etapa 5 — Gerar painel HTML
         run: python gerar_painel.py
 
