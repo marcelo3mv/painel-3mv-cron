@@ -105,6 +105,11 @@ jobs:
         run: python injetar_agenda.py
         continue-on-error: true
 
+      - name: Etapa 4h — Injetar categoria + preço atual via API Suas Vendas (FASE 9.67)
+        run: python injetar_categorias_precos.py
+        continue-on-error: true
+        timeout-minutes: 10
+
       - name: Etapa 5 — Gerar painel HTML
         run: python gerar_painel.py
 
