@@ -3823,7 +3823,18 @@ function popularFiltros(d) {
   itens.forEach(i => i.industria && industriasSet.add(i.industria));
   peds.forEach(p => p.industria && industriasSet.add(p.industria));
   Object.keys(por_ind_hist).forEach(i => i && i !== '—' && industriasSet.add(i));
-  const industrias = [...industriasSet].sort();
+  // FASE 9.70: mostra SÓ indústrias ativas no CRM (match fuzzy: CRM curto está dentro do nome longo)
+  const crmInds = (d.crm && d.crm.industrias) || {};
+  const ativosCrm = Object.entries(crmInds)
+    .filter(([nome, info]) => (info && info.status_erp ? String(info.status_erp).toUpperCase() : 'ATIVO') === 'ATIVO')
+    .map(([nome]) => String(nome).toUpperCase().trim());
+  function indEhAtiva(nome) {
+    if (!nome) return false;
+    if (ativosCrm.length === 0) return true; // sem CRM, mostra tudo
+    const n = String(nome).toUpperCase().trim();
+    return ativosCrm.some(crmNome => n === crmNome || n.includes(crmNome) || crmNome.includes(n));
+  }
+  const industrias = [...industriasSet].filter(indEhAtiva).sort();
 
   const meses = [...new Set(itens.map(i => i.mes).filter(Boolean))].sort((a,b) => a-b);
 
@@ -8403,47 +8414,59 @@ function renderSellinMensal() {
       Object.values(sellin_hist).forEach(tomarInd);
     }
   } else {
-    // FALLBACK: usa itens 2026 (com categoria) + historico (cli/ind/mensal) pra 2025
-    // CORREÇÃO: respeitar filtros tb no histórico de 2025
+    // FALLBACK: usa historico (faturado completo) pra TOTAIS 2025 e 2026 + itens (saldos) só pra quebra de categoria
+    // Helper: tira array mensal filtrado
+    function getMensalFiltrado(ano) {
+      const cliMap = ano === 2025 ? histLegacy.cli_mes_25 : histLegacy.cli_mes_26;
+      const indMap = ano === 2025 ? histLegacy.ind_mes_25 : histLegacy.ind_mes_26;
+      const totMes = ano === 2025 ? histLegacy.mensal_25 : histLegacy.mensal_26;
+      if (fCli && cliMap && cliMap[fCli]) return cliMap[fCli];
+      if (fInd && indMap && indMap[fInd]) return indMap[fInd];
+      if (fGrp) {
+        const acc = zera();
+        Object.entries(cliMap || {}).forEach(([cli, arr]) => {
+          if (grupoDoCli(cli) === fGrp) for (let i = 0; i < 12; i++) acc[i] += (arr[i]||0);
+        });
+        return acc.some(v=>v>0) ? acc : null;
+      }
+      if (!fCli && !fInd && !fGrp && totMes) return totMes;
+      return null;
+    }
+
+    const m25_arr = getMensalFiltrado(2025);
+    const m26_arr = getMensalFiltrado(2026);
+
+    // Total geral via histórico
+    if (m25_arr || m26_arr) {
+      const k = '__TOTAL_HIST__';
+      dadosCat[k] = {
+        2025: m25_arr ? m25_arr.slice(0,12) : zera(),
+        2026: m26_arr ? m26_arr.slice(0,12) : zera()
+      };
+    }
+
+    // Quebra de categoria pra 2026 — vem dos itens (saldos), pra mostrar OS PRODUTOS que estão pendentes
+    // (não é o total 2026 — esse vem do histórico acima — mas é o que dá pra quebrar)
+    const itens_filtrados = {};
     itens26.forEach(it => {
       if (fInd && it.industria !== fInd) return;
       if (fCli && it.cliente !== fCli) return;
       if (fGrp && grupoDoCli(it.cliente) !== fGrp) return;
-      const cat = it.categoria || (mapaApi[it.produto_codigo] && mapaApi[it.produto_codigo].categoria) || '(sem categoria)';
+      const cat = it.categoria || (mapaApi[it.produto_codigo] && mapaApi[it.produto_codigo].categoria) || 'OUTROS';
       const m = (it.mes && it.mes > 0 && it.mes <= 12) ? it.mes-1 : null;
       if (m === null) return;
       const valor = (it.qtde_faturada || 0) * (it.preco_unit || 0) + (it.valor_saldo || 0);
-      if (!dadosCat[cat]) dadosCat[cat] = {2025: zera(), 2026: zera()};
-      dadosCat[cat][2026][m] += valor;
+      if (!itens_filtrados[cat]) itens_filtrados[cat] = zera();
+      itens_filtrados[cat][m] += valor;
     });
-    // 2025 mensal — respeita o filtro (cliente, indústria, grupo)
-    let m25_arr = null;
-    if (fCli && histLegacy.cli_mes_25 && histLegacy.cli_mes_25[fCli]) {
-      m25_arr = histLegacy.cli_mes_25[fCli];
-    } else if (fInd && histLegacy.ind_mes_25 && histLegacy.ind_mes_25[fInd]) {
-      m25_arr = histLegacy.ind_mes_25[fInd];
-    } else if (fGrp) {
-      // Soma todos clientes do grupo
-      const acc = zera();
-      Object.entries(histLegacy.cli_mes_25 || {}).forEach(([cli, arr]) => {
-        if (grupoDoCli(cli) === fGrp) for (let i = 0; i < 12; i++) acc[i] += (arr[i]||0);
-      });
-      if (acc.some(v=>v>0)) m25_arr = acc;
-    } else if (!fCli && !fInd && !fGrp) {
-      m25_arr = histLegacy.mensal_25;
-    }
-    if (m25_arr && m25_arr.some(v=>v>0)) {
-      const k = '__TOTAL_2025_HIST__';
-      dadosCat[k] = {2025: m25_arr.slice(0,12), 2026: zera()};
-    }
-    // 2026 mensal histórico (sem categoria) — mesmo padrão pra completar gaps
-    let m26_arr = null;
-    if (fCli && histLegacy.cli_mes_26 && histLegacy.cli_mes_26[fCli]) {
-      m26_arr = histLegacy.cli_mes_26[fCli];
-    } else if (fInd && histLegacy.ind_mes_26 && histLegacy.ind_mes_26[fInd]) {
-      m26_arr = histLegacy.ind_mes_26[fInd];
-    }
-    // Não preenche 2026 do histórico porque já temos itens26 — evita dupla contagem
+    Object.entries(itens_filtrados).forEach(([cat, arr]) => {
+      if (!dadosCat[cat]) dadosCat[cat] = {2025: zera(), 2026: zera()};
+      // Não soma direto — substitui só pra ver quebra. Como já temos total via __TOTAL_HIST__,
+      // a soma das categorias pode dar diferente do total. Por isso colocamos com '⏳' no nome.
+      const catNome = '⏳ ' + cat;
+      if (!dadosCat[catNome]) dadosCat[catNome] = {2025: zera(), 2026: zera()};
+      dadosCat[catNome][2026] = arr;
+    });
   }
 
   // Totais por mês (25 e 26)
