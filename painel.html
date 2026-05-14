@@ -3884,6 +3884,8 @@ function aplicarFiltros() {
     if (typeof renderCicloVendas === 'function') renderCicloVendas();
     if (typeof renderProdutos === 'function') renderProdutos();
     if (typeof renderHistorico === 'function') renderHistorico();
+    // FASE 9.71: re-renderiza Sell-in JBP (Dashboard + Mensal) qdo filtro muda
+    if (typeof renderSellin === 'function') renderSellin();
   }
 }
 
@@ -8589,9 +8591,36 @@ function renderSellinMensal() {
   const tb3 = document.querySelector('#t-mensal-pares tbody');
   if (tb3) {
     tb3.innerHTML = '';
+    // FASE 9.71: agrupa categorias por indústria (extraída do prefixo "INDÚSTRIA · CATEGORIA")
+    // e ordena dentro de cada grupo. Insere linha-cabeçalho cinza entre indústrias.
+    const catsAgrupadas = {};
     catsLista.forEach(c => {
+      const m = c.nome.match(/^([^·⏳]+?)\s*·\s*(.+)$/);
+      const ind = m ? m[1].trim() : '— Sem indústria —';
+      if (!catsAgrupadas[ind]) catsAgrupadas[ind] = [];
+      catsAgrupadas[ind].push(c);
+    });
+    const catsOrdenadas = [];
+    Object.entries(catsAgrupadas)
+      .map(([ind, lista]) => ({ ind, lista, total: lista.reduce((a,c)=>a+c.t26+c.t25, 0) }))
+      .sort((a,b) => b.total - a.total)
+      .forEach(({ind, lista}) => {
+        catsOrdenadas.push({__header: true, ind});
+        lista.forEach(c => catsOrdenadas.push(c));
+      });
+    catsOrdenadas.forEach(c => {
       const tr = document.createElement('tr');
-      let html = '<td class="sticky-col"><b>'+esc(c.nome)+'</b></td>';
+      if (c.__header) {
+        tr.style.background = 'var(--azul-card)';
+        tr.style.fontWeight = '700';
+        tr.style.color = 'var(--azul-d)';
+        tr.innerHTML = '<td colspan="40" class="sticky-col" style="padding:8px 10px;font-size:12px;border-top:2px solid var(--azul);text-transform:uppercase;letter-spacing:.5px;">▸ ' + esc(c.ind) + '</td>';
+        tb3.appendChild(tr);
+        return;
+      }
+      // Nome curto da categoria (sem prefixo indústria)
+      const nomeSem = c.nome.replace(/^[^·⏳]+?\s*·\s*/, '').replace(/^⏳\s*/, '⏳ ');
+      let html = '<td class="sticky-col" style="padding-left:18px;"><b>'+esc(nomeSem)+'</b></td>';
       let ac25 = 0, ac26 = 0;
       for (let m = 0; m < 12; m++) {
         const v25 = c.anos[2025][m], v26 = c.anos[2026][m];
