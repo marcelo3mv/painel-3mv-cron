@@ -5551,13 +5551,10 @@ function trocarAvalPane(qual) {
       if (u) {
         document.getElementById('auth-overlay').style.display = 'none';
         setTimeout(() => { const tag = document.getElementById('user-tag'); if (tag) tag.textContent = u.nome; }, 100);
-        // Se já tinha um modo escolhido, volta direto pra ele; senão mostra o seletor
-        const modo = localStorage.getItem('3mv_modo');
-        if (modo === 'acompanhamento' || modo === 'pbi') {
-          entrarApp(modo);
-        } else {
-          mostrarSelector(u.nome);
-        }
+        // FASE 9.69: ao reload/restore, SEMPRE mostra os cards de navegação (selector)
+        // — não auto-entra no último modo. Limpa o modo salvo pra forçar a tela inicial.
+        localStorage.removeItem('3mv_modo');
+        mostrarSelector(u.nome);
         return;
       }
     }
