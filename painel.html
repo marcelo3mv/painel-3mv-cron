@@ -8406,7 +8406,8 @@ function renderSellinMensal() {
       Object.values(sellin_hist).forEach(tomarInd);
     }
   } else {
-    // FALLBACK: só 2026 com categoria (itens) + 2025 mensal sem categoria (historico.mensal_25)
+    // FALLBACK: usa itens 2026 (com categoria) + historico (cli/ind/mensal) pra 2025
+    // CORREÇÃO: respeitar filtros tb no histórico de 2025
     itens26.forEach(it => {
       if (fInd && it.industria !== fInd) return;
       if (fCli && it.cliente !== fCli) return;
@@ -8418,12 +8419,34 @@ function renderSellinMensal() {
       if (!dadosCat[cat]) dadosCat[cat] = {2025: zera(), 2026: zera()};
       dadosCat[cat][2026][m] += valor;
     });
-    // 2025 totais por mês via historico.mensal_25 (sem quebra de categoria) — alocado em "TOTAL 2025 (sem quebra)"
-    const m25 = histLegacy.mensal_25 || [];
-    if (m25.some(v=>v>0)) {
-      const k = '__TOTAL_2025_LEGADO__';
-      dadosCat[k] = {2025: m25.slice(0,12), 2026: zera()};
+    // 2025 mensal — respeita o filtro (cliente, indústria, grupo)
+    let m25_arr = null;
+    if (fCli && histLegacy.cli_mes_25 && histLegacy.cli_mes_25[fCli]) {
+      m25_arr = histLegacy.cli_mes_25[fCli];
+    } else if (fInd && histLegacy.ind_mes_25 && histLegacy.ind_mes_25[fInd]) {
+      m25_arr = histLegacy.ind_mes_25[fInd];
+    } else if (fGrp) {
+      // Soma todos clientes do grupo
+      const acc = zera();
+      Object.entries(histLegacy.cli_mes_25 || {}).forEach(([cli, arr]) => {
+        if (grupoDoCli(cli) === fGrp) for (let i = 0; i < 12; i++) acc[i] += (arr[i]||0);
+      });
+      if (acc.some(v=>v>0)) m25_arr = acc;
+    } else if (!fCli && !fInd && !fGrp) {
+      m25_arr = histLegacy.mensal_25;
     }
+    if (m25_arr && m25_arr.some(v=>v>0)) {
+      const k = '__TOTAL_2025_HIST__';
+      dadosCat[k] = {2025: m25_arr.slice(0,12), 2026: zera()};
+    }
+    // 2026 mensal histórico (sem categoria) — mesmo padrão pra completar gaps
+    let m26_arr = null;
+    if (fCli && histLegacy.cli_mes_26 && histLegacy.cli_mes_26[fCli]) {
+      m26_arr = histLegacy.cli_mes_26[fCli];
+    } else if (fInd && histLegacy.ind_mes_26 && histLegacy.ind_mes_26[fInd]) {
+      m26_arr = histLegacy.ind_mes_26[fInd];
+    }
+    // Não preenche 2026 do histórico porque já temos itens26 — evita dupla contagem
   }
 
   // Totais por mês (25 e 26)
@@ -8576,47 +8599,72 @@ function renderSellinMensal() {
     }
   }
 
-  // === Gráfico 1: linhas 25 vs 26 total ===
+  // === Gráfico 1: BARRAS 25 vs 26 total (lado a lado por mês) ===
   if (charts['ch-mensal-total']) charts['ch-mensal-total'].destroy();
   const ctxTot = document.getElementById('ch-mensal-total')?.getContext('2d');
   if (ctxTot) {
     charts['ch-mensal-total'] = new Chart(ctxTot, {
-      type: 'line',
+      type: 'bar',
       data: { labels: MES,
         datasets: [
-          { label: '2025', data: tot25Mes, borderColor: '#3B82F6', backgroundColor: '#3B82F622', borderWidth: 2.5, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#1D4ED8' },
-          { label: '2026', data: tot26Mes, borderColor: '#EF4444', backgroundColor: '#EF444422', borderWidth: 2.5, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#B91C1C' }
+          { label: '2025', data: tot25Mes, backgroundColor: '#3B82F6CC', borderColor: '#1D4ED8', borderWidth: 1, borderRadius: 4 },
+          { label: '2026', data: tot26Mes, backgroundColor: '#EF4444CC', borderColor: '#B91C1C', borderWidth: 1, borderRadius: 4 }
         ]
       },
       options: { responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'top' },
-          tooltip: { callbacks: { label: c => c.dataset.label + ': R$ ' + fmt(c.parsed.y) } } },
-        scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$' + (v/1000).toFixed(0)+'k' } } }
+        plugins: { legend: { position: 'top', labels: { font: { size: 13, weight: '600' }, color: '#0E2236' } },
+          tooltip: { callbacks: { label: c => c.dataset.label + ': R$ ' + fmt(c.parsed.y),
+            afterLabel: (c) => {
+              const i = c.dataIndex;
+              if (c.dataset.label === '2026' && tot25Mes[i] > 0) {
+                const delta = tot26Mes[i] - tot25Mes[i];
+                const pct = (tot26Mes[i]/tot25Mes[i] - 1)*100;
+                return 'Δ: R$ ' + fmt(delta) + ' (' + (pct>=0?'+':'') + pct.toFixed(1) + '%)';
+              }
+              return '';
+            } } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 12, weight: 'bold' }, color: '#0E2236' } },
+          y: { beginAtZero: true, grid: { color: '#E5E7EB' }, ticks: { font: { size: 11 }, color: '#5A6C7E', callback: v => 'R$' + (v/1000).toFixed(0)+'k' } }
+        }
       }
     });
   }
 
-  // === Gráfico 2: linhas por categoria (top 8) ===
+  // === Gráfico 2: BARRAS empilhadas por categoria (top 8) — mês a mês 2026 ===
   if (charts['ch-mensal-categorias']) charts['ch-mensal-categorias'].destroy();
   const ctxCat = document.getElementById('ch-mensal-categorias')?.getContext('2d');
+  const elTitCat = document.getElementById('mensal-cat-titulo');
   if (ctxCat && catsLista.length > 0) {
     const top = catsLista.slice(0, 8);
+    if (elTitCat) elTitCat.textContent = '📊 Mês a Mês 2026 por Categoria (top ' + top.length + ' por valor) — barras empilhadas';
     const cores = ['#0556AD','#EF4444','#16A34A','#F59E0B','#7C3AED','#0891B2','#DB2777','#65A30D'];
     const datasets = top.map((c, i) => ({
       label: c.nome.length > 14 ? c.nome.slice(0,12)+'..' : c.nome,
       data: c.anos[2026],
-      borderColor: cores[i], backgroundColor: cores[i]+'22',
-      borderWidth: 2, tension: 0.3, pointRadius: 3
+      backgroundColor: cores[i]+'CC', borderColor: cores[i], borderWidth: 1, borderRadius: 2,
+      stack: 'cat'
     }));
     charts['ch-mensal-categorias'] = new Chart(ctxCat, {
-      type: 'line',
+      type: 'bar',
       data: { labels: MES, datasets },
       options: { responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } },
-          tooltip: { callbacks: { label: c => c.dataset.label + ': R$ ' + fmt(c.parsed.y) } } },
-        scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$' + (v/1000).toFixed(0)+'k' } } }
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 11, weight: '500' }, color: '#0E2236', boxWidth: 14 } },
+          tooltip: { callbacks: {
+            label: c => c.dataset.label + ': R$ ' + fmt(c.parsed.y),
+            footer: (items) => {
+              const total = items.reduce((s,i)=>s+i.parsed.y, 0);
+              return 'Total mês: R$ ' + fmt(total);
+            }
+          } } },
+        scales: {
+          x: { stacked: true, grid: { display: false }, ticks: { font: { size: 12, weight: 'bold' }, color: '#0E2236' } },
+          y: { stacked: true, beginAtZero: true, grid: { color: '#E5E7EB' }, ticks: { font: { size: 11 }, color: '#5A6C7E', callback: v => 'R$' + (v/1000).toFixed(0)+'k' } }
+        }
       }
     });
+  } else if (elTitCat) {
+    elTitCat.textContent = '📊 Mês a Mês 2026 por Categoria — sem dados pra este filtro';
   }
 }
 
