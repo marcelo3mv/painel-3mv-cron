@@ -8164,17 +8164,60 @@ function renderSellin() {
       Object.values(sellin_hist).forEach(tomarInd);
     }
   } else {
-    // FALLBACK: sem sellin_hist, só temos 2026 com categoria (via itens)
+    // FALLBACK: usa historico (faturado completo 2024/2025/2026) pra TOTAIS + itens (saldos) pra categoria
+    // Helper: tira array mensal filtrado por ano
+    function getMensalFiltradoDash(ano) {
+      const cliMap = ano === 2025 ? histLegacy.cli_mes_25 : (ano === 2026 ? histLegacy.cli_mes_26 : null);
+      const indMap = ano === 2025 ? histLegacy.ind_mes_25 : (ano === 2026 ? histLegacy.ind_mes_26 : null);
+      const totMes = ano === 2025 ? histLegacy.mensal_25 : (ano === 2026 ? histLegacy.mensal_26 : null);
+      if (fCli && cliMap && cliMap[fCli]) return cliMap[fCli];
+      if (fInd && indMap && indMap[fInd]) return indMap[fInd];
+      if (fGrp) {
+        const acc = Array(12).fill(0);
+        Object.entries(cliMap || {}).forEach(([cli, arr]) => {
+          if (grupoDoCli(cli) === fGrp) for (let i = 0; i < 12; i++) acc[i] += (arr[i]||0);
+        });
+        return acc.some(v=>v>0) ? acc : null;
+      }
+      if (!fCli && !fInd && !fGrp && totMes) return totMes;
+      return null;
+    }
+    // 2024 só vem do historico por_industria/por_cliente (ano total, não mensal)
+    function get2024Filtrado() {
+      if (fCli && histLegacy.por_cliente && histLegacy.por_cliente[fCli]) return histLegacy.por_cliente[fCli]['2024'] || 0;
+      if (fInd && histLegacy.por_industria && histLegacy.por_industria[fInd]) return histLegacy.por_industria[fInd]['2024'] || 0;
+      if (fGrp) {
+        let acc = 0;
+        Object.entries(histLegacy.por_cliente || {}).forEach(([cli, info]) => {
+          if (grupoDoCli(cli) === fGrp) acc += info['2024'] || 0;
+        });
+        return acc;
+      }
+      return (histLegacy.por_ano && histLegacy.por_ano['2024']) || 0;
+    }
+    const m25 = getMensalFiltradoDash(2025);
+    const m26 = getMensalFiltradoDash(2026);
+    const t24 = get2024Filtrado();
+    if (m25 || m26 || t24) {
+      const k = '__TOTAL_HIST__';
+      dadosCat[k] = {
+        2024: t24 ? Array(11).fill(0).concat([t24]) : [...Array(12).fill(0)],  // joga 2024 anual no Dez (não tem mensal)
+        2025: m25 ? m25.slice(0,12) : [...Array(12).fill(0)],
+        2026: m26 ? m26.slice(0,12) : [...Array(12).fill(0)]
+      };
+    }
+    // Quebra por categoria — só dos itens (saldos) 2026
     itens26.forEach(it => {
       if (fInd && it.industria !== fInd) return;
       if (fCli && it.cliente !== fCli) return;
       if (fGrp && grupoDoCli(it.cliente) !== fGrp) return;
-      const cat = it.categoria || (mapaApi[it.produto_codigo] && mapaApi[it.produto_codigo].categoria) || '(sem categoria)';
+      const cat = it.categoria || (mapaApi[it.produto_codigo] && mapaApi[it.produto_codigo].categoria) || 'OUTROS';
       const m = (it.mes && it.mes > 0 && it.mes <= 12) ? it.mes-1 : null;
       if (m === null) return;
       const valor = (it.qtde_faturada || 0) * (it.preco_unit || 0) + (it.valor_saldo || 0);
-      if (!dadosCat[cat]) dadosCat[cat] = {2024:[...Array(12).fill(0)], 2025:[...Array(12).fill(0)], 2026:[...Array(12).fill(0)]};
-      dadosCat[cat][2026][m] += valor;
+      const catNome = '⏳ ' + cat;
+      if (!dadosCat[catNome]) dadosCat[catNome] = {2024:[...Array(12).fill(0)], 2025:[...Array(12).fill(0)], 2026:[...Array(12).fill(0)]};
+      dadosCat[catNome][2026][m] += valor;
     });
   }
 
