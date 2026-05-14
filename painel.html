@@ -1597,56 +1597,40 @@ body.modo-crm #pane-crm { display: block !important; }
       </tr></thead><tbody></tbody></table></div>
       </div><!-- fim aval-sub-queda -->
 
-      <!-- FASE 9.67: Sub-pane Sell-in 25×26 — comparativo por indústria, cliente e categoria -->
+      <!-- FASE 9.67: Sub-pane Sell-in 25×26 — comparativo mensal por indústria + categoria -->
       <div id="aval-sub-sellin" class="aval-sub">
-      <h2>📈 Comparativo Sell-in 2025 × 2026 <span class="small">— Vendas faturadas YTD (R$)</span></h2>
-      <div style="font-size:11px;color:var(--mut);margin:-4px 0 10px;">Fonte: planilha histórico 24/25/26 (faturado) cruzada com pedidos_2026. Categoria via API Suas Vendas.</div>
+      <h2>📈 Comparativo Sell-in 2025 × 2026 <span class="small">— mês a mês, indústria × categoria</span></h2>
+      <div style="font-size:11px;color:var(--mut);margin:-4px 0 10px;">Usa os filtros globais do topo (Grupo / Cliente / Indústria). Categorias via API Suas Vendas (campo prod_prca_id).</div>
 
       <div class="filtros" style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
         <label>Visualização:</label>
         <select id="f-sellin-modo" onchange="renderSellin()" style="font-weight:600;">
-          <option value="industria">🏭 Por Indústria</option>
-          <option value="cliente">👥 Por Cliente</option>
-          <option value="categoria">📦 Por Categoria (2026 + saldo)</option>
+          <option value="ind-mensal">🏭 Indústria — mensal 25×26</option>
+          <option value="ind-ytd">🏭 Indústria — YTD 25×26 (todas ativas)</option>
+          <option value="cat-ind">📦 Categoria por Indústria (mensal 2026)</option>
         </select>
-        <label>Indústria:</label>
-        <select id="f-sellin-ind" onchange="renderSellin()">
-          <option value="">Todas</option>
-        </select>
-        <label>Cliente:</label>
-        <select id="f-sellin-cli" onchange="renderSellin()">
-          <option value="">Todos</option>
-        </select>
-        <label>Top:</label>
-        <select id="f-sellin-top" onchange="renderSellin()">
-          <option value="15">Top 15</option>
-          <option value="30" selected>Top 30</option>
-          <option value="50">Top 50</option>
-          <option value="0">Todos</option>
-        </select>
-        <button onclick="exportarSellin()" style="background:#16a34a;color:#fff;border:0;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;">📊 Exportar Excel</button>
-        <span class="info" id="sellin-info" style="margin-left:auto;color:#666;font-size:11px;">—</span>
+        <span class="info" id="sellin-info" style="color:#666;font-size:11px;font-weight:600;">—</span>
+        <button onclick="exportarSellin()" style="margin-left:auto;background:#16a34a;color:#fff;border:0;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;">📊 Exportar Excel</button>
       </div>
 
       <div class="kpis" id="sellin-kpis"></div>
 
       <div class="chart-card"><h3 id="sellin-chart-title">Comparativo 2025 × 2026</h3>
-        <div class="chart-wrap tall" style="height:480px;"><canvas id="ch-sellin-comp"></canvas></div>
+        <div class="chart-wrap tall" style="height:420px;"><canvas id="ch-sellin-comp"></canvas></div>
       </div>
 
-      <div class="chart-card" style="margin-top:14px;"><h3>Crescimento % (2026 vs 2025) — barras coloridas</h3>
-        <div class="chart-wrap" style="height:380px;"><canvas id="ch-sellin-cresc"></canvas></div>
+      <div class="chart-card" style="margin-top:14px;display:none;" id="sellin-card-cresc"><h3>Crescimento % por mês (2026 vs 2025)</h3>
+        <div class="chart-wrap" style="height:280px;"><canvas id="ch-sellin-cresc"></canvas></div>
       </div>
 
       <h2 style="margin-top:18px;">Tabela detalhada</h2>
-      <div class="tabwrap"><table id="t-sellin"><thead><tr>
+      <div class="tabwrap"><table id="t-sellin"><thead id="thead-sellin"><tr>
         <th>#</th><th id="th-sellin-nome">Nome</th>
-        <th class="right">2025 (YTD)</th>
-        <th class="right">2026 (YTD)</th>
-        <th class="right">Δ R$</th>
-        <th class="right">Δ %</th>
-        <th class="right">Pedidos 25</th>
-        <th class="right">Pedidos 26</th>
+        <th class="right">Jan</th><th class="right">Fev</th><th class="right">Mar</th>
+        <th class="right">Abr</th><th class="right">Mai</th><th class="right">Jun</th>
+        <th class="right">Jul</th><th class="right">Ago</th><th class="right">Set</th>
+        <th class="right">Out</th><th class="right">Nov</th><th class="right">Dez</th>
+        <th class="right">Total</th>
       </tr></thead><tbody></tbody></table></div>
       </div><!-- fim aval-sub-sellin -->
 
@@ -8001,220 +7985,313 @@ function exportarCatABC() {
 }
 
 // =====================================================================
-// FASE 9.67 — SELL-IN 25×26 (comparativo por indústria / cliente / categoria)
+// FASE 9.67 — SELL-IN 25×26 (mensal por indústria + categoria por indústria)
+// Respeita filtros globais f-grupo / f-cliente / f-industria
 // =====================================================================
 function renderSellin() {
   if (!dadosCache) return;
-  const hp = dadosCache.historico_pedidos || {};
-  const pcia = hp.por_cliente_industria_ano || {};
+  const h = dadosCache.historico || {};
+  const ind_mes_25 = h.ind_mes_25 || {};
+  const ind_mes_26 = h.ind_mes_26 || {};
+  const cli_mes_25 = h.cli_mes_25 || {};
+  const cli_mes_26 = h.cli_mes_26 || {};
   const peds26 = dadosCache.pedidos_2026 || [];
   const itens26 = dadosCache.itens || [];
   const mapaApi = dadosCache.mapa_produtos_api || {};
 
-  const elInd = document.getElementById('f-sellin-ind');
-  const elCli = document.getElementById('f-sellin-cli');
-  const elModo = document.getElementById('f-sellin-modo');
-  const elTop = document.getElementById('f-sellin-top');
-  if (!elInd || !elCli || !elModo) return;
+  const fModo = (document.getElementById('f-sellin-modo')||{}).value || 'ind-mensal';
+  const fGrp  = (document.getElementById('f-grupo')||{}).value || '';
+  const fCli  = (document.getElementById('f-cliente')||{}).value || '';
+  const fInd  = (document.getElementById('f-industria')||{}).value || '';
 
-  // Popular dropdowns (1ª vez)
-  if (elInd.options.length <= 1) {
-    const indSet = new Set();
-    Object.values(pcia).forEach(indMap => Object.keys(indMap).forEach(i => indSet.add(i)));
-    peds26.forEach(p => p.industria && indSet.add(p.industria));
-    [...indSet].sort().forEach(i => {
-      const o = document.createElement('option');
-      o.value = i; o.textContent = i;
-      elInd.appendChild(o);
-    });
+  // Indústrias ATIVAS = aquelas com vendas > 0 em 2025 OU 2026
+  const indAtivas = new Set();
+  Object.entries(ind_mes_25).forEach(([k, arr]) => {
+    if ((arr||[]).reduce((a,b)=>a+(b||0),0) > 0) indAtivas.add(k);
+  });
+  Object.entries(ind_mes_26).forEach(([k, arr]) => {
+    if ((arr||[]).reduce((a,b)=>a+(b||0),0) > 0) indAtivas.add(k);
+  });
+
+  const MES_NOMES = (typeof MESES !== 'undefined') ? MESES : ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  // Soma 12 arrays mensais
+  const somaArr = (arrs) => {
+    const out = new Array(12).fill(0);
+    arrs.forEach(a => { if (a) for (let i=0;i<12;i++) out[i] += (a[i]||0); });
+    return out;
+  };
+
+  // Helper: filtra clientes pelo grupo do CRM
+  const grupoDoCli = (typeof grupoDoCliente === 'function') ? grupoDoCliente : (c)=>'';
+  const clientesDoEscopo = () => {
+    const all = new Set([...Object.keys(cli_mes_25), ...Object.keys(cli_mes_26)]);
+    if (fCli) return [fCli];
+    if (fGrp) return [...all].filter(c => grupoDoCli(c) === fGrp);
+    return null; // sem filtro de cliente — todos
+  };
+
+  const titleEl = document.getElementById('sellin-chart-title');
+  const infoEl  = document.getElementById('sellin-info');
+  const cardCresc = document.getElementById('sellin-card-cresc');
+  const theadEl = document.getElementById('thead-sellin');
+  if (theadEl) {
+    theadEl.innerHTML = '<tr><th>#</th><th id="th-sellin-nome">Nome</th>'
+      + MES_NOMES.map(m=>'<th class="right">'+m+'</th>').join('')
+      + '<th class="right">Total</th></tr>';
   }
-  const fInd = elInd.value || '';
-  const fModo = elModo.value || 'industria';
-  const topN = parseInt(elTop.value, 10) || 30;
 
-  // Popular dropdown de cliente baseado em indústria
-  const clientesDoInd = new Set();
-  Object.entries(pcia).forEach(([cli, indMap]) => {
-    if (!fInd || indMap[fInd]) clientesDoInd.add(cli);
-  });
-  // Limpa e repopula clientes
-  const curCli = elCli.value;
-  while (elCli.options.length > 1) elCli.remove(1);
-  [...clientesDoInd].sort().forEach(c => {
-    const o = document.createElement('option');
-    o.value = c; o.textContent = c;
-    elCli.appendChild(o);
-  });
-  if (curCli && clientesDoInd.has(curCli)) elCli.value = curCli;
-  const fCli = elCli.value || '';
+  // ============================================================
+  // MODO 1: Indústria — mensal 25×26
+  // ============================================================
+  if (fModo === 'ind-mensal') {
+    // Se filtrou cliente/grupo, agregar usando cli_mes_25/26
+    // Sem filtro = usar ind_mes_25/26 direto
+    const clisEscopo = clientesDoEscopo();
+    let inds = fInd ? [fInd] : [...indAtivas].sort();
 
-  document.getElementById('th-sellin-nome').textContent =
-    fModo === 'industria' ? 'Indústria' : fModo === 'cliente' ? 'Cliente' : 'Categoria';
+    // Para cada indústria, computar arrays 25/26 (considerando filtro cliente/grupo se houver)
+    // Como cli_mes_25 não tem industria split, quando filtra cliente/grupo,
+    // mostramos só o gráfico mensal do escopo (não tem indústria split).
+    let linhas = [];
 
-  // ===== AGREGAR DADOS =====
-  let linhas = []; // [{nome, fat25, fat26, peds25, peds26}]
+    if (clisEscopo) {
+      // Filtrado por cliente/grupo: mostra evolução mensal AGREGADA do escopo
+      // (sem split por indústria, pois não temos cli×ind×mes)
+      const m25 = somaArr(clisEscopo.map(c => cli_mes_25[c]));
+      const m26 = somaArr(clisEscopo.map(c => cli_mes_26[c]));
+      const nome = fCli ? fCli : ('Grupo: ' + fGrp);
+      linhas = [{nome, m25, m26, tot25: m25.reduce((a,b)=>a+b,0), tot26: m26.reduce((a,b)=>a+b,0)}];
+    } else {
+      // Sem filtro de cliente/grupo: agrega por indústria
+      linhas = inds.map(ind => {
+        const m25 = ind_mes_25[ind] || new Array(12).fill(0);
+        const m26 = ind_mes_26[ind] || new Array(12).fill(0);
+        return { nome: ind, m25, m26, tot25: m25.reduce((a,b)=>a+b,0), tot26: m26.reduce((a,b)=>a+b,0) };
+      }).filter(l => l.tot25 > 0 || l.tot26 > 0);
+    }
 
-  if (fModo === 'industria') {
-    const agg = {};
-    Object.entries(pcia).forEach(([cli, indMap]) => {
-      if (fCli && cli !== fCli) return;
-      Object.entries(indMap).forEach(([ind, anos]) => {
-        if (fInd && ind !== fInd) return;
-        if (!agg[ind]) agg[ind] = {nome: ind, fat25: 0, fat26: 0, peds25: 0, peds26: 0};
-        const a25 = anos['2025'] || {}, a26 = anos['2026'] || {};
-        agg[ind].fat25 += (a25.faturado || 0);
-        agg[ind].fat26 += (a26.faturado || 0);
-        agg[ind].peds25 += (a25.qtd_pedidos || 0);
-        agg[ind].peds26 += (a26.qtd_pedidos || 0);
+    // Ordena por total 26 desc
+    linhas.sort((a,b) => b.tot26 - a.tot26);
+
+    const totLin = linhas.reduce((acc, l) => {
+      for (let i=0;i<12;i++) { acc.m25[i] += l.m25[i]||0; acc.m26[i] += l.m26[i]||0; }
+      return acc;
+    }, {m25: new Array(12).fill(0), m26: new Array(12).fill(0)});
+    const tot25 = totLin.m25.reduce((a,b)=>a+b,0);
+    const tot26 = totLin.m26.reduce((a,b)=>a+b,0);
+    const cresc = tot25>0 ? (tot26/tot25-1)*100 : (tot26>0?100:0);
+
+    if (titleEl) titleEl.textContent = 'Sell-in mensal 2025 × 2026' + (fInd ? ' — ' + fInd : '') + (fCli ? ' — ' + fCli : (fGrp ? ' — Grupo ' + fGrp : ''));
+    if (infoEl)  infoEl.textContent  = linhas.length + ' indústria(s) ativa(s)';
+    if (cardCresc) cardCresc.style.display = 'block';
+
+    // KPIs
+    document.getElementById('sellin-kpis').innerHTML =
+      '<div class="k"><div class="l">2025 — Total</div><div class="v">R$ ' + fmt(tot25) + '</div></div>' +
+      '<div class="k"><div class="l">2026 — Total</div><div class="v ' + (tot26>=tot25?'ok':'warn') + '">R$ ' + fmt(tot26) + '</div></div>' +
+      '<div class="k"><div class="l">Δ R$</div><div class="v ' + (tot26-tot25>=0?'ok':'acc') + '">R$ ' + fmt(tot26-tot25) + '</div></div>' +
+      '<div class="k"><div class="l">Δ %</div><div class="v ' + (cresc>=0?'ok':'acc') + '">' + cresc.toFixed(1) + '%</div></div>' +
+      '<div class="k"><div class="l">Indústrias</div><div class="v">' + linhas.length + '</div></div>';
+
+    // Gráfico mensal 25x26
+    if (charts['ch-sellin-comp']) charts['ch-sellin-comp'].destroy();
+    const ctx1 = document.getElementById('ch-sellin-comp')?.getContext('2d');
+    if (ctx1) {
+      charts['ch-sellin-comp'] = new Chart(ctx1, {
+        type: 'bar',
+        data: { labels: MES_NOMES,
+          datasets: [
+            { label: '2025', data: totLin.m25, backgroundColor: COLORS[1]+'C0', borderColor: COLORS[1], borderWidth: 1, borderRadius: 4 },
+            { label: '2026', data: totLin.m26, backgroundColor: COLORS[0]+'C0', borderColor: COLORS[0], borderWidth: 1, borderRadius: 4 }
+          ]},
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' },
+            tooltip: { callbacks: { label: c => c.dataset.label + ': R$ ' + fmt(c.parsed.y) } } },
+          scales: { x: { grid: { display: false } },
+                    y: { beginAtZero: true, grid: { color: '#DCE9F8' }, ticks: { callback: v => 'R$' + (v/1000).toFixed(0)+'k' } } }
+        }
       });
-    });
-    linhas = Object.values(agg);
-  } else if (fModo === 'cliente') {
-    const agg = {};
-    Object.entries(pcia).forEach(([cli, indMap]) => {
-      if (fCli && cli !== fCli) return;
-      Object.entries(indMap).forEach(([ind, anos]) => {
-        if (fInd && ind !== fInd) return;
-        if (!agg[cli]) agg[cli] = {nome: cli, fat25: 0, fat26: 0, peds25: 0, peds26: 0};
-        const a25 = anos['2025'] || {}, a26 = anos['2026'] || {};
-        agg[cli].fat25 += (a25.faturado || 0);
-        agg[cli].fat26 += (a26.faturado || 0);
-        agg[cli].peds25 += (a25.qtd_pedidos || 0);
-        agg[cli].peds26 += (a26.qtd_pedidos || 0);
+    }
+
+    // Crescimento % por mês
+    if (charts['ch-sellin-cresc']) charts['ch-sellin-cresc'].destroy();
+    const ctx2 = document.getElementById('ch-sellin-cresc')?.getContext('2d');
+    if (ctx2) {
+      const pcts = totLin.m25.map((v25, i) => {
+        const v26 = totLin.m26[i] || 0;
+        return v25 > 0 ? ((v26/v25 - 1)*100) : (v26 > 0 ? 100 : 0);
       });
+      const cores = pcts.map(p => p>=0 ? '#16a34a' : '#dc2626');
+      charts['ch-sellin-cresc'] = new Chart(ctx2, {
+        type: 'bar',
+        data: { labels: MES_NOMES, datasets: [{ label: 'Δ %', data: pcts, backgroundColor: cores.map(c=>c+'D0'), borderColor: cores, borderWidth: 1, borderRadius: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => 'Δ ' + c.parsed.y.toFixed(1) + '%' } } },
+          scales: { x: { grid: { display: false } },
+                    y: { grid: { color: '#DCE9F8' }, ticks: { callback: v => v.toFixed(0)+'%' } } }
+        }
+      });
+    }
+
+    // Tabela mensal
+    document.getElementById('th-sellin-nome').textContent = 'Indústria / Mês';
+    const linhasTbl = linhas.flatMap(l => [
+      { nome: l.nome + ' — 2025', meses: l.m25, tot: l.tot25 },
+      { nome: l.nome + ' — 2026', meses: l.m26, tot: l.tot26 },
+    ]);
+    setTbody('t-sellin', linhasTbl, 14, (lin, i) => {
+      const ano26 = lin.nome.endsWith('2026');
+      const cor = ano26 ? 'color:var(--azul-d);font-weight:600;' : 'color:var(--mut);';
+      return '<td>' + (i+1) + '</td>' +
+             '<td style="' + cor + '">' + esc(lin.nome) + '</td>' +
+             lin.meses.map(v => '<td class="right">' + (v>0 ? fmt(v) : '—') + '</td>').join('') +
+             '<td class="right" style="' + cor + '"><b>' + fmt(lin.tot) + '</b></td>';
     });
-    linhas = Object.values(agg);
-  } else { // categoria
-    // Categoria só tem dado granular pra 2026 (via API). 2025 fica vazio (sem dado produto-level histórico).
-    const agg = {};
+    return;
+  }
+
+  // ============================================================
+  // MODO 2: Indústria — YTD 25×26 (todas ativas, barras horizontais)
+  // ============================================================
+  if (fModo === 'ind-ytd') {
+    const mesAtual = (typeof getMesAtual === 'function') ? getMesAtual() : 12;
+    let linhas = [...indAtivas].sort().map(ind => {
+      const m25 = ind_mes_25[ind] || []; const m26 = ind_mes_26[ind] || [];
+      const ytd25 = m25.slice(0, mesAtual).reduce((a,b)=>a+(b||0),0);
+      const ytd26 = m26.slice(0, mesAtual).reduce((a,b)=>a+(b||0),0);
+      return { nome: ind, ytd25, ytd26, delta: ytd26-ytd25, pct: ytd25>0 ? (ytd26/ytd25-1)*100 : (ytd26>0?100:0) };
+    }).filter(l => l.ytd25 > 0 || l.ytd26 > 0);
+    if (fInd) linhas = linhas.filter(l => l.nome === fInd);
+    linhas.sort((a,b) => b.ytd26 - a.ytd26);
+
+    const tot25 = linhas.reduce((a,l)=>a+l.ytd25,0);
+    const tot26 = linhas.reduce((a,l)=>a+l.ytd26,0);
+    const cresc = tot25>0 ? (tot26/tot25-1)*100 : (tot26>0?100:0);
+
+    if (titleEl) titleEl.textContent = 'Sell-in YTD 2025 × 2026 — Indústrias Ativas (jan→mês vigente)';
+    if (infoEl)  infoEl.textContent  = linhas.length + ' indústria(s) ativa(s)';
+    if (cardCresc) cardCresc.style.display = 'none';
+
+    document.getElementById('sellin-kpis').innerHTML =
+      '<div class="k"><div class="l">2025 YTD</div><div class="v">R$ ' + fmt(tot25) + '</div></div>' +
+      '<div class="k"><div class="l">2026 YTD</div><div class="v ' + (tot26>=tot25?'ok':'warn') + '">R$ ' + fmt(tot26) + '</div></div>' +
+      '<div class="k"><div class="l">Δ R$</div><div class="v ' + (tot26-tot25>=0?'ok':'acc') + '">R$ ' + fmt(tot26-tot25) + '</div></div>' +
+      '<div class="k"><div class="l">Δ %</div><div class="v ' + (cresc>=0?'ok':'acc') + '">' + cresc.toFixed(1) + '%</div></div>' +
+      '<div class="k"><div class="l">Ativas</div><div class="v">' + linhas.length + '</div></div>';
+
+    if (charts['ch-sellin-comp']) charts['ch-sellin-comp'].destroy();
+    const ctx1 = document.getElementById('ch-sellin-comp')?.getContext('2d');
+    if (ctx1) {
+      charts['ch-sellin-comp'] = new Chart(ctx1, {
+        type: 'bar',
+        data: { labels: linhas.map(l => l.nome),
+          datasets: [
+            { label: '2025 YTD', data: linhas.map(l=>l.ytd25), backgroundColor: COLORS[1]+'C0', borderColor: COLORS[1], borderWidth: 1, borderRadius: 4 },
+            { label: '2026 YTD', data: linhas.map(l=>l.ytd26), backgroundColor: COLORS[0]+'C0', borderColor: COLORS[0], borderWidth: 1, borderRadius: 4 }
+          ]},
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' },
+            tooltip: { callbacks: { label: c => c.dataset.label + ': R$ ' + fmt(c.parsed.x) } } },
+          scales: { x: { grid: { color: '#DCE9F8' }, ticks: { callback: v => 'R$' + (v/1000).toFixed(0)+'k' } },
+                    y: { grid: { display: false } } }
+        }
+      });
+    }
+
+    document.getElementById('th-sellin-nome').textContent = 'Indústria';
+    // Tabela YTD simples
+    if (theadEl) {
+      theadEl.innerHTML = '<tr><th>#</th><th>Indústria</th>'
+        + '<th class="right">YTD 2025</th><th class="right">YTD 2026</th>'
+        + '<th class="right">Δ R$</th><th class="right">Δ %</th></tr>';
+    }
+    setTbody('t-sellin', linhas, 6, (l, i) => {
+      const cor = l.pct >= 0 ? '#16a34a' : '#dc2626';
+      return '<td>' + (i+1) + '</td>' +
+             '<td>' + esc(l.nome) + '</td>' +
+             '<td class="right">R$ ' + fmt(l.ytd25) + '</td>' +
+             '<td class="right">R$ ' + fmt(l.ytd26) + '</td>' +
+             '<td class="right" style="color:' + cor + ';font-weight:600;">R$ ' + fmt(l.delta) + '</td>' +
+             '<td class="right" style="color:' + cor + ';font-weight:700;">' + l.pct.toFixed(1) + '%</td>';
+    });
+    return;
+  }
+
+  // ============================================================
+  // MODO 3: Categoria por Indústria — mensal 2026
+  // (usa pedidos_2026 + itens com categoria injetada da API)
+  // ============================================================
+  if (fModo === 'cat-ind') {
+    // Como pedidos_2026 não tem produto/categoria, usamos itens (saldos detalhados)
+    // que tem produto_codigo + categoria. Mas itens é só saldo, não pedido completo.
+    // Aproximação: valor faturado por item = preco_unit × qtde_faturada
+    //              valor pedido total = preco_unit × qtde_pedida
+    //              valor saldo = valor_saldo
+    const cats = {}; // categoria -> {meses: [12], tot, ind}
+
     itens26.forEach(it => {
       if (fInd && it.industria !== fInd) return;
       if (fCli && it.cliente !== fCli) return;
-      const cat = it.categoria || mapaApi[it.produto_codigo]?.categoria || '(sem categoria)';
-      if (!agg[cat]) agg[cat] = {nome: cat, fat25: 0, fat26: 0, peds25: 0, peds26: 0, itens: 0};
-      // Valor faturado 2026 = total dos pedidos faturados
-      // Aproximação: usa o valor_unit × qtd_faturada (ou valor_saldo se pendente)
-      const valor_fat = (it.qtde_faturada || 0) * (it.preco_unit || 0);
-      const valor_sal = it.valor_saldo || 0;
-      agg[cat].fat26 += (valor_fat + valor_sal); // sell-in = pedido total
-      agg[cat].itens += 1;
+      if (fGrp && grupoDoCli(it.cliente) !== fGrp) return;
+      const cat = it.categoria || (mapaApi[it.produto_codigo] && mapaApi[it.produto_codigo].categoria) || '(sem categoria)';
+      if (!cats[cat]) cats[cat] = {nome: cat, meses: new Array(12).fill(0), tot: 0, ind: it.industria || ''};
+      const m = (it.mes && it.mes > 0 && it.mes <= 12) ? it.mes-1 : null;
+      if (m === null) return;
+      // Valor pedido total (sell-in) = qtde_pedida × preço unit
+      const valor_pedido = (it.qtde_pedida || 0) * (it.preco_unit || 0);
+      cats[cat].meses[m] += valor_pedido;
+      cats[cat].tot += valor_pedido;
     });
-    linhas = Object.values(agg);
-  }
 
-  // Filtra zeros, ordena por valor 2026 desc, aplica top
-  linhas = linhas.filter(l => l.fat25 > 0 || l.fat26 > 0)
-                 .sort((a,b) => (b.fat25 + b.fat26) - (a.fat25 + a.fat26));
-  if (topN > 0) linhas = linhas.slice(0, topN);
+    let linhas = Object.values(cats).filter(c => c.tot > 0).sort((a,b) => b.tot - a.tot);
 
-  // ===== KPIs TOTAIS =====
-  const tot25 = linhas.reduce((a,l)=>a+l.fat25, 0);
-  const tot26 = linhas.reduce((a,l)=>a+l.fat26, 0);
-  const delta = tot26 - tot25;
-  const pctCresc = tot25 > 0 ? ((tot26/tot25 - 1) * 100) : (tot26 > 0 ? 100 : 0);
-  const kpiEl = document.getElementById('sellin-kpis');
-  if (kpiEl) {
-    kpiEl.innerHTML =
-      '<div class="k"><div class="l">2025 (YTD)</div><div class="v">R$ ' + fmt(tot25) + '</div></div>' +
-      '<div class="k"><div class="l">2026 (YTD)</div><div class="v ' + (tot26 >= tot25 ? 'ok' : 'warn') + '">R$ ' + fmt(tot26) + '</div></div>' +
-      '<div class="k"><div class="l">Δ R$</div><div class="v ' + (delta >= 0 ? 'ok' : 'acc') + '">R$ ' + fmt(delta) + '</div></div>' +
-      '<div class="k"><div class="l">Δ %</div><div class="v ' + (pctCresc >= 0 ? 'ok' : 'acc') + '">' + pctCresc.toFixed(1) + '%</div></div>' +
-      '<div class="k"><div class="l">Itens analisados</div><div class="v">' + linhas.length + '</div></div>';
-  }
+    const tot26 = linhas.reduce((a,l)=>a+l.tot, 0);
 
-  const elInfo = document.getElementById('sellin-info');
-  if (elInfo) elInfo.textContent = linhas.length + ' linha(s) · ' + (fInd || 'Todas indústrias') + (fCli ? ' / ' + fCli : '');
+    if (titleEl) titleEl.textContent = 'Sell-in 2026 mensal — Categorias' + (fInd ? ' (' + fInd + ')' : '');
+    if (infoEl)  infoEl.textContent  = linhas.length + ' categoria(s)' + (fInd ? ' em ' + fInd : '') + (fCli ? ' · ' + fCli : (fGrp ? ' · grupo ' + fGrp : ''));
+    if (cardCresc) cardCresc.style.display = 'none';
 
-  // ===== GRÁFICO 1: Comparativo R$ 25 vs 26 =====
-  const labels = linhas.map(l => l.nome.length > 28 ? l.nome.slice(0,26) + '..' : l.nome);
-  const titleEl = document.getElementById('sellin-chart-title');
-  if (titleEl) titleEl.textContent = 'Sell-in 2025 × 2026 — ' + (fModo === 'industria' ? 'por Indústria' : fModo === 'cliente' ? 'por Cliente' : 'por Categoria (2026)');
+    document.getElementById('sellin-kpis').innerHTML =
+      '<div class="k"><div class="l">Categorias</div><div class="v">' + linhas.length + '</div></div>' +
+      '<div class="k"><div class="l">Sell-in 2026</div><div class="v ok">R$ ' + fmt(tot26) + '</div></div>' +
+      '<div class="k"><div class="l">Fonte</div><div class="v" style="font-size:11px;">API + planilha saldos</div></div>' +
+      (linhas.length === 0 ? '<div class="k"><div class="l">⚠ Atenção</div><div class="v warn" style="font-size:11px;">Aguarde injetar_categorias_precos.py rodar (próx cron 13h BRT)</div></div>' : '');
 
-  if (charts['ch-sellin-comp']) charts['ch-sellin-comp'].destroy();
-  const ctx1 = document.getElementById('ch-sellin-comp')?.getContext('2d');
-  if (ctx1) {
-    charts['ch-sellin-comp'] = new Chart(ctx1, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          { label: '2025', data: linhas.map(l=>l.fat25), backgroundColor: COLORS[1]+'C0', borderColor: COLORS[1], borderWidth: 1, borderRadius: 4 },
-          { label: '2026', data: linhas.map(l=>l.fat26), backgroundColor: COLORS[0]+'C0', borderColor: COLORS[0], borderWidth: 1, borderRadius: 4 }
-        ]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'top' },
-          tooltip: {
-            callbacks: {
-              label: c => c.dataset.label + ': R$ ' + fmt(c.parsed.x)
-            }
-          }
-        },
-        scales: {
-          x: { grid: { color: '#DCE9F8' }, ticks: { font: { size: 10 }, callback: v => 'R$' + (v/1000).toFixed(0) + 'k' } },
-          y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+    // Gráfico empilhado mensal (top 8 categorias)
+    if (charts['ch-sellin-comp']) charts['ch-sellin-comp'].destroy();
+    const ctx1 = document.getElementById('ch-sellin-comp')?.getContext('2d');
+    if (ctx1) {
+      const top = linhas.slice(0, 8);
+      const datasets = top.map((l, idx) => ({
+        label: l.nome,
+        data: l.meses,
+        backgroundColor: (COLORS[idx % COLORS.length]) + 'C8',
+        borderColor: COLORS[idx % COLORS.length],
+        borderWidth: 1,
+      }));
+      charts['ch-sellin-comp'] = new Chart(ctx1, {
+        type: 'bar',
+        data: { labels: MES_NOMES, datasets },
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' },
+            tooltip: { callbacks: { label: c => c.dataset.label + ': R$ ' + fmt(c.parsed.y) } } },
+          scales: { x: { stacked: true, grid: { display: false } },
+                    y: { stacked: true, beginAtZero: true, grid: { color: '#DCE9F8' }, ticks: { callback: v => 'R$' + (v/1000).toFixed(0)+'k' } } }
         }
-      }
-    });
-  }
+      });
+    }
 
-  // ===== GRÁFICO 2: Crescimento % =====
-  if (charts['ch-sellin-cresc']) charts['ch-sellin-cresc'].destroy();
-  const ctx2 = document.getElementById('ch-sellin-cresc')?.getContext('2d');
-  if (ctx2) {
-    const pcts = linhas.map(l => l.fat25 > 0 ? ((l.fat26/l.fat25 - 1) * 100) : (l.fat26 > 0 ? 100 : 0));
-    const cores = pcts.map(p => p >= 0 ? '#16a34a' : '#dc2626');
-    charts['ch-sellin-cresc'] = new Chart(ctx2, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Δ %',
-          data: pcts,
-          backgroundColor: cores.map(c => c + 'D0'),
-          borderColor: cores,
-          borderWidth: 1,
-          borderRadius: 4
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: c => 'Δ ' + c.parsed.x.toFixed(1) + '%'
-            }
-          }
-        },
-        scales: {
-          x: { grid: { color: '#DCE9F8' }, ticks: { font: { size: 10 }, callback: v => v.toFixed(0) + '%' } },
-          y: { grid: { display: false }, ticks: { font: { size: 10 } } }
-        }
-      }
+    // Tabela: categoria × meses
+    document.getElementById('th-sellin-nome').textContent = 'Categoria';
+    setTbody('t-sellin', linhas, 14, (l, i) => {
+      return '<td>' + (i+1) + '</td>' +
+             '<td>' + esc(l.nome) + (l.ind && !fInd ? ' <span class="small" style="color:var(--mut);">· '+esc(l.ind)+'</span>' : '') + '</td>' +
+             l.meses.map(v => '<td class="right">' + (v>0 ? fmt(v) : '—') + '</td>').join('') +
+             '<td class="right"><b>' + fmt(l.tot) + '</b></td>';
     });
+    return;
   }
-
-  // ===== TABELA =====
-  setTbody('t-sellin', linhas, 8, (l, i) => {
-    const d = l.fat26 - l.fat25;
-    const pct = l.fat25 > 0 ? ((l.fat26/l.fat25 - 1) * 100) : (l.fat26 > 0 ? 100 : 0);
-    const corPct = pct >= 0 ? '#16a34a' : '#dc2626';
-    return '<td>' + (i+1) + '</td>' +
-      '<td>' + esc(l.nome) + '</td>' +
-      '<td class="right">R$ ' + fmt(l.fat25) + '</td>' +
-      '<td class="right">R$ ' + fmt(l.fat26) + '</td>' +
-      '<td class="right" style="color:' + corPct + ';font-weight:600;">R$ ' + fmt(d) + '</td>' +
-      '<td class="right" style="color:' + corPct + ';font-weight:700;">' + pct.toFixed(1) + '%</td>' +
-      '<td class="right">' + (l.peds25 || 0) + '</td>' +
-      '<td class="right">' + (l.peds26 || 0) + '</td>';
-  });
 }
 
 function exportarSellin() {
