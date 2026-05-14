@@ -271,6 +271,25 @@ body.modo-aval #pane-avaliacao { display: block !important; }
 .aval-sub { display: none !important; }
 .aval-sub.aval-sub-active { display: block !important; }
 
+/* FASE 9.68: Sub-tabs dentro do Sell-in JBP (Dashboard / Mensal) */
+.sellin-subtabs { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 14px; padding:6px; background:var(--azul-card); border-radius:10px; }
+.sellin-subtab { padding:8px 16px; border-radius:8px; border:0; background:transparent; cursor:pointer; font-size:13px; font-weight:600; color:var(--mut); transition:all .15s; }
+.sellin-subtab:hover { background:#fff; color:var(--azul); }
+.sellin-subtab.active { background:var(--azul); color:#fff; box-shadow:0 2px 6px rgba(5,86,173,.25); }
+.sellin-subpane { display:none; }
+.sellin-subpane.sellin-subpane-active { display:block; }
+.tbl-mensal th, .tbl-mensal td { padding:6px 8px; font-size:11px; white-space:nowrap; }
+.tbl-mensal th.sticky-col, .tbl-mensal td.sticky-col { position:sticky; left:0; background:#fff; z-index:2; border-right:1px solid var(--linha); }
+.tbl-mensal thead th { background:var(--azul-card); position:sticky; top:0; z-index:3; }
+.tbl-mensal thead th.sticky-col { z-index:4; }
+.tbl-mensal tbody tr:nth-child(odd) { background:#fafbfc; }
+.tbl-mensal tbody tr:nth-child(odd) td.sticky-col { background:#fafbfc; }
+.tbl-mensal tbody tr.linha-total { background:var(--azul-card) !important; font-weight:700; }
+.tbl-mensal tbody tr.linha-total td.sticky-col { background:var(--azul-card) !important; }
+.cel-pos { color:#16a34a; font-weight:600; }
+.cel-neg { color:#dc2626; font-weight:600; }
+.cel-zero { color:#94a3b8; }
+
 /* === FASE 9.42: Modo Conta Corrente === */
 body.modo-cc .sidebar:not(.sidebar-cc) { display: none !important; }
 body.modo-cc .sidebar-cc { display: flex !important; }
@@ -1597,51 +1616,118 @@ body.modo-crm #pane-crm { display: block !important; }
       </tr></thead><tbody></tbody></table></div>
       </div><!-- fim aval-sub-queda -->
 
-      <!-- FASE 9.67: Sub-pane Sell-in 25×26 padrão JBP — por categoria, cliente×indústria -->
+      <!-- FASE 9.67/9.68: Sub-pane Sell-in 25×26 padrão JBP — Dashboard + Mensal -->
       <div id="aval-sub-sellin" class="aval-sub">
       <h2>📈 Sell-in JBP 2025 × 2026 <span class="small">— vendas faturadas por categoria · usa filtros globais (Grupo / Cliente / Indústria)</span></h2>
       <div id="sellin-warn" style="font-size:11px;padding:8px 10px;background:#FEF3C7;border-left:3px solid #F59E0B;border-radius:6px;color:#78350F;margin:4px 0 10px;display:none;"></div>
 
-      <!-- KPIs principais (estilo JBP) -->
-      <div class="kpis" id="sellin-kpis" style="grid-template-columns:repeat(5,1fr);"></div>
-
-      <!-- Gráficos lado a lado: anual + mesmo período -->
-      <div class="charts-row" style="margin-top:14px;">
-        <div class="chart-card"><h3>Sell-in por Categoria — 2024 · 2025 · Proj 2026</h3>
-          <div class="chart-wrap tall" style="height:420px;"><canvas id="ch-sellin-anos"></canvas></div>
-        </div>
-        <div class="chart-card"><h3 id="sellin-ytd-title">Sell-in Jan-? : 2025 × 2026 por Categoria</h3>
-          <div class="chart-wrap tall" style="height:420px;"><canvas id="ch-sellin-ytd"></canvas></div>
-        </div>
+      <!-- FASE 9.68: Sub-tabs internas (Dashboard / Mensal) -->
+      <div class="sellin-subtabs">
+        <button class="sellin-subtab active" onclick="trocarSellinPane('dashboard')">📊 Dashboard</button>
+        <button class="sellin-subtab" onclick="trocarSellinPane('mensal')">📅 Mensal 25×26</button>
       </div>
 
-      <!-- Tabela 1: Comparativo Acumulado JAN-mes_atual -->
-      <h2 style="margin-top:18px;" id="sellin-tabela1-titulo">📊 Comparativo Acumulado JAN-? — 2025 × 2026 por Categoria</h2>
-      <div style="margin-bottom:6px;">
-        <button onclick="exportarSellin()" style="background:#16a34a;color:#fff;border:0;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;">📊 Exportar Excel</button>
-        <span id="sellin-info" style="margin-left:10px;color:#666;font-size:11px;font-weight:600;">—</span>
-      </div>
-      <div class="tabwrap"><table id="t-sellin-acum"><thead><tr>
-        <th>Categoria</th>
-        <th class="right" id="th-sellin-25">Jan-? 25</th>
-        <th class="right" id="th-sellin-26">Jan-? 26</th>
-        <th class="right">Δ R$</th>
-        <th class="right">Δ %</th>
-        <th>Status</th>
-        <th class="right">% Total 25</th>
-        <th class="right">% Total 26</th>
-      </tr></thead><tbody></tbody></table></div>
+      <!-- ====================== PANE: DASHBOARD ====================== -->
+      <div id="sellin-pane-dashboard" class="sellin-subpane sellin-subpane-active">
+        <!-- KPIs principais (estilo JBP) -->
+        <div class="kpis" id="sellin-kpis" style="grid-template-columns:repeat(5,1fr);"></div>
 
-      <!-- Tabela 2: Sell-in por Categoria × Ano -->
-      <h2 style="margin-top:18px;">📅 Sell-in por Categoria × Ano</h2>
-      <div class="tabwrap"><table id="t-sellin-anos"><thead><tr>
-        <th>Categoria</th>
-        <th class="right">2024</th><th class="right">%24</th>
-        <th class="right">2025</th><th class="right">%25</th>
-        <th class="right" id="th-sellin-26-acum">2026 jan-?</th><th class="right">%26</th>
-        <th class="right">Proj 2026</th>
-        <th class="right">Δ Proj vs 25</th>
-      </tr></thead><tbody></tbody></table></div>
+        <!-- Gráficos lado a lado: anual + mesmo período -->
+        <div class="charts-row" style="margin-top:14px;">
+          <div class="chart-card"><h3>Sell-in por Categoria — 2024 · 2025 · Proj 2026</h3>
+            <div class="chart-wrap tall" style="height:420px;"><canvas id="ch-sellin-anos"></canvas></div>
+          </div>
+          <div class="chart-card"><h3 id="sellin-ytd-title">Sell-in Jan-? : 2025 × 2026 por Categoria</h3>
+            <div class="chart-wrap tall" style="height:420px;"><canvas id="ch-sellin-ytd"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Tabela 1: Comparativo Acumulado JAN-mes_atual -->
+        <h2 style="margin-top:18px;" id="sellin-tabela1-titulo">📊 Comparativo Acumulado JAN-? — 2025 × 2026 por Categoria</h2>
+        <div style="margin-bottom:6px;">
+          <button onclick="exportarSellin()" style="background:#16a34a;color:#fff;border:0;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;">📊 Exportar Excel</button>
+          <span id="sellin-info" style="margin-left:10px;color:#666;font-size:11px;font-weight:600;">—</span>
+        </div>
+        <div class="tabwrap"><table id="t-sellin-acum"><thead><tr>
+          <th>Categoria</th>
+          <th class="right" id="th-sellin-25">Jan-? 25</th>
+          <th class="right" id="th-sellin-26">Jan-? 26</th>
+          <th class="right">Δ R$</th>
+          <th class="right">Δ %</th>
+          <th>Status</th>
+          <th class="right">% Total 25</th>
+          <th class="right">% Total 26</th>
+        </tr></thead><tbody></tbody></table></div>
+
+        <!-- Tabela 2: Sell-in por Categoria × Ano -->
+        <h2 style="margin-top:18px;">📅 Sell-in por Categoria × Ano</h2>
+        <div class="tabwrap"><table id="t-sellin-anos"><thead><tr>
+          <th>Categoria</th>
+          <th class="right">2024</th><th class="right">%24</th>
+          <th class="right">2025</th><th class="right">%25</th>
+          <th class="right" id="th-sellin-26-acum">2026 jan-?</th><th class="right">%26</th>
+          <th class="right">Proj 2026</th>
+          <th class="right">Δ Proj vs 25</th>
+        </tr></thead><tbody></tbody></table></div>
+      </div><!-- fim sellin-pane-dashboard -->
+
+      <!-- ====================== PANE: MENSAL 25×26 ====================== -->
+      <div id="sellin-pane-mensal" class="sellin-subpane">
+        <!-- KPIs resumo mensal -->
+        <div class="kpis" id="mensal-kpis" style="grid-template-columns:repeat(5,1fr);"></div>
+
+        <!-- Gráfico: linhas mês a mês 25 vs 26 (total) -->
+        <div class="chart-card" style="margin-top:14px;">
+          <h3>📈 Total Mensal — 2025 vs 2026 (R$)</h3>
+          <div class="chart-wrap tall" style="height:380px;"><canvas id="ch-mensal-total"></canvas></div>
+        </div>
+
+        <!-- Gráfico: linhas por categoria (top 6) -->
+        <div class="chart-card" style="margin-top:14px;">
+          <h3 id="mensal-cat-titulo">📊 Mês a Mês 2026 por Categoria (top 8 por valor)</h3>
+          <div class="chart-wrap tall" style="height:380px;"><canvas id="ch-mensal-categorias"></canvas></div>
+        </div>
+
+        <!-- Tabela 1: Total Mensal 25×26 -->
+        <h2 style="margin-top:18px;">📅 Total Mensal — 2025 × 2026 (% crescimento)</h2>
+        <div class="tabwrap"><table id="t-mensal-total" class="tbl-mensal"><thead><tr>
+          <th class="sticky-col">Métrica</th>
+          <th class="right">Jan</th><th class="right">Fev</th><th class="right">Mar</th><th class="right">Abr</th>
+          <th class="right">Mai</th><th class="right">Jun</th><th class="right">Jul</th><th class="right">Ago</th>
+          <th class="right">Set</th><th class="right">Out</th><th class="right">Nov</th><th class="right">Dez</th>
+          <th class="right" style="background:#0556AD;color:#fff;">Total</th>
+        </tr></thead><tbody></tbody></table></div>
+
+        <!-- Tabela 2: % Crescimento por Categoria mês a mês -->
+        <h2 style="margin-top:18px;">📈 % Crescimento por Categoria — 2026 vs 2025 (mês a mês)</h2>
+        <div class="tabwrap"><table id="t-mensal-cresc" class="tbl-mensal"><thead><tr>
+          <th class="sticky-col">Categoria</th>
+          <th class="right">Jan</th><th class="right">Fev</th><th class="right">Mar</th><th class="right">Abr</th>
+          <th class="right">Mai</th><th class="right">Jun</th><th class="right">Jul</th><th class="right">Ago</th>
+          <th class="right">Set</th><th class="right">Out</th><th class="right">Nov</th><th class="right">Dez</th>
+          <th class="right" style="background:#0556AD;color:#fff;">Acum</th>
+        </tr></thead><tbody></tbody></table></div>
+
+        <!-- Tabela 3: Comparativo Mensal por Categoria R$ (pares 25/26 lado a lado) -->
+        <h2 style="margin-top:18px;">💰 Comparativo Mensal por Categoria — 2025 × 2026 (R$)</h2>
+        <div style="margin-bottom:6px;"><button onclick="exportarSellinMensal()" style="background:#16a34a;color:#fff;border:0;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;">📊 Exportar Excel</button></div>
+        <div class="tabwrap" style="max-height:520px;overflow:auto;"><table id="t-mensal-pares" class="tbl-mensal"><thead>
+          <tr id="t-mensal-pares-h1">
+            <th class="sticky-col" rowspan="2">Categoria</th>
+            <th colspan="2" class="right">Jan</th><th colspan="2" class="right">Fev</th><th colspan="2" class="right">Mar</th>
+            <th colspan="2" class="right">Abr</th><th colspan="2" class="right">Mai</th><th colspan="2" class="right">Jun</th>
+            <th colspan="2" class="right">Jul</th><th colspan="2" class="right">Ago</th><th colspan="2" class="right">Set</th>
+            <th colspan="2" class="right">Out</th><th colspan="2" class="right">Nov</th><th colspan="2" class="right">Dez</th>
+          </tr>
+          <tr id="t-mensal-pares-h2">
+            <th class="right">25</th><th class="right">26</th><th class="right">25</th><th class="right">26</th><th class="right">25</th><th class="right">26</th>
+            <th class="right">25</th><th class="right">26</th><th class="right">25</th><th class="right">26</th><th class="right">25</th><th class="right">26</th>
+            <th class="right">25</th><th class="right">26</th><th class="right">25</th><th class="right">26</th><th class="right">25</th><th class="right">26</th>
+            <th class="right">25</th><th class="right">26</th><th class="right">25</th><th class="right">26</th><th class="right">25</th><th class="right">26</th>
+          </tr>
+        </thead><tbody></tbody></table></div>
+      </div><!-- fim sellin-pane-mensal -->
+
       </div><!-- fim aval-sub-sellin -->
 
       <!-- Sub-pane 2: Ciclo de Vendas (oculto por padrão via CSS .aval-sub) -->
@@ -8245,6 +8331,307 @@ function renderSellin() {
       '<td class="right" style="color:' + (projDeltaTot>=0?'#16a34a':'#dc2626') + ';">' + (projDeltaTot>=0?'+':'') + projDeltaTot.toFixed(1) + '%</td>';
     tbody2.appendChild(trTot);
   }
+
+  // FASE 9.68: também re-renderiza a sub-aba Mensal (se for o pane ativo)
+  if (typeof renderSellinMensal === 'function') {
+    try { renderSellinMensal(); } catch(e) { console.error('renderSellinMensal:', e); }
+  }
+}
+
+// FASE 9.68: troca entre as sub-abas internas do Sell-in JBP (Dashboard / Mensal)
+function trocarSellinPane(qual) {
+  document.querySelectorAll('.sellin-subpane').forEach(p => p.classList.remove('sellin-subpane-active'));
+  const sub = document.getElementById('sellin-pane-' + qual);
+  if (sub) sub.classList.add('sellin-subpane-active');
+  document.querySelectorAll('.sellin-subtab').forEach(t => t.classList.remove('active'));
+  const alvo = "trocarSellinPane('" + qual + "')";
+  document.querySelectorAll('.sellin-subtab').forEach(b => {
+    if ((b.getAttribute('onclick')||'').indexOf(alvo) !== -1) b.classList.add('active');
+  });
+  // Re-render sempre — força recalcular charts dentro do pane recém-exibido
+  if (typeof renderSellin === 'function') renderSellin();
+}
+
+// FASE 9.68: renderiza sub-aba Mensal 25×26 (Dashboard Mensal padrão JBP)
+// Estrutura de dados esperada:
+//   dadosCache.sellin_hist[ind][cat][ano] = [m1..m12]
+//   dadosCache.sellin_cli_ind_cat[cli][ind][cat][ano] = [m1..m12]
+//   Fallback (sem sellin_hist): usa historico.mensal_25 e .ind_mes_25/26 (sem categoria)
+function renderSellinMensal() {
+  if (!dadosCache) return;
+  const pane = document.getElementById('sellin-pane-mensal');
+  if (!pane || !pane.classList.contains('sellin-subpane-active')) {
+    // Não está visível; segue computando mas pula chart resize (Chart.js perde size em hidden parent)
+  }
+  const sellin_hist = dadosCache.sellin_hist || null;
+  const sellin_cli  = dadosCache.sellin_cli_ind_cat || null;
+  const histLegacy  = dadosCache.historico || {};
+  const itens26     = dadosCache.itens || [];
+  const mapaApi     = dadosCache.mapa_produtos_api || {};
+
+  const fGrp = (document.getElementById('f-grupo')||{}).value || '';
+  const fCli = (document.getElementById('f-cliente')||{}).value || '';
+  const fInd = (document.getElementById('f-industria')||{}).value || '';
+  const grupoDoCli = (typeof grupoDoCliente === 'function') ? grupoDoCliente : ()=>'';
+  const MES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  // dadosCat: {categoria: {2025:[12], 2026:[12]}}
+  const dadosCat = {};
+  const zera = () => Array(12).fill(0);
+
+  function tomarInd(indMap) {
+    if (!indMap) return;
+    Object.entries(indMap).forEach(([cat, anos]) => {
+      if (!dadosCat[cat]) dadosCat[cat] = {2025: zera(), 2026: zera()};
+      ['2025','2026'].forEach(ano => {
+        const arr = anos[ano] || [];
+        for (let i = 0; i < 12; i++) dadosCat[cat][ano][i] += (arr[i]||0);
+      });
+    });
+  }
+
+  if (sellin_hist && Object.keys(sellin_hist).length > 0) {
+    // Path normal: usar sellin_hist completo
+    if (fCli) {
+      const clMap = (sellin_cli && sellin_cli[fCli]) || {};
+      if (fInd) tomarInd(clMap[fInd]); else Object.values(clMap).forEach(tomarInd);
+    } else if (fGrp) {
+      Object.entries(sellin_cli || {}).forEach(([cli, clMap]) => {
+        if (grupoDoCli(cli) !== fGrp) return;
+        if (fInd) tomarInd(clMap[fInd]); else Object.values(clMap).forEach(tomarInd);
+      });
+    } else if (fInd) {
+      tomarInd(sellin_hist[fInd]);
+    } else {
+      Object.values(sellin_hist).forEach(tomarInd);
+    }
+  } else {
+    // FALLBACK: só 2026 com categoria (itens) + 2025 mensal sem categoria (historico.mensal_25)
+    itens26.forEach(it => {
+      if (fInd && it.industria !== fInd) return;
+      if (fCli && it.cliente !== fCli) return;
+      if (fGrp && grupoDoCli(it.cliente) !== fGrp) return;
+      const cat = it.categoria || (mapaApi[it.produto_codigo] && mapaApi[it.produto_codigo].categoria) || '(sem categoria)';
+      const m = (it.mes && it.mes > 0 && it.mes <= 12) ? it.mes-1 : null;
+      if (m === null) return;
+      const valor = (it.qtde_faturada || 0) * (it.preco_unit || 0) + (it.valor_saldo || 0);
+      if (!dadosCat[cat]) dadosCat[cat] = {2025: zera(), 2026: zera()};
+      dadosCat[cat][2026][m] += valor;
+    });
+    // 2025 totais por mês via historico.mensal_25 (sem quebra de categoria) — alocado em "TOTAL 2025 (sem quebra)"
+    const m25 = histLegacy.mensal_25 || [];
+    if (m25.some(v=>v>0)) {
+      const k = '__TOTAL_2025_LEGADO__';
+      dadosCat[k] = {2025: m25.slice(0,12), 2026: zera()};
+    }
+  }
+
+  // Totais por mês (25 e 26)
+  const tot25Mes = zera();
+  const tot26Mes = zera();
+  Object.values(dadosCat).forEach(a => {
+    for (let i = 0; i < 12; i++) { tot25Mes[i] += a[2025][i]; tot26Mes[i] += a[2026][i]; }
+  });
+  const tot25 = tot25Mes.reduce((a,b)=>a+b,0);
+  const tot26 = tot26Mes.reduce((a,b)=>a+b,0);
+
+  // Mês de referência = último mês com 2026 > 0
+  let mesRef = 0;
+  for (let i = 11; i >= 0; i--) { if (tot26Mes[i] > 0) { mesRef = i+1; break; } }
+  if (!mesRef) mesRef = (typeof getMesAtual === 'function') ? getMesAtual() : new Date().getMonth()+1;
+
+  const ytd25 = tot25Mes.slice(0, mesRef).reduce((a,b)=>a+b,0);
+  const ytd26 = tot26Mes.slice(0, mesRef).reduce((a,b)=>a+b,0);
+  const cresc = ytd25 > 0 ? ((ytd26/ytd25 - 1) * 100) : (ytd26>0?100:0);
+
+  // === KPIs ===
+  const elKpis = document.getElementById('mensal-kpis');
+  if (elKpis) {
+    elKpis.innerHTML =
+      '<div class="k"><div class="l">Total 2025</div><div class="v">R$ '+fmt(tot25)+'</div><div class="d">12 meses</div></div>' +
+      '<div class="k"><div class="l">Total 2026 YTD</div><div class="v ok">R$ '+fmt(tot26)+'</div><div class="d">acumulado real</div></div>' +
+      '<div class="k"><div class="l">2025 Jan-'+MES[mesRef-1]+'</div><div class="v acc">R$ '+fmt(ytd25)+'</div><div class="d">mesmo período</div></div>' +
+      '<div class="k"><div class="l">2026 Jan-'+MES[mesRef-1]+'</div><div class="v ok">R$ '+fmt(ytd26)+'</div><div class="d">acumulado</div></div>' +
+      '<div class="k"><div class="l">Δ Jan-'+MES[mesRef-1]+' 26 vs 25</div><div class="v '+(cresc>=0?'ok':'acc')+'">'+(cresc>=0?'+':'')+cresc.toFixed(1)+'%</div><div class="d">crescimento real</div></div>';
+  }
+
+  // === Tabela 1: Total Mensal 25×26 (% crescimento) ===
+  const tb1 = document.querySelector('#t-mensal-total tbody');
+  if (tb1) {
+    tb1.innerHTML = '';
+    const linhas = [
+      {nome:'Sell-in 2025', vals: tot25Mes, total: tot25, tipo:'R$'},
+      {nome:'Sell-in 2026', vals: tot26Mes, total: tot26, tipo:'R$'},
+      {nome:'Δ R$',         vals: tot26Mes.map((v,i)=>v - tot25Mes[i]), total: tot26 - tot25, tipo:'R$delta'},
+      {nome:'Δ % crescimento', vals: tot26Mes.map((v,i)=> tot25Mes[i]>0 ? ((v/tot25Mes[i]-1)*100) : (v>0?100:0)), total: cresc, tipo:'%'},
+    ];
+    linhas.forEach(l => {
+      const tr = document.createElement('tr');
+      let html = '<td class="sticky-col"><b>'+esc(l.nome)+'</b></td>';
+      l.vals.forEach(v => {
+        if (l.tipo === '%') {
+          const cls = v > 5 ? 'cel-pos' : v < -5 ? 'cel-neg' : 'cel-zero';
+          html += '<td class="right '+cls+'">'+(v>=0?'+':'')+v.toFixed(1)+'%</td>';
+        } else if (l.tipo === 'R$delta') {
+          const cls = v > 0 ? 'cel-pos' : v < 0 ? 'cel-neg' : 'cel-zero';
+          html += '<td class="right '+cls+'">R$ '+fmt(v)+'</td>';
+        } else {
+          html += '<td class="right">'+(v>0?'R$ '+fmt(v):'<span class="cel-zero">—</span>')+'</td>';
+        }
+      });
+      if (l.tipo === '%') {
+        const cls = l.total > 5 ? 'cel-pos' : l.total < -5 ? 'cel-neg' : 'cel-zero';
+        html += '<td class="right '+cls+'" style="background:#0556AD22;">'+(l.total>=0?'+':'')+l.total.toFixed(1)+'%</td>';
+      } else if (l.tipo === 'R$delta') {
+        const cls = l.total > 0 ? 'cel-pos' : l.total < 0 ? 'cel-neg' : 'cel-zero';
+        html += '<td class="right '+cls+'" style="background:#0556AD22;">R$ '+fmt(l.total)+'</td>';
+      } else {
+        html += '<td class="right" style="background:#0556AD22;font-weight:700;">R$ '+fmt(l.total)+'</td>';
+      }
+      tr.innerHTML = html;
+      tb1.appendChild(tr);
+    });
+  }
+
+  // === Lista categorias ordenadas por total 2026 desc ===
+  const catsLista = Object.entries(dadosCat)
+    .map(([nome, anos]) => ({nome, anos, t25: anos[2025].reduce((a,b)=>a+b,0), t26: anos[2026].reduce((a,b)=>a+b,0)}))
+    .filter(c => c.nome !== '__TOTAL_2025_LEGADO__' && (c.t25 > 0 || c.t26 > 0))
+    .sort((a,b) => b.t26 - a.t26 || b.t25 - a.t25);
+
+  // === Tabela 2: % Crescimento por Categoria mês a mês ===
+  const tb2 = document.querySelector('#t-mensal-cresc tbody');
+  if (tb2) {
+    tb2.innerHTML = '';
+    catsLista.forEach(c => {
+      const tr = document.createElement('tr');
+      let html = '<td class="sticky-col"><b>'+esc(c.nome)+'</b></td>';
+      let acumDelta25 = 0, acumDelta26 = 0;
+      for (let m = 0; m < 12; m++) {
+        const v25 = c.anos[2025][m], v26 = c.anos[2026][m];
+        acumDelta25 += v25; acumDelta26 += v26;
+        let cell, cls = 'cel-zero', txt = '—';
+        if (v25 > 0 || v26 > 0) {
+          const pct = v25 > 0 ? ((v26/v25 - 1) * 100) : (v26 > 0 ? 100 : 0);
+          cls = pct > 5 ? 'cel-pos' : pct < -5 ? 'cel-neg' : 'cel-zero';
+          txt = (pct>=0?'+':'') + pct.toFixed(0) + '%';
+        }
+        html += '<td class="right '+cls+'">'+txt+'</td>';
+      }
+      const acumPct = acumDelta25 > 0 ? ((acumDelta26/acumDelta25 - 1) * 100) : (acumDelta26 > 0 ? 100 : 0);
+      const acumCls = acumPct > 5 ? 'cel-pos' : acumPct < -5 ? 'cel-neg' : 'cel-zero';
+      html += '<td class="right '+acumCls+'" style="background:#0556AD22;">'+(acumPct>=0?'+':'')+acumPct.toFixed(1)+'%</td>';
+      tr.innerHTML = html;
+      tb2.appendChild(tr);
+    });
+    // Linha TOTAL
+    if (catsLista.length > 0) {
+      const trT = document.createElement('tr');
+      trT.className = 'linha-total';
+      let html = '<td class="sticky-col">TOTAL</td>';
+      for (let m = 0; m < 12; m++) {
+        const v25 = tot25Mes[m], v26 = tot26Mes[m];
+        let cls = 'cel-zero', txt = '—';
+        if (v25 > 0 || v26 > 0) {
+          const pct = v25 > 0 ? ((v26/v25 - 1) * 100) : (v26 > 0 ? 100 : 0);
+          cls = pct > 5 ? 'cel-pos' : pct < -5 ? 'cel-neg' : 'cel-zero';
+          txt = (pct>=0?'+':'') + pct.toFixed(0) + '%';
+        }
+        html += '<td class="right '+cls+'">'+txt+'</td>';
+      }
+      html += '<td class="right '+(cresc>=0?'cel-pos':'cel-neg')+'" style="background:#0556AD;color:#fff;">'+(cresc>=0?'+':'')+cresc.toFixed(1)+'%</td>';
+      trT.innerHTML = html;
+      tb2.appendChild(trT);
+    }
+  }
+
+  // === Tabela 3: Comparativo Mensal Pares 25/26 ===
+  const tb3 = document.querySelector('#t-mensal-pares tbody');
+  if (tb3) {
+    tb3.innerHTML = '';
+    catsLista.forEach(c => {
+      const tr = document.createElement('tr');
+      let html = '<td class="sticky-col"><b>'+esc(c.nome)+'</b></td>';
+      for (let m = 0; m < 12; m++) {
+        const v25 = c.anos[2025][m], v26 = c.anos[2026][m];
+        html += '<td class="right">'+(v25>0?fmt(v25):'<span class="cel-zero">—</span>')+'</td>';
+        const cls = (v26 > v25 && v25 > 0) ? 'cel-pos' : (v26 < v25 && v25 > 0) ? 'cel-neg' : '';
+        html += '<td class="right '+cls+'">'+(v26>0?fmt(v26):'<span class="cel-zero">—</span>')+'</td>';
+      }
+      tr.innerHTML = html;
+      tb3.appendChild(tr);
+    });
+    // Linha TOTAL
+    if (catsLista.length > 0) {
+      const trT = document.createElement('tr');
+      trT.className = 'linha-total';
+      let html = '<td class="sticky-col">TOTAL</td>';
+      for (let m = 0; m < 12; m++) {
+        html += '<td class="right">'+(tot25Mes[m]>0?fmt(tot25Mes[m]):'—')+'</td>';
+        const cls = (tot26Mes[m] > tot25Mes[m] && tot25Mes[m] > 0) ? 'cel-pos' : (tot26Mes[m] < tot25Mes[m] && tot25Mes[m] > 0) ? 'cel-neg' : '';
+        html += '<td class="right '+cls+'">'+(tot26Mes[m]>0?fmt(tot26Mes[m]):'—')+'</td>';
+      }
+      trT.innerHTML = html;
+      tb3.appendChild(trT);
+    }
+  }
+
+  // === Gráfico 1: linhas 25 vs 26 total ===
+  if (charts['ch-mensal-total']) charts['ch-mensal-total'].destroy();
+  const ctxTot = document.getElementById('ch-mensal-total')?.getContext('2d');
+  if (ctxTot) {
+    charts['ch-mensal-total'] = new Chart(ctxTot, {
+      type: 'line',
+      data: { labels: MES,
+        datasets: [
+          { label: '2025', data: tot25Mes, borderColor: '#3B82F6', backgroundColor: '#3B82F622', borderWidth: 2.5, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#1D4ED8' },
+          { label: '2026', data: tot26Mes, borderColor: '#EF4444', backgroundColor: '#EF444422', borderWidth: 2.5, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#B91C1C' }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' },
+          tooltip: { callbacks: { label: c => c.dataset.label + ': R$ ' + fmt(c.parsed.y) } } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$' + (v/1000).toFixed(0)+'k' } } }
+      }
+    });
+  }
+
+  // === Gráfico 2: linhas por categoria (top 8) ===
+  if (charts['ch-mensal-categorias']) charts['ch-mensal-categorias'].destroy();
+  const ctxCat = document.getElementById('ch-mensal-categorias')?.getContext('2d');
+  if (ctxCat && catsLista.length > 0) {
+    const top = catsLista.slice(0, 8);
+    const cores = ['#0556AD','#EF4444','#16A34A','#F59E0B','#7C3AED','#0891B2','#DB2777','#65A30D'];
+    const datasets = top.map((c, i) => ({
+      label: c.nome.length > 14 ? c.nome.slice(0,12)+'..' : c.nome,
+      data: c.anos[2026],
+      borderColor: cores[i], backgroundColor: cores[i]+'22',
+      borderWidth: 2, tension: 0.3, pointRadius: 3
+    }));
+    charts['ch-mensal-categorias'] = new Chart(ctxCat, {
+      type: 'line',
+      data: { labels: MES, datasets },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } },
+          tooltip: { callbacks: { label: c => c.dataset.label + ': R$ ' + fmt(c.parsed.y) } } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$' + (v/1000).toFixed(0)+'k' } } }
+      }
+    });
+  }
+}
+
+// FASE 9.68: exporta a Mensal pra Excel
+function exportarSellinMensal() {
+  if (!dadosCache || typeof XLSX === 'undefined') return;
+  const wb = XLSX.utils.book_new();
+  function rowsFromTable(id) {
+    return Array.from(document.querySelectorAll('#'+id+' tr')).map(tr =>
+      Array.from(tr.querySelectorAll('th,td')).map(td => td.textContent.trim()));
+  }
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsFromTable('t-mensal-total')), 'Total Mensal');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsFromTable('t-mensal-cresc')), '% Cresc Categoria');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsFromTable('t-mensal-pares')), 'Pares 25x26');
+  XLSX.writeFile(wb, 'sellin_mensal_25x26_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
 function exportarSellin() {
