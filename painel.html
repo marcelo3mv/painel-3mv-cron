@@ -173,6 +173,58 @@ tr:hover td { background:var(--azul-card); }
 .actions-bar { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; align-items:center; font-size:11px; color:var(--mut); }
 .actions-bar a { color:var(--azul); text-decoration:none; font-weight:600; cursor:pointer; }
 
+/* FASE 9.65 — Linha de cliente clicável + Modal detalhe (mobile-first) */
+#t-cli tbody tr { cursor:pointer; transition:background 0.12s; }
+#t-cli tbody tr:active td { background:var(--azul-bg); }
+#t-cli tbody tr.row-tap td { background:var(--azul-card); }
+#t-cli tbody tr td:nth-child(2) { color:var(--azul-d); font-weight:600; text-decoration:underline; text-decoration-color:rgba(5,86,173,0.25); text-underline-offset:2px; }
+.modal-cli-bg { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.72); z-index:10000; align-items:flex-start; justify-content:center; padding:24px 16px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.modal-cli-bg.aberto { display:flex; }
+.modal-cli-box { background:#fff; width:100%; max-width:720px; border-radius:14px; box-shadow:0 12px 40px rgba(0,0,0,0.28); overflow:hidden; display:flex; flex-direction:column; max-height:none; }
+.modal-cli-header { background:linear-gradient(135deg,var(--azul) 0%,var(--azul-d) 100%); color:#fff; padding:18px 20px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px; position:sticky; top:0; z-index:2; }
+.modal-cli-header h3 { margin:0; font-size:15px; font-weight:700; letter-spacing:0.3px; line-height:1.3; }
+.modal-cli-header .modal-cli-sub { font-size:11px; opacity:0.85; margin-top:3px; font-weight:500; }
+.modal-cli-close { background:rgba(255,255,255,0.15); color:#fff; border:0; width:36px; height:36px; border-radius:8px; font-size:20px; cursor:pointer; flex-shrink:0; font-weight:700; line-height:1; }
+.modal-cli-close:hover, .modal-cli-close:active { background:rgba(255,255,255,0.28); }
+.modal-cli-body { padding:18px 20px 22px; }
+.modal-cli-body h4 { font-size:10px; text-transform:uppercase; letter-spacing:1.4px; color:var(--mut); margin:16px 0 8px; font-weight:700; border-bottom:1px solid var(--linha); padding-bottom:6px; }
+.modal-cli-body h4:first-child { margin-top:0; }
+.modal-cli-kpis { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+.modal-cli-kpis .mcli-k { background:var(--azul-card); border-radius:8px; padding:10px 12px; }
+.modal-cli-kpis .mcli-k .l { font-size:9px; text-transform:uppercase; letter-spacing:1.1px; color:var(--mut); font-weight:600; }
+.modal-cli-kpis .mcli-k .v { font-size:16px; font-weight:800; color:var(--azul-d); margin-top:3px; }
+.modal-cli-kpis .mcli-k .v.acc { color:var(--acc); }
+.modal-cli-kpis .mcli-k .v.ok { color:var(--ok); }
+.modal-cli-kpis .mcli-k .v.bad { color:var(--bad); }
+.modal-cli-pedidos { font-size:11px; }
+.modal-cli-pedidos table { width:100%; border-collapse:collapse; }
+.modal-cli-pedidos th, .modal-cli-pedidos td { padding:6px 7px; border-bottom:1px solid var(--linha); text-align:left; white-space:nowrap; }
+.modal-cli-pedidos th { background:var(--azul); color:#fff; font-size:9px; text-transform:uppercase; letter-spacing:0.7px; }
+.modal-cli-pedidos td.right { text-align:right; }
+.modal-cli-pedidos .tag { font-size:9px; padding:2px 6px; border-radius:6px; font-weight:600; display:inline-block; }
+.modal-cli-pedidos .tag.total { background:#DCFCE7; color:#166534; }
+.modal-cli-pedidos .tag.parcial { background:#FEF3C7; color:#78350F; }
+.modal-cli-pedidos .tag.zero { background:#FEE2E2; color:#991B1B; }
+.modal-cli-crm { background:#F0F9FF; border:1px solid #BAE6FD; border-radius:8px; padding:12px; font-size:12px; }
+.modal-cli-crm .linha { display:flex; gap:8px; align-items:center; padding:4px 0; }
+.modal-cli-crm .linha .lbl { font-weight:700; color:var(--azul-d); min-width:70px; font-size:11px; }
+.modal-cli-crm a { color:var(--azul); text-decoration:none; font-weight:600; word-break:break-all; }
+.modal-cli-actions { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+.modal-cli-actions button, .modal-cli-actions a { background:var(--azul); color:#fff; border:0; padding:10px 14px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+.modal-cli-actions .btn-secundario { background:#fff; color:var(--azul-d); border:1px solid var(--linha); }
+.modal-cli-empty { color:var(--mut); font-style:italic; font-size:12px; padding:8px 0; }
+.modal-cli-tabwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; }
+@media (max-width:760px) {
+  .modal-cli-bg { padding:0; align-items:stretch; }
+  .modal-cli-box { max-width:none; border-radius:0; min-height:100vh; }
+  .modal-cli-header { padding:14px 14px; }
+  .modal-cli-header h3 { font-size:14px; }
+  .modal-cli-body { padding:14px 14px 24px; }
+  .modal-cli-kpis { grid-template-columns:1fr 1fr; }
+  .modal-cli-kpis .mcli-k .v { font-size:14px; }
+  .modal-cli-pedidos th, .modal-cli-pedidos td { padding:5px 6px; font-size:10px; }
+}
+
 /* === 3MV LAYOUT FIX v2 — evita conteúdo estourar a barra lateral === */
 /* FASE 9.22: overflow-x:clip em vez de hidden — clip NÃO cria containing block, position:sticky funciona */
 .main { min-width: 0; max-width: 100%; overflow-x: clip; }
@@ -527,6 +579,22 @@ body.modo-crm #pane-crm { display: block !important; }
     </nav>
     <div class="footer"><a href="javascript:voltarSelector()" style="color:#fff;text-decoration:none;font-weight:600;">← Voltar à seleção</a></div>
   </aside>
+
+  <!-- FASE 9.65: Modal de detalhe do cliente (clique na linha da tabela t-cli) -->
+  <div id="modal-cliente-detalhe" class="modal-cli-bg" onclick="if(event.target===this) fecharDetalheCliente()">
+    <div class="modal-cli-box">
+      <div class="modal-cli-header">
+        <div style="flex:1;min-width:0;">
+          <h3 id="mcli-nome">Cliente</h3>
+          <div class="modal-cli-sub" id="mcli-sub">—</div>
+        </div>
+        <button class="modal-cli-close" onclick="fecharDetalheCliente()" aria-label="Fechar">×</button>
+      </div>
+      <div class="modal-cli-body" id="mcli-body">
+        <!-- preenchido por abrirDetalheCliente() -->
+      </div>
+    </div>
+  </div>
 
   <!-- FASE 9.25: Modal de seleção de destinatários para email de saldos -->
   <div id="modal-email-saldos" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;">
@@ -1605,35 +1673,6 @@ body.modo-crm #pane-crm { display: block !important; }
         <th>NFD (email)</th>
         <th>Trocas (email)</th>
         <th class="right">Lead time</th>
-      </tr></thead><tbody></tbody></table></div>
-
-      <!-- FASE 9.66: Base de Clientes — Centrais e Compradores -->
-      <h2 style="margin-top:24px">🛒 Base de Clientes — Centrais &amp; Compradores <span class="small">(atualiza automaticamente da planilha CRM)</span></h2>
-      <div class="filtros" style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
-        <input type="search" id="f-crm-cli-busca" placeholder="🔎 buscar cliente, central ou comprador..." oninput="renderCRMClientes()" style="flex:1;min-width:220px;padding:6px 10px;border:1px solid var(--linha);border-radius:6px;font-size:12px">
-        <select id="f-crm-cli-canal" onchange="renderCRMClientes()" style="padding:6px 10px;border:1px solid var(--linha);border-radius:6px;font-size:12px">
-          <option value="">Todos os canais</option>
-        </select>
-        <select id="f-crm-cli-uf" onchange="renderCRMClientes()" style="padding:6px 10px;border:1px solid var(--linha);border-radius:6px;font-size:12px">
-          <option value="">Todas UFs</option>
-        </select>
-        <select id="f-crm-cli-comprador" onchange="renderCRMClientes()" style="padding:6px 10px;border:1px solid var(--linha);border-radius:6px;font-size:12px">
-          <option value="">Com/sem comprador</option>
-          <option value="com">Só com comprador cadastrado</option>
-          <option value="sem">Só sem comprador (preencher)</option>
-        </select>
-        <span class="info" id="crm-cli-info" style="margin-left:auto;color:#666">—</span>
-      </div>
-      <div class="tabwrap"><table id="t-crm-clientes"><thead><tr>
-        <th>Cliente</th>
-        <th>Grupo/Rede</th>
-        <th>Canal</th>
-        <th>Cidade/UF</th>
-        <th>Central</th>
-        <th>Comprador</th>
-        <th>E-mail comprador</th>
-        <th>Contato comprador</th>
-        <th>Status</th>
       </tr></thead><tbody></tbody></table></div>
     </div>
 
@@ -4258,8 +4297,9 @@ function renderClientes(itens) {
       ? '<span class="tag" style="background:#DCFCE7;color:#166534;">✓ SIM</span>'
       : '<span class="tag muted">—</span>';
     const mes = c.ultimo_mes ? MESES[c.ultimo_mes-1] : '—';
+    const cliEsc = esc(c.chave).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
     return '<td>' + (i+1) + '</td>' +
-      '<td>' + esc(c.chave) + '</td>' +
+      '<td data-cliente="' + cliEsc + '">' + esc(c.chave) + ' <span style="font-size:9px;color:var(--mut);">▸</span></td>' +
       '<td>' + esc(c.industria || '') + '</td>' +
       '<td>' + mes + '</td>' +
       '<td class="right">' + fmtInt(c.pedidos) + '</td>' +
@@ -4269,6 +4309,18 @@ function renderClientes(itens) {
       '<td class="right warn">' + c.pct_saldo.toFixed(1) + '%</td>' +
       '<td>' + tagSaldo + '</td>';
   });
+  // FASE 9.65: Tornar linhas de t-cli clicáveis (abre modal de detalhe)
+  (function attachCliRowClicks() {
+    const tbody = document.querySelector('#t-cli tbody');
+    if (!tbody) return;
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach((tr, idx) => {
+      if (cli[idx] && cli[idx].chave) {
+        tr.style.cursor = 'pointer';
+        tr.addEventListener('click', () => abrirDetalheCliente(cli[idx].chave));
+      }
+    });
+  })();
 
   // Pedidos detalhados — agrupar por (cliente, pedido)
   const por_pedido = groupBy(itens, i => i.pedido_id);
@@ -5430,6 +5482,200 @@ function limparTodosFiltros() {
 // FASE 3b — METAS (renderMetasDashboard)
 // Lê dadosCache.metas (injetado pelo gerar_painel.py a partir de metas.json)
 // =====================================================================
+// =====================================================================
+// FASE 9.65: Modal de detalhe do cliente (clique na linha em t-cli)
+// =====================================================================
+function abrirDetalheCliente(clienteNome) {
+  if (!clienteNome || !dadosCache) return;
+  const modal = document.getElementById('modal-cliente-detalhe');
+  if (!modal) return;
+
+  // 1) Dados de pedidos 2026 do cliente
+  const peds26 = (dadosCache.pedidos_2026 || []).filter(p => p.cliente === clienteNome);
+  const itensSaldo = (dadosCache.itens || []).filter(i => i.cliente === clienteNome);
+
+  // 2) Resumo financeiro
+  const totPedido = peds26.reduce((a,p) => a + (p.valor_total || 0), 0);
+  const totFaturado = peds26
+    .filter(p => p.fatura_status === 'Total' || p.fatura_status === 'Parcial')
+    .reduce((a,p) => a + (p.valor_faturado || p.valor_total || 0), 0);
+  const totSaldo = itensSaldo.reduce((a,i) => a + (i.valor_saldo || 0), 0);
+  const pctSaldo = totPedido > 0 ? (totSaldo / totPedido * 100) : 0;
+  const qtdPedidos = peds26.length;
+  const qtdItensTotal = itensSaldo.length;
+
+  // 3) Indústria principal
+  const indCnt = {};
+  peds26.forEach(p => {
+    const k = p.industria || '—';
+    indCnt[k] = (indCnt[k] || 0) + (p.valor_total || 0);
+  });
+  const indPrinc = Object.entries(indCnt).sort((a,b) => b[1]-a[1]);
+  const indMain = indPrinc[0] ? indPrinc[0][0] : '—';
+
+  // 4) Última compra (data mais recente)
+  const datasPeds = peds26.map(p => p.data || p.data_pedido || '').filter(d => d && d.length >= 10);
+  datasPeds.sort();
+  const ultimaCompra = datasPeds.length ? datasPeds[datasPeds.length-1] : null;
+
+  // 5) Lista de pedidos (mais recente primeiro)
+  const pedidosOrdenados = peds26.slice().sort((a,b) => {
+    const da = a.data || a.data_pedido || '';
+    const db = b.data || b.data_pedido || '';
+    return db.localeCompare(da);
+  }).slice(0, 25); // top 25
+
+  // 6) CRM do cliente
+  const crmCli = (dadosCache.crm && dadosCache.crm.clientes) || {};
+  const norm = (s) => String(s||'').toUpperCase().trim().replace(/\s+/g,' ');
+  let crmReg = crmCli[clienteNome];
+  if (!crmReg) {
+    const k = Object.keys(crmCli).find(k => norm(k) === norm(clienteNome));
+    if (k) crmReg = crmCli[k];
+  }
+
+  // 7) Itens detalhados por produto (qtd + último preço + última compra do produto)
+  // Cruza com dadosCache.itens (saldos detalhados): tem produto, qtd, valor_unit, data
+  const prodMap = {};
+  itensSaldo.forEach(i => {
+    const prod = i.produto || i.descricao || '—';
+    if (!prodMap[prod]) prodMap[prod] = { produto: prod, qtd: 0, valor: 0, ultPreco: null, ultData: null, industria: i.industria || '—' };
+    prodMap[prod].qtd += (i.qtd_saldo || i.quantidade || 0);
+    prodMap[prod].valor += (i.valor_saldo || 0);
+    const preco = i.valor_unit || i.preco_unit || (i.valor_saldo && i.qtd_saldo ? i.valor_saldo / i.qtd_saldo : null);
+    const dt = i.data_fatura || i.data_cadastro || i.data || '';
+    if (preco && (!prodMap[prod].ultData || dt > prodMap[prod].ultData)) {
+      prodMap[prod].ultPreco = preco;
+      prodMap[prod].ultData = dt;
+    }
+  });
+  const produtos = Object.values(prodMap).sort((a,b) => b.valor - a.valor).slice(0, 30);
+
+  // 8) Render header
+  document.getElementById('mcli-nome').textContent = clienteNome;
+  const grupo = (typeof grupoDoCliente === 'function' ? grupoDoCliente(clienteNome) : null) || clienteNome;
+  document.getElementById('mcli-sub').innerHTML =
+    '🏢 ' + esc(indMain) + ' · ' + qtdPedidos + ' pedido' + (qtdPedidos!==1?'s':'') +
+    (grupo && grupo !== clienteNome ? ' · Grupo: ' + esc(grupo) : '');
+
+  // 9) Render body
+  const fmtBR = (v) => (v == null) ? '—' : 'R$ ' + (typeof fmt === 'function' ? fmt(v) : Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}));
+  const fmtData = (d) => {
+    if (!d || d.length < 10) return '—';
+    try { return d.slice(8,10) + '/' + d.slice(5,7) + '/' + d.slice(0,4); } catch(e) { return d; }
+  };
+
+  let html = '';
+
+  // KPIs
+  html += '<h4>📊 Resumo Financeiro 2026</h4>';
+  html += '<div class="modal-cli-kpis">';
+  html += '<div class="mcli-k"><div class="l">Vlr. Pedido</div><div class="v">' + fmtBR(totPedido) + '</div></div>';
+  html += '<div class="mcli-k"><div class="l">Faturado</div><div class="v ok">' + fmtBR(totFaturado) + '</div></div>';
+  html += '<div class="mcli-k"><div class="l">Saldo Pendente</div><div class="v acc">' + fmtBR(totSaldo) + '</div></div>';
+  html += '<div class="mcli-k"><div class="l">% Saldo</div><div class="v ' + (pctSaldo > 30 ? 'bad' : pctSaldo > 10 ? 'acc' : 'ok') + '">' + pctSaldo.toFixed(1) + '%</div></div>';
+  html += '<div class="mcli-k"><div class="l">Última Compra</div><div class="v">' + fmtData(ultimaCompra) + '</div></div>';
+  html += '<div class="mcli-k"><div class="l">Itens em Saldo</div><div class="v">' + qtdItensTotal + '</div></div>';
+  html += '</div>';
+
+  // Produtos comprados (qtd + último preço + última compra)
+  if (produtos.length) {
+    html += '<h4>📦 Itens Comprados — Qtd, Último Preço, Última Compra</h4>';
+    html += '<div class="modal-cli-tabwrap"><table class="modal-cli-pedidos">';
+    html += '<thead><tr><th>Produto</th><th>Indústria</th><th class="right">Qtd</th><th class="right">Últ. Preço</th><th>Últ. Compra</th><th class="right">Saldo R$</th></tr></thead><tbody>';
+    produtos.forEach(p => {
+      html += '<tr>' +
+        '<td>' + esc(p.produto) + '</td>' +
+        '<td>' + esc(p.industria) + '</td>' +
+        '<td class="right">' + (typeof fmtInt === 'function' ? fmtInt(p.qtd) : p.qtd) + '</td>' +
+        '<td class="right">' + (p.ultPreco ? fmtBR(p.ultPreco) : '—') + '</td>' +
+        '<td>' + fmtData(p.ultData) + '</td>' +
+        '<td class="right">' + fmtBR(p.valor) + '</td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+  } else {
+    html += '<h4>📦 Itens Comprados</h4><div class="modal-cli-empty">Sem itens em saldo no momento.</div>';
+  }
+
+  // Pedidos
+  if (pedidosOrdenados.length) {
+    html += '<h4>📋 Pedidos 2026 (mais recentes)</h4>';
+    html += '<div class="modal-cli-tabwrap"><table class="modal-cli-pedidos">';
+    html += '<thead><tr><th>Pedido</th><th>Data</th><th>Indústria</th><th class="right">Valor</th><th>Faturamento</th></tr></thead><tbody>';
+    pedidosOrdenados.forEach(p => {
+      const numero = p.numero || p.pedido || p.id || '—';
+      const tagCls = p.fatura_status === 'Total' ? 'total' : p.fatura_status === 'Parcial' ? 'parcial' : 'zero';
+      const tagTxt = p.fatura_status || 'Não fat.';
+      html += '<tr>' +
+        '<td>' + esc(numero) + '</td>' +
+        '<td>' + fmtData(p.data || p.data_pedido) + '</td>' +
+        '<td>' + esc(p.industria || '—') + '</td>' +
+        '<td class="right">' + fmtBR(p.valor_total) + '</td>' +
+        '<td><span class="tag ' + tagCls + '">' + esc(tagTxt) + '</span></td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  // CRM Contato
+  html += '<h4>📞 Contato CRM</h4>';
+  if (crmReg) {
+    html += '<div class="modal-cli-crm">';
+    if (crmReg.contato || crmReg.nome_contato) html += '<div class="linha"><span class="lbl">Contato:</span><span>' + esc(crmReg.contato || crmReg.nome_contato) + '</span></div>';
+    if (crmReg.telefone || crmReg.celular) {
+      const tel = crmReg.telefone || crmReg.celular;
+      const telDig = String(tel).replace(/\D/g, '');
+      const telWa = telDig.length === 11 ? '55' + telDig : telDig.length === 13 ? telDig : '55' + telDig;
+      html += '<div class="linha"><span class="lbl">Tel/Cel:</span><a href="tel:' + esc(tel) + '">' + esc(tel) + '</a>';
+      if (telDig.length >= 10) html += ' · <a href="https://wa.me/' + telWa + '" target="_blank">📱 WhatsApp</a>';
+      html += '</div>';
+    }
+    if (crmReg.email) html += '<div class="linha"><span class="lbl">Email:</span><a href="mailto:' + esc(crmReg.email) + '">' + esc(crmReg.email) + '</a></div>';
+    if (crmReg.canal) html += '<div class="linha"><span class="lbl">Canal:</span><span>' + esc(crmReg.canal) + '</span></div>';
+    if (crmReg.setor) html += '<div class="linha"><span class="lbl">Setor:</span><span>' + esc(crmReg.setor) + '</span></div>';
+    if (crmReg.observacoes || crmReg.obs) html += '<div class="linha" style="align-items:flex-start;"><span class="lbl">Obs:</span><span style="white-space:normal;">' + esc(crmReg.observacoes || crmReg.obs) + '</span></div>';
+    html += '</div>';
+  } else {
+    html += '<div class="modal-cli-empty">Sem registro CRM pra este cliente.</div>';
+  }
+
+  // Ações
+  html += '<div class="modal-cli-actions">';
+  if (crmReg && crmReg.email) {
+    const subj = encodeURIComponent('[3MV] Saldos pendentes — ' + clienteNome);
+    const body = encodeURIComponent('Olá,\n\nSegue posição de saldo do cliente ' + clienteNome + ':\n\nVlr. Pedido: ' + fmtBR(totPedido) + '\nFaturado: ' + fmtBR(totFaturado) + '\nSaldo: ' + fmtBR(totSaldo) + ' (' + pctSaldo.toFixed(1) + '%)\n\nAtenciosamente,\n3MV Representação');
+    html += '<a href="mailto:' + esc(crmReg.email) + '?subject=' + subj + '&body=' + body + '">📧 Enviar email</a>';
+  }
+  if (crmReg && (crmReg.telefone || crmReg.celular)) {
+    const tel = crmReg.telefone || crmReg.celular;
+    const telDig = String(tel).replace(/\D/g, '');
+    const telWa = telDig.length === 11 ? '55' + telDig : telDig.length === 13 ? telDig : '55' + telDig;
+    const msg = encodeURIComponent('Olá! Segue posição do saldo do cliente ' + clienteNome + ': R$ ' + (typeof fmt === 'function' ? fmt(totSaldo) : totSaldo.toFixed(2)) + ' pendente (' + pctSaldo.toFixed(1) + '% do pedido). Podemos alinhar?');
+    if (telDig.length >= 10) html += '<a href="https://wa.me/' + telWa + '?text=' + msg + '" target="_blank">📱 WhatsApp</a>';
+  }
+  html += '<button class="btn-secundario" onclick="fecharDetalheCliente()">Fechar</button>';
+  html += '</div>';
+
+  document.getElementById('mcli-body').innerHTML = html;
+  modal.classList.add('aberto');
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharDetalheCliente() {
+  const modal = document.getElementById('modal-cliente-detalhe');
+  if (modal) modal.classList.remove('aberto');
+  document.body.style.overflow = '';
+}
+
+// Fecha modal com ESC
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const m = document.getElementById('modal-cliente-detalhe');
+    if (m && m.classList.contains('aberto')) fecharDetalheCliente();
+  }
+});
+
 // =====================================================================
 // FASE 9.25: Modal de email Saldos com seleção CRM (Outlook)
 // =====================================================================
@@ -8129,86 +8375,6 @@ function renderCRM() {
   if (elInfo) elInfo.textContent = `${linhasF.length} clientes`;
 
   window.__crm_linhas__ = linhas;
-
-  // FASE 9.66 — Base de Clientes (centrais e compradores)
-  renderCRMClientes();
-}
-
-// === FASE 9.66: Base de Clientes do CRM — centrais e compradores ===
-function renderCRMClientes() {
-  const crmCli = (dadosCache && dadosCache.crm && dadosCache.crm.clientes) || {};
-  const lista = Object.entries(crmCli).map(([nome, d]) => ({
-    nome,
-    nome_fantasia: d.nome_fantasia || nome,
-    grupo: d.grupo || '',
-    canal: d.canal || '',
-    cidade: d.cidade || '',
-    uf: d.uf || '',
-    status: d.status || '',
-    central: d.central || '',
-    comprador: d.comprador || '',
-    comprador_email: d.comprador_email || '',
-    comprador_contato: d.comprador_contato || '',
-  }));
-
-  // popula selects de filtro (canal, UF) — só na primeira render
-  const elCanal = document.getElementById('f-crm-cli-canal');
-  const elUF = document.getElementById('f-crm-cli-uf');
-  if (elCanal && elCanal.options.length <= 1) {
-    const canais = [...new Set(lista.map(l => l.canal).filter(Boolean))].sort();
-    canais.forEach(c => elCanal.innerHTML += `<option value="${esc(c)}">${esc(c)}</option>`);
-  }
-  if (elUF && elUF.options.length <= 1) {
-    const ufs = [...new Set(lista.map(l => l.uf).filter(Boolean))].sort();
-    ufs.forEach(u => elUF.innerHTML += `<option value="${esc(u)}">${esc(u)}</option>`);
-  }
-
-  const busca = (document.getElementById('f-crm-cli-busca')||{}).value || '';
-  const fCanal = (document.getElementById('f-crm-cli-canal')||{}).value || '';
-  const fUF = (document.getElementById('f-crm-cli-uf')||{}).value || '';
-  const fComp = (document.getElementById('f-crm-cli-comprador')||{}).value || '';
-  const q = busca.trim().toLowerCase();
-
-  const filt = lista.filter(l => {
-    if (fCanal && l.canal !== fCanal) return false;
-    if (fUF && l.uf !== fUF) return false;
-    if (fComp === 'com' && !l.comprador) return false;
-    if (fComp === 'sem' && l.comprador) return false;
-    if (q) {
-      const hay = (l.nome_fantasia + ' ' + l.grupo + ' ' + l.central + ' ' + l.comprador + ' ' + l.comprador_email).toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  }).sort((a,b) => a.nome_fantasia.localeCompare(b.nome_fantasia, 'pt-BR'));
-
-  const tb = document.querySelector('#t-crm-clientes tbody');
-  if (tb) {
-    tb.innerHTML = '';
-    const slice = filt.slice(0, 500);
-    slice.forEach(l => {
-      const mailto = l.comprador_email ? `<a href="mailto:${esc(l.comprador_email)}" style="color:#1E40AF">${esc(l.comprador_email)}</a>` : '<small style="color:#94A3B8">—</small>';
-      const tel = l.comprador_contato ? esc(l.comprador_contato) : '<small style="color:#94A3B8">—</small>';
-      const cid = (l.cidade ? esc(l.cidade) : '') + (l.uf ? '/<b>'+esc(l.uf)+'</b>' : '');
-      const stCor = /ativ/i.test(l.status) ? '#16A34A' : /inat/i.test(l.status) ? '#DC2626' : '#64748B';
-      tb.innerHTML += `<tr>
-        <td><b>${esc(l.nome_fantasia)}</b></td>
-        <td>${esc(l.grupo||'—')}</td>
-        <td>${esc(l.canal||'—')}</td>
-        <td>${cid||'—'}</td>
-        <td>${esc(l.central||'—')}</td>
-        <td><b>${esc(l.comprador||'—')}</b></td>
-        <td>${mailto}</td>
-        <td>${tel}</td>
-        <td><span style="color:${stCor};font-weight:600">${esc(l.status||'—')}</span></td>
-      </tr>`;
-    });
-    if (filt.length > slice.length) {
-      tb.innerHTML += `<tr><td colspan="9" style="text-align:center;color:#64748b;font-style:italic;padding:8px">+ ${filt.length - slice.length} clientes (refine a busca pra ver mais)</td></tr>`;
-    }
-  }
-  const elInfo = document.getElementById('crm-cli-info');
-  const comComprador = filt.filter(l => l.comprador).length;
-  if (elInfo) elInfo.textContent = `${filt.length} clientes · ${comComprador} com comprador cadastrado`;
 }
 
 function exportarCRMTodos() {

@@ -523,9 +523,9 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
   <button class="nav-item" onclick="irPara('nfd',this)"><span class="nav-icon">📄</span><span class="nav-label">NFD</span></button>
   <button class="nav-item" onclick="irPara('cc',this)"><span class="nav-icon">💰</span><span class="nav-label">CC</span></button>
   <button class="nav-item" onclick="irPara('lembretes',this)" style="position:relative;"><span class="nav-icon">📋</span><span class="nav-label">Lembretes</span><span id="nav-lembretes-badge" class="nav-badge" style="display:none;position:absolute;top:6px;right:14px;background:#dc2626;color:#fff;font-size:9px;font-weight:800;padding:2px 5px;border-radius:10px;min-width:14px;text-align:center;"></span></button>
+  <button class="nav-item" onclick="irPara('tarefas',this)" style="position:relative;"><span class="nav-icon">✅</span><span class="nav-label">Tarefas</span><span id="nav-tarefas-badge" class="nav-badge" style="display:none;position:absolute;top:6px;right:14px;background:#dc2626;color:#fff;font-size:9px;font-weight:800;padding:2px 5px;border-radius:10px;min-width:14px;text-align:center;"></span></button>
   <button class="nav-item" onclick="irPara('abnocompraind',this)"><span class="nav-icon">⚠️</span><span class="nav-label">A/B ind</span></button>
   <button class="nav-item" onclick="irPara('abnocompra',this)"><span class="nav-icon">🚨</span><span class="nav-label">A/B sem</span></button>
-  <button class="nav-item" onclick="irPara('tarefas',this)"><span class="nav-icon">✅</span><span class="nav-label">Tarefas</span></button>
 </nav>
 <div class="modal" id="modal-cliente"><div class="modal-sheet"><div class="modal-handle"></div><div class="modal-header"><div><div class="modal-titulo" id="modal-nome"></div><div class="chip-row" id="modal-chips"></div></div><button class="modal-fechar" onclick="fecharModal()">Fechar</button></div><div id="modal-body"></div></div></div>
 <script>
@@ -728,8 +728,8 @@ let _respSel = []; // array de responsaveis selecionados
 
 // FASE 9.24 — Envio automático via Worker email-api
 const EMAIL_API_DEFAULT = {
-  url: 'https://email-api.marcelo-778.workers.dev',
-  token: '54610344760641d602a2495be99cc88d073bb45621bfbdaccaa6b25c3176f1dd',
+  url: 'https://email-api.3mvrepresentacao.com',  // ou .marcelo-778.workers.dev
+  token: '',  // configurar via config
 };
 function getEmailCfg(){
   try { return Object.assign({}, EMAIL_API_DEFAULT, JSON.parse(localStorage.getItem('3mv_email_cfg')||'{}')); }
@@ -890,14 +890,50 @@ function renderMeusLembretes(){
 }
 
 function efetivarLembrete(id){
-  const t = (TAREFAS||[]).find(x => x.id === id);
-  if(!t) return;
-  t.feita = true;
-  t.feita_em = new Date().toISOString();
-  localStorage.setItem('3mv_tarefas', JSON.stringify(TAREFAS));
-  mostrarToast('✓ Tarefa efetivada!');
-  renderMeusLembretes();
-  renderTarefas();
+  // FASE 9.66 — usa o modal de conclusão (registra motivo + canal de execução)
+  // ao invés de marcar como feito direto e perder o histórico.
+  if (typeof abrirModalConcluir === 'function') {
+    abrirModalConcluir(id);
+  } else {
+    // Fallback: marca como feito direto
+    const t = (TAREFAS||[]).find(x => x.id === id);
+    if(!t) return;
+    t.feita = true;
+    t.feita_em = new Date().toISOString();
+    localStorage.setItem('3mv_tarefas', JSON.stringify(TAREFAS));
+    if (typeof mostrarToast === 'function') mostrarToast('✓ Tarefa efetivada!');
+    if (typeof renderMeusLembretes === 'function') renderMeusLembretes();
+    if (typeof renderTarefas === 'function') renderTarefas();
+  }
+}
+
+// FASE 9.66 — Preview da mensagem WhatsApp antes de abrir o app
+// Mostra um alert/modal com a mensagem que será enviada e o número.
+// Se o usuário confirmar, deixa o link prosseguir (abre wa.me).
+// Se cancelar, impede a navegação.
+function previewWhatsMsg(ev, tarefaId, destNome, destNum){
+  try {
+    const t = (TAREFAS||[]).find(x => x.id === tarefaId);
+    if (!t) { return abrirConfirmarEnvio(tarefaId, 'whats'); }
+    const msg = (typeof montarMsgWhats === 'function') ? montarMsgWhats(t) : (t.texto || '');
+    const fone = String(destNum||'').replace(/\D/g,'');
+    const foneFmt = fone.length >= 12
+      ? '+' + fone.slice(0,2) + ' (' + fone.slice(2,4) + ') ' + fone.slice(4,9) + '-' + fone.slice(9)
+      : '+' + fone;
+    const aviso = '💬 WhatsApp para *' + destNome + '*\n📱 ' + foneFmt + '\n\n— MENSAGEM —\n' + msg + '\n\n— FIM —\n\nConfirmar e abrir o WhatsApp?';
+    if (!confirm(aviso)) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      return false;
+    }
+  } catch(e) {
+    console.error('previewWhatsMsg erro', e);
+  }
+  // Registra envio para o histórico (mesmo padrão de abrirConfirmarEnvio)
+  if (typeof abrirConfirmarEnvio === 'function') {
+    setTimeout(() => abrirConfirmarEnvio(tarefaId, 'whats'), 600);
+  }
+  return true;
 }
 
 function reabrirLembrete(id){
@@ -1143,7 +1179,7 @@ function renderTarefaItem(t, concluida){
     }
     if(canais.includes('whats')){
       const whats = EQUIPE.filter(m=>respList.includes(m.nome) && m.whats).map(m=>({nome:m.nome,num:m.whats}));
-      whats.forEach(w=>{if(!w.num)return; acoes+='<a class="btn-mini whats" href="https://api.whatsapp.com/send?phone='+w.num+'&text='+txtMsg+'" target="_blank" onclick="abrirConfirmarEnvio('+t.id+',\'whats\')">💬 '+w.nome+'</a>';});
+      whats.forEach(w=>{if(!w.num)return; acoes+='<a class="btn-mini whats" href="https://wa.me/'+w.num+'?text='+txtMsg+'" target="_blank" onclick="previewWhatsMsg(event,'+t.id+',\''+w.nome+'\',\''+w.num+'\')">💬 '+w.nome+'</a>';});
     }
     
     // FASE 9.24 — botão enviar email automático
