@@ -280,8 +280,8 @@ body.modo-aval #pane-avaliacao { display: block !important; }
 .sellin-subpane.sellin-subpane-active { display:block; }
 .tbl-mensal th, .tbl-mensal td { padding:6px 8px; font-size:11px; white-space:nowrap; }
 .tbl-mensal th.sticky-col, .tbl-mensal td.sticky-col { position:sticky; left:0; background:#fff; z-index:2; border-right:1px solid var(--linha); }
-.tbl-mensal thead th { background:var(--azul-card); position:sticky; top:0; z-index:3; }
-.tbl-mensal thead th.sticky-col { z-index:4; }
+.tbl-mensal thead th { background:var(--azul); color:#fff !important; position:sticky; top:0; z-index:3; font-weight:700; text-transform:uppercase; letter-spacing:.3px; font-size:11px; }
+.tbl-mensal thead th.sticky-col { z-index:4; background:var(--azul-d); }
 .tbl-mensal tbody tr:nth-child(odd) { background:#fafbfc; }
 .tbl-mensal tbody tr:nth-child(odd) td.sticky-col { background:#fafbfc; }
 .tbl-mensal tbody tr.linha-total { background:var(--azul-card) !important; font-weight:700; }
@@ -1698,32 +1698,32 @@ body.modo-crm #pane-crm { display: block !important; }
           <th class="right" style="background:#0556AD;color:#fff;">Total</th>
         </tr></thead><tbody></tbody></table></div>
 
-        <!-- Tabela 2: % Crescimento por Categoria mês a mês -->
-        <h2 style="margin-top:18px;">📈 % Crescimento por Categoria — 2026 vs 2025 (mês a mês)</h2>
-        <div class="tabwrap"><table id="t-mensal-cresc" class="tbl-mensal"><thead><tr>
-          <th class="sticky-col">Categoria</th>
-          <th class="right">Jan</th><th class="right">Fev</th><th class="right">Mar</th><th class="right">Abr</th>
-          <th class="right">Mai</th><th class="right">Jun</th><th class="right">Jul</th><th class="right">Ago</th>
-          <th class="right">Set</th><th class="right">Out</th><th class="right">Nov</th><th class="right">Dez</th>
-          <th class="right" style="background:#0556AD;color:#fff;">Acum</th>
-        </tr></thead><tbody></tbody></table></div>
-
-        <!-- Tabela 3: Comparativo Mensal por Categoria R$ (pares 25/26 lado a lado) -->
-        <h2 style="margin-top:18px;">💰 Comparativo Mensal por Categoria — 2025 × 2026 (R$)</h2>
-        <div style="margin-bottom:6px;"><button onclick="exportarSellinMensal()" style="background:#16a34a;color:#fff;border:0;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;">📊 Exportar Excel</button></div>
-        <div class="tabwrap" style="max-height:520px;overflow:auto;"><table id="t-mensal-pares" class="tbl-mensal"><thead>
-          <tr id="t-mensal-pares-h1">
+        <!-- Tabela 2 (combinada): R$ 25 | R$ 26 | Δ % por mês × categoria -->
+        <h2 style="margin-top:18px;">💰 Comparativo Mensal por Categoria — 2025 · 2026 · Δ%</h2>
+        <div style="margin-bottom:6px;"><button onclick="exportarSellinMensal()" style="background:#16a34a;color:#fff;border:0;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;">📊 Exportar Excel</button> <span style="margin-left:10px;color:#666;font-size:11px;">3 colunas por mês: R$ 2025 · R$ 2026 · Δ% crescimento</span></div>
+        <div class="tabwrap" style="max-height:560px;overflow:auto;"><table id="t-mensal-pares" class="tbl-mensal"><thead>
+          <tr>
             <th class="sticky-col" rowspan="2">Categoria</th>
-            <th colspan="2" class="right">Jan</th><th colspan="2" class="right">Fev</th><th colspan="2" class="right">Mar</th>
-            <th colspan="2" class="right">Abr</th><th colspan="2" class="right">Mai</th><th colspan="2" class="right">Jun</th>
-            <th colspan="2" class="right">Jul</th><th colspan="2" class="right">Ago</th><th colspan="2" class="right">Set</th>
-            <th colspan="2" class="right">Out</th><th colspan="2" class="right">Nov</th><th colspan="2" class="right">Dez</th>
+            <th colspan="3" class="right">Jan</th><th colspan="3" class="right">Fev</th><th colspan="3" class="right">Mar</th>
+            <th colspan="3" class="right">Abr</th><th colspan="3" class="right">Mai</th><th colspan="3" class="right">Jun</th>
+            <th colspan="3" class="right">Jul</th><th colspan="3" class="right">Ago</th><th colspan="3" class="right">Set</th>
+            <th colspan="3" class="right">Out</th><th colspan="3" class="right">Nov</th><th colspan="3" class="right">Dez</th>
+            <th colspan="3" class="right" style="background:var(--azul-d);">Acum jan-dez</th>
           </tr>
-          <tr id="t-mensal-pares-h2">
-            <th class="right">25</th><th class="right">26</th><th class="right">25</th><th class="right">26</th><th class="right">25</th><th class="right">26</th>
-            <th class="right">25</th><th class="right">26</th><th class="right">25</th><th class="right">26</th><th class="right">25</th><th class="right">26</th>
-            <th class="right">25</th><th class="right">26</th><th class="right">25</th><th class="right">26</th><th class="right">25</th><th class="right">26</th>
-            <th class="right">25</th><th class="right">26</th><th class="right">25</th><th class="right">26</th><th class="right">25</th><th class="right">26</th>
+          <tr>
+            <th class="right">25</th><th class="right">26</th><th class="right">Δ%</th>
+            <th class="right">25</th><th class="right">26</th><th class="right">Δ%</th>
+            <th class="right">25</th><th class="right">26</th><th class="right">Δ%</th>
+            <th class="right">25</th><th class="right">26</th><th class="right">Δ%</th>
+            <th class="right">25</th><th class="right">26</th><th class="right">Δ%</th>
+            <th class="right">25</th><th class="right">26</th><th class="right">Δ%</th>
+            <th class="right">25</th><th class="right">26</th><th class="right">Δ%</th>
+            <th class="right">25</th><th class="right">26</th><th class="right">Δ%</th>
+            <th class="right">25</th><th class="right">26</th><th class="right">Δ%</th>
+            <th class="right">25</th><th class="right">26</th><th class="right">Δ%</th>
+            <th class="right">25</th><th class="right">26</th><th class="right">Δ%</th>
+            <th class="right">25</th><th class="right">26</th><th class="right">Δ%</th>
+            <th class="right" style="background:var(--azul-d);">25</th><th class="right" style="background:var(--azul-d);">26</th><th class="right" style="background:var(--azul-d);">Δ%</th>
           </tr>
         </thead><tbody></tbody></table></div>
       </div><!-- fim sellin-pane-mensal -->
@@ -8519,65 +8519,34 @@ function renderSellinMensal() {
     .filter(c => c.nome !== '__TOTAL_2025_LEGADO__' && (c.t25 > 0 || c.t26 > 0))
     .sort((a,b) => b.t26 - a.t26 || b.t25 - a.t25);
 
-  // === Tabela 2: % Crescimento por Categoria mês a mês ===
-  const tb2 = document.querySelector('#t-mensal-cresc tbody');
-  if (tb2) {
-    tb2.innerHTML = '';
-    catsLista.forEach(c => {
-      const tr = document.createElement('tr');
-      let html = '<td class="sticky-col"><b>'+esc(c.nome)+'</b></td>';
-      let acumDelta25 = 0, acumDelta26 = 0;
-      for (let m = 0; m < 12; m++) {
-        const v25 = c.anos[2025][m], v26 = c.anos[2026][m];
-        acumDelta25 += v25; acumDelta26 += v26;
-        let cell, cls = 'cel-zero', txt = '—';
-        if (v25 > 0 || v26 > 0) {
-          const pct = v25 > 0 ? ((v26/v25 - 1) * 100) : (v26 > 0 ? 100 : 0);
-          cls = pct > 5 ? 'cel-pos' : pct < -5 ? 'cel-neg' : 'cel-zero';
-          txt = (pct>=0?'+':'') + pct.toFixed(0) + '%';
-        }
-        html += '<td class="right '+cls+'">'+txt+'</td>';
-      }
-      const acumPct = acumDelta25 > 0 ? ((acumDelta26/acumDelta25 - 1) * 100) : (acumDelta26 > 0 ? 100 : 0);
-      const acumCls = acumPct > 5 ? 'cel-pos' : acumPct < -5 ? 'cel-neg' : 'cel-zero';
-      html += '<td class="right '+acumCls+'" style="background:#0556AD22;">'+(acumPct>=0?'+':'')+acumPct.toFixed(1)+'%</td>';
-      tr.innerHTML = html;
-      tb2.appendChild(tr);
-    });
-    // Linha TOTAL
-    if (catsLista.length > 0) {
-      const trT = document.createElement('tr');
-      trT.className = 'linha-total';
-      let html = '<td class="sticky-col">TOTAL</td>';
-      for (let m = 0; m < 12; m++) {
-        const v25 = tot25Mes[m], v26 = tot26Mes[m];
-        let cls = 'cel-zero', txt = '—';
-        if (v25 > 0 || v26 > 0) {
-          const pct = v25 > 0 ? ((v26/v25 - 1) * 100) : (v26 > 0 ? 100 : 0);
-          cls = pct > 5 ? 'cel-pos' : pct < -5 ? 'cel-neg' : 'cel-zero';
-          txt = (pct>=0?'+':'') + pct.toFixed(0) + '%';
-        }
-        html += '<td class="right '+cls+'">'+txt+'</td>';
-      }
-      html += '<td class="right '+(cresc>=0?'cel-pos':'cel-neg')+'" style="background:#0556AD;color:#fff;">'+(cresc>=0?'+':'')+cresc.toFixed(1)+'%</td>';
-      trT.innerHTML = html;
-      tb2.appendChild(trT);
-    }
-  }
-
-  // === Tabela 3: Comparativo Mensal Pares 25/26 ===
+  // === Tabela 2 (COMBINADA): R$ 25 | R$ 26 | Δ% por mês × categoria + Acumulado ===
   const tb3 = document.querySelector('#t-mensal-pares tbody');
   if (tb3) {
     tb3.innerHTML = '';
     catsLista.forEach(c => {
       const tr = document.createElement('tr');
       let html = '<td class="sticky-col"><b>'+esc(c.nome)+'</b></td>';
+      let ac25 = 0, ac26 = 0;
       for (let m = 0; m < 12; m++) {
         const v25 = c.anos[2025][m], v26 = c.anos[2026][m];
-        html += '<td class="right">'+(v25>0?fmt(v25):'<span class="cel-zero">—</span>')+'</td>';
-        const cls = (v26 > v25 && v25 > 0) ? 'cel-pos' : (v26 < v25 && v25 > 0) ? 'cel-neg' : '';
-        html += '<td class="right '+cls+'">'+(v26>0?fmt(v26):'<span class="cel-zero">—</span>')+'</td>';
+        ac25 += v25; ac26 += v26;
+        html += '<td class="right">'+(v25>0?'R$ '+fmt(v25):'<span class="cel-zero">—</span>')+'</td>';
+        const cls26 = (v26 > v25 && v25 > 0) ? 'cel-pos' : (v26 < v25 && v25 > 0) ? 'cel-neg' : '';
+        html += '<td class="right '+cls26+'">'+(v26>0?'R$ '+fmt(v26):'<span class="cel-zero">—</span>')+'</td>';
+        let pctTxt = '—', pctCls = 'cel-zero';
+        if (v25 > 0 || v26 > 0) {
+          const pct = v25 > 0 ? ((v26/v25 - 1) * 100) : (v26 > 0 ? 100 : 0);
+          pctCls = pct > 5 ? 'cel-pos' : pct < -5 ? 'cel-neg' : 'cel-zero';
+          pctTxt = (pct>=0?'+':'') + pct.toFixed(0) + '%';
+        }
+        html += '<td class="right '+pctCls+'">'+pctTxt+'</td>';
       }
+      // Acumulado jan-dez
+      const acPct = ac25 > 0 ? ((ac26/ac25 - 1) * 100) : (ac26 > 0 ? 100 : 0);
+      const acCls = acPct > 5 ? 'cel-pos' : acPct < -5 ? 'cel-neg' : 'cel-zero';
+      html += '<td class="right" style="background:#0556AD22;font-weight:600;">'+(ac25>0?'R$ '+fmt(ac25):'—')+'</td>';
+      html += '<td class="right" style="background:#0556AD22;font-weight:600;">'+(ac26>0?'R$ '+fmt(ac26):'—')+'</td>';
+      html += '<td class="right '+acCls+'" style="background:#0556AD22;font-weight:700;">'+(acPct>=0?'+':'')+acPct.toFixed(1)+'%</td>';
       tr.innerHTML = html;
       tb3.appendChild(tr);
     });
@@ -8587,10 +8556,21 @@ function renderSellinMensal() {
       trT.className = 'linha-total';
       let html = '<td class="sticky-col">TOTAL</td>';
       for (let m = 0; m < 12; m++) {
-        html += '<td class="right">'+(tot25Mes[m]>0?fmt(tot25Mes[m]):'—')+'</td>';
-        const cls = (tot26Mes[m] > tot25Mes[m] && tot25Mes[m] > 0) ? 'cel-pos' : (tot26Mes[m] < tot25Mes[m] && tot25Mes[m] > 0) ? 'cel-neg' : '';
-        html += '<td class="right '+cls+'">'+(tot26Mes[m]>0?fmt(tot26Mes[m]):'—')+'</td>';
+        const v25 = tot25Mes[m], v26 = tot26Mes[m];
+        html += '<td class="right">'+(v25>0?'R$ '+fmt(v25):'—')+'</td>';
+        const cls26 = (v26 > v25 && v25 > 0) ? 'cel-pos' : (v26 < v25 && v25 > 0) ? 'cel-neg' : '';
+        html += '<td class="right '+cls26+'">'+(v26>0?'R$ '+fmt(v26):'—')+'</td>';
+        let pctTxt = '—', pctCls = 'cel-zero';
+        if (v25 > 0 || v26 > 0) {
+          const pct = v25 > 0 ? ((v26/v25 - 1) * 100) : (v26 > 0 ? 100 : 0);
+          pctCls = pct > 5 ? 'cel-pos' : pct < -5 ? 'cel-neg' : 'cel-zero';
+          pctTxt = (pct>=0?'+':'') + pct.toFixed(0) + '%';
+        }
+        html += '<td class="right '+pctCls+'">'+pctTxt+'</td>';
       }
+      html += '<td class="right" style="background:#0556AD;color:#fff;">R$ '+fmt(tot25)+'</td>';
+      html += '<td class="right" style="background:#0556AD;color:#fff;">R$ '+fmt(tot26)+'</td>';
+      html += '<td class="right" style="background:#0556AD;color:#fff;">'+(cresc>=0?'+':'')+cresc.toFixed(1)+'%</td>';
       trT.innerHTML = html;
       tb3.appendChild(trT);
     }
@@ -8628,40 +8608,47 @@ function renderSellinMensal() {
     });
   }
 
-  // === Gráfico 2: BARRAS empilhadas por categoria (top 8) — mês a mês 2026 ===
+  // === Gráfico 2: BARRAS AGRUPADAS lado a lado por categoria (top 6) — 2025 vs 2026 ===
   if (charts['ch-mensal-categorias']) charts['ch-mensal-categorias'].destroy();
   const ctxCat = document.getElementById('ch-mensal-categorias')?.getContext('2d');
   const elTitCat = document.getElementById('mensal-cat-titulo');
   if (ctxCat && catsLista.length > 0) {
-    const top = catsLista.slice(0, 8);
-    if (elTitCat) elTitCat.textContent = '📊 Mês a Mês 2026 por Categoria (top ' + top.length + ' por valor) — barras empilhadas';
-    const cores = ['#0556AD','#EF4444','#16A34A','#F59E0B','#7C3AED','#0891B2','#DB2777','#65A30D'];
-    const datasets = top.map((c, i) => ({
-      label: c.nome.length > 14 ? c.nome.slice(0,12)+'..' : c.nome,
-      data: c.anos[2026],
-      backgroundColor: cores[i]+'CC', borderColor: cores[i], borderWidth: 1, borderRadius: 2,
-      stack: 'cat'
-    }));
+    const top = catsLista.slice(0, 6);
+    if (elTitCat) elTitCat.textContent = '📊 Top ' + top.length + ' Categorias — 2025 vs 2026 (R$ acumulado YTD por mês ref)';
+    const cores = ['#0556AD','#EF4444','#16A34A','#F59E0B','#7C3AED','#0891B2'];
+    // 2 datasets por categoria: 25 e 26
+    const labels = top.map(c => c.nome.length > 14 ? c.nome.slice(0,12)+'..' : c.nome);
+    const data25 = top.map(c => c.anos[2025].slice(0, mesRef).reduce((a,b)=>a+b,0));
+    const data26 = top.map(c => c.anos[2026].slice(0, mesRef).reduce((a,b)=>a+b,0));
     charts['ch-mensal-categorias'] = new Chart(ctxCat, {
       type: 'bar',
-      data: { labels: MES, datasets },
+      data: { labels,
+        datasets: [
+          { label: '2025 Jan-'+MES[mesRef-1], data: data25, backgroundColor: '#3B82F6CC', borderColor: '#1D4ED8', borderWidth: 1, borderRadius: 4 },
+          { label: '2026 Jan-'+MES[mesRef-1], data: data26, backgroundColor: '#EF4444CC', borderColor: '#B91C1C', borderWidth: 1, borderRadius: 4 }
+        ]
+      },
       options: { responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { font: { size: 11, weight: '500' }, color: '#0E2236', boxWidth: 14 } },
+        plugins: { legend: { position: 'top', labels: { font: { size: 12, weight: '600' }, color: '#0E2236', boxWidth: 16 } },
           tooltip: { callbacks: {
             label: c => c.dataset.label + ': R$ ' + fmt(c.parsed.y),
-            footer: (items) => {
-              const total = items.reduce((s,i)=>s+i.parsed.y, 0);
-              return 'Total mês: R$ ' + fmt(total);
+            afterLabel: c => {
+              const idx = c.dataIndex;
+              if (c.dataset.label.startsWith('2026') && data25[idx] > 0) {
+                const pct = (data26[idx]/data25[idx]-1)*100;
+                return 'Δ vs 25: '+(pct>=0?'+':'')+pct.toFixed(1)+'%';
+              }
+              return '';
             }
           } } },
         scales: {
-          x: { stacked: true, grid: { display: false }, ticks: { font: { size: 12, weight: 'bold' }, color: '#0E2236' } },
-          y: { stacked: true, beginAtZero: true, grid: { color: '#E5E7EB' }, ticks: { font: { size: 11 }, color: '#5A6C7E', callback: v => 'R$' + (v/1000).toFixed(0)+'k' } }
+          x: { grid: { display: false }, ticks: { font: { size: 11, weight: '600' }, color: '#0E2236', maxRotation: 30, minRotation: 0 } },
+          y: { beginAtZero: true, grid: { color: '#E5E7EB' }, ticks: { font: { size: 11 }, color: '#5A6C7E', callback: v => 'R$' + (v/1000).toFixed(0)+'k' } }
         }
       }
     });
   } else if (elTitCat) {
-    elTitCat.textContent = '📊 Mês a Mês 2026 por Categoria — sem dados pra este filtro';
+    elTitCat.textContent = '📊 Top Categorias — sem dados pra este filtro';
   }
 }
 
@@ -8674,8 +8661,7 @@ function exportarSellinMensal() {
       Array.from(tr.querySelectorAll('th,td')).map(td => td.textContent.trim()));
   }
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsFromTable('t-mensal-total')), 'Total Mensal');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsFromTable('t-mensal-cresc')), '% Cresc Categoria');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsFromTable('t-mensal-pares')), 'Pares 25x26');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rowsFromTable('t-mensal-pares')), 'Categoria 25-26-Δ%');
   XLSX.writeFile(wb, 'sellin_mensal_25x26_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
