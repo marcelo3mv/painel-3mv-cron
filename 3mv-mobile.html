@@ -557,10 +557,10 @@ function carregarGSIeAutoConectar(){
 }
 
 function iniciarAuthAutomatico(){
-  // Inicia client de token (reutilizado pra silent re-auth e clique manual)
+  // FASE 9.66 (#23): inclui scope tasks.readonly pra pegar tarefas do Google Tasks também
   _gcalTokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
-    scope: 'https://www.googleapis.com/auth/calendar.readonly',
+    scope: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks.readonly',
     prompt: '', // vazio = silent quando há sessão ativa
     callback: (resp) => {
       if(resp.access_token){
@@ -569,8 +569,8 @@ function iniciarAuthAutomatico(){
         localStorage.setItem('gcal_token_exp', expiraEm.toString());
         localStorage.setItem('gcal_conectado', '1');
         carregarAgenda(resp.access_token);
+        carregarTarefasGoogle(resp.access_token);  // FASE 9.66: tarefas do Google
       } else if(resp.error === 'access_denied'){
-        // usuário cancelou — limpa flag pra não tentar de novo
         localStorage.removeItem('gcal_conectado');
       }
     }
@@ -582,6 +582,7 @@ function iniciarAuthAutomatico(){
   if(tokenSalvo && Date.now() < expiraEm - 60000){
     // Token ainda válido (com folga de 1 min)
     carregarAgenda(tokenSalvo);
+    carregarTarefasGoogle(tokenSalvo);  // FASE 9.66: tasks também
     return;
   }
 
@@ -622,6 +623,53 @@ async function carregarAgenda(token){
     showToast('✓ Agenda sincronizada: ' + AGENDA_HOJE.length + ' eventos');
   }catch(e){console.error(e); showToast('Erro ao carregar agenda');}
 }
+// FASE 9.66 (#23): Carrega tarefas do Google Tasks (todas as listas) e funde com TAREFAS locais.
+// Cria/atualiza um marcador na tarefa local com origem='google' pra não duplicar.
+async function carregarTarefasGoogle(token){
+  try {
+    // 1) Lista todas as task-lists do usuário
+    const rL = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists', {
+      headers: {Authorization: 'Bearer '+token}
+    });
+    if(!rL.ok) { console.log('tasks lists err', rL.status); return; }
+    const lists = (await rL.json()).items || [];
+    let total = 0;
+    for(const lst of lists){
+      const rT = await fetch('https://tasks.googleapis.com/tasks/v1/lists/' + lst.id + '/tasks?showCompleted=false&maxResults=100', {
+        headers: {Authorization: 'Bearer '+token}
+      });
+      if(!rT.ok) continue;
+      const tks = (await rT.json()).items || [];
+      tks.forEach(t => {
+        // Importa se ainda não existir na lista local (chave = google_id)
+        if(!Array.isArray(window.TAREFAS)) window.TAREFAS = [];
+        if(!TAREFAS.some(x => x.google_id === t.id)){
+          const dataFmt = t.due ? new Date(t.due).toLocaleDateString('pt-BR') : '';
+          TAREFAS.push({
+            id: Date.now() + Math.floor(Math.random()*1000),
+            google_id: t.id,
+            google_list: lst.title,
+            origem: 'google_tasks',
+            texto: t.title || '(sem título)',
+            data: dataFmt,
+            cliente: '', industria: '', tipo: 'task',
+            responsavel: ['Marcelo'],
+            canais: [], prioridade: 'media',
+            feita: t.status === 'completed',
+            criada_em: t.updated || new Date().toISOString(),
+          });
+          total++;
+        }
+      });
+    }
+    if(total > 0){
+      try { localStorage.setItem('3mv_tarefas', JSON.stringify(TAREFAS)); } catch(e){}
+      if(typeof showToast === 'function') showToast('✓ ' + total + ' tarefa(s) do Google Tasks importadas');
+      if(typeof renderMeusLembretes === 'function') renderMeusLembretes();
+    }
+  } catch(e){ console.error('carregarTarefasGoogle', e); }
+}
+
 function extrairCliente(titulo){
   // Pega primeiro nome em maiúsculas, ou tudo
   const t = titulo.toUpperCase();
