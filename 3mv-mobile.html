@@ -779,19 +779,29 @@ function renderMeusLembretes(){
   cont.innerHTML = ''; kpi.innerHTML = '';
   const USUARIO = (window.USUARIO_LOGADO && window.USUARIO_LOGADO.nome) || 'Marcelo';
 
-  // Popular filtros (1ª vez)
+  // FIX 2026-05-15: garante que INDUSTRIAS_AGREG está populado ANTES de montar o filtro.
+  // Antes o filtro era populado uma única vez (length<=1) e às vezes vinha vazio.
+  if((!INDUSTRIAS_AGREG || INDUSTRIAS_AGREG.length === 0) && typeof calcularIndustriasAgreg === 'function'){
+    try { calcularIndustriasAgreg(); } catch(e) {}
+  }
+
+  // Popular filtros — agora SEMPRE reconstrói a lista pra capturar indústrias que apareceram depois.
   const filIndEl = document.getElementById('filt-lemb-ind');
   const filCliEl = document.getElementById('filt-lemb-cli');
-  if(filIndEl && filIndEl.options.length <= 1){
+  if(filIndEl){
+    const valorAnterior = filIndEl.value;
     const inds = new Set();
     (TAREFAS||[]).forEach(t => { if(t.industria) inds.add(t.industria); });
     (INDUSTRIAS_AGREG||[]).forEach(ind => { if(ind.nome) inds.add(ind.nome); });
-    Array.from(inds).sort().forEach(ind => {
-      const opt = document.createElement('option'); opt.value = ind; opt.textContent = ind;
-      filIndEl.appendChild(opt);
-    });
+    // Também puxa do DADOS_RAW.industrias_ativas se existir, e dos clientes
+    (CLIENTES||[]).forEach(c => (c.industrias||[]).forEach(i => i.nome && inds.add(i.nome)));
+    const listaInds = Array.from(inds).filter(x => x && x !== '—').sort();
+    filIndEl.innerHTML = '<option value="">🏭 Todas indústrias</option>' +
+      listaInds.map(i => '<option value="' + i.replace(/"/g,'&quot;') + '">' + i + '</option>').join('');
+    if(valorAnterior && listaInds.includes(valorAnterior)) filIndEl.value = valorAnterior;
   }
-  if(filCliEl && filCliEl.options.length <= 1){
+  if(filCliEl){
+    const valorAnterior = filCliEl.value;
     const cliSet = new Set();
     (TAREFAS||[]).forEach(t => {
       if(!t.cliente) return;
@@ -802,10 +812,10 @@ function renderMeusLembretes(){
       const g = grupoDoCliente(c.nome) || c.nome;
       cliSet.add(g);
     });
-    Array.from(cliSet).sort().forEach(c => {
-      const opt = document.createElement('option'); opt.value = c; opt.textContent = c;
-      filCliEl.appendChild(opt);
-    });
+    const listaCli = Array.from(cliSet).filter(x => x).sort();
+    filCliEl.innerHTML = '<option value="">📋 Todos clientes/grupos</option>' +
+      listaCli.map(c => '<option value="' + c.replace(/"/g,'&quot;') + '">' + c + '</option>').join('');
+    if(valorAnterior && listaCli.includes(valorAnterior)) filCliEl.value = valorAnterior;
   }
   const filtroInd = (filIndEl && filIndEl.value) || '';
   const filtroCli = (filCliEl && filCliEl.value) || '';
@@ -907,31 +917,34 @@ function efetivarLembrete(id){
   }
 }
 
-// FASE 9.66 — Preview da mensagem WhatsApp antes de abrir o app
-// Mostra um alert/modal com a mensagem que será enviada e o número.
-// Se o usuário confirmar, deixa o link prosseguir (abre wa.me).
-// Se cancelar, impede a navegação.
+// FASE 9.66 (FIX 2026-05-15) — Abre WhatsApp DIRETO com a mensagem preenchida.
+// O usuário envia manualmente no app. Sem confirm() bloqueante que estava
+// impedindo o navegador iOS/Android de abrir o wa.me (perdia o gesto).
+// O histórico de envio é registrado via setTimeout depois da abertura.
 function previewWhatsMsg(ev, tarefaId, destNome, destNum){
   try {
     const t = (TAREFAS||[]).find(x => x.id === tarefaId);
-    if (!t) { return abrirConfirmarEnvio(tarefaId, 'whats'); }
-    const msg = (typeof montarMsgWhats === 'function') ? montarMsgWhats(t) : (t.texto || '');
-    const fone = String(destNum||'').replace(/\D/g,'');
-    const foneFmt = fone.length >= 12
-      ? '+' + fone.slice(0,2) + ' (' + fone.slice(2,4) + ') ' + fone.slice(4,9) + '-' + fone.slice(9)
-      : '+' + fone;
-    const aviso = '💬 WhatsApp para *' + destNome + '*\n📱 ' + foneFmt + '\n\n— MENSAGEM —\n' + msg + '\n\n— FIM —\n\nConfirmar e abrir o WhatsApp?';
-    if (!confirm(aviso)) {
+    if (!t) return true;
+    // Sanitiza número: só dígitos. Se não tiver DDI, prefixa 55 (Brasil).
+    let fone = String(destNum||'').replace(/\D/g,'');
+    if (fone.length === 10 || fone.length === 11) fone = '55' + fone;  // adiciona DDI
+    if (!fone) {
       ev.preventDefault();
-      ev.stopPropagation();
+      alert('⚠️ Sem número de WhatsApp cadastrado para ' + destNome);
       return false;
+    }
+    const msg = (typeof montarMsgWhats === 'function') ? montarMsgWhats(t) : (t.texto || '');
+    // Reescreve o href dinamicamente garantindo encodeURIComponent correto
+    const url = 'https://wa.me/' + fone + '?text=' + encodeURIComponent(msg);
+    if (ev && ev.currentTarget && ev.currentTarget.tagName === 'A') {
+      ev.currentTarget.setAttribute('href', url);
     }
   } catch(e) {
     console.error('previewWhatsMsg erro', e);
   }
-  // Registra envio para o histórico (mesmo padrão de abrirConfirmarEnvio)
+  // Registra envio para o histórico (não bloqueia a navegação)
   if (typeof abrirConfirmarEnvio === 'function') {
-    setTimeout(() => abrirConfirmarEnvio(tarefaId, 'whats'), 600);
+    setTimeout(() => abrirConfirmarEnvio(tarefaId, 'whats'), 800);
   }
   return true;
 }

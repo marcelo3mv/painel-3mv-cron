@@ -1754,6 +1754,14 @@ body.modo-crm #pane-crm { display: block !important; }
       <h2>🔄 Avaliação Resultados Cliente — Ciclo de Vendas</h2>
       <div style="font-size:11px;color:var(--mut);margin:-4px 0 10px;">Acompanhamento da regularidade de compras: quando o cliente comprou pela última vez, intervalo médio entre compras e quando deveria comprar de novo.</div>
 
+      <!-- FASE 9.66: Cards de navegação rápida (jump to table) -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:10px 0 18px;">
+        <a href="#sec-ciclo-prox" style="display:block;padding:10px 12px;background:linear-gradient(135deg,#DC2626,#F87171);color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:12px;box-shadow:0 2px 6px rgba(220,38,38,0.25);">⚠️ Próximos do ciclo / atrasados</a>
+        <a href="#sec-ciclo-sem26" style="display:block;padding:10px 12px;background:linear-gradient(135deg,#94A3B8,#CBD5E1);color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:12px;box-shadow:0 2px 6px rgba(148,163,184,0.25);">😴 Sem compra em 26 (mas vinha em 25)</a>
+        <a href="#sec-ciclo-grupo-ind" style="display:block;padding:10px 12px;background:linear-gradient(135deg,#1E40AF,#3B82F6);color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:12px;box-shadow:0 2px 6px rgba(30,64,175,0.25);">🏢 Grupo × Indústria (consolidado)</a>
+        <a href="#sec-ciclo-aumentando" style="display:block;padding:10px 12px;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:12px;box-shadow:0 2px 6px rgba(245,158,11,0.25);">📈 Ciclo aumentando (risco)</a>
+      </div>
+
       <div class="kpis">
         <div class="k"><div class="l">Clientes ativos 26</div><div class="v ok" id="cv-ativos">—</div><div class="d">com pedido em 2026</div></div>
         <div class="k"><div class="l">Atrasados</div><div class="v warn" id="cv-atrasados">—</div><div class="d">passou da data esperada</div></div>
@@ -1761,7 +1769,7 @@ body.modo-crm #pane-crm { display: block !important; }
         <div class="k"><div class="l">Sem compra em 26</div><div class="v" id="cv-sem26">—</div><div class="d">compraram em 25</div></div>
       </div>
 
-      <h2>⚠️ Clientes próximos do ciclo (ou já atrasados)</h2>
+      <h2 id="sec-ciclo-prox" style="scroll-margin-top:90px;">⚠️ Clientes próximos do ciclo (ou já atrasados)</h2>
       <div style="font-size:11px;color:var(--mut);margin:-4px 0 8px;">Ordem: mais atrasados primeiro. Cores: 🔴 atrasado · 🟡 ≤7 dias · 🟢 ≤15 dias.</div>
       <div class="tabwrap"><table id="t-ciclo-prox"><thead><tr>
         <th>Cliente</th><th>Grupo</th><th>Indústria principal</th>
@@ -1773,7 +1781,7 @@ body.modo-crm #pane-crm { display: block !important; }
         <th>Status</th>
       </tr></thead><tbody></tbody></table></div>
 
-      <h2 style="margin-top:24px;">😴 Clientes que NÃO compraram em 26 (mas compravam em 25)</h2>
+      <h2 id="sec-ciclo-sem26" style="margin-top:24px;scroll-margin-top:90px;">😴 Clientes que NÃO compraram em 26 (mas compravam em 25)</h2>
       <div class="tabwrap"><table id="t-ciclo-sem26"><thead><tr>
         <th>Cliente</th><th>Grupo</th><th>Indústria principal</th>
         <th class="right">Faturado 2025</th>
@@ -1782,7 +1790,7 @@ body.modo-crm #pane-crm { display: block !important; }
       </tr></thead><tbody></tbody></table></div>
 
       <!-- FASE 9.65: Ciclo consolidado por GRUPO × INDÚSTRIA -->
-      <h2 style="margin-top:24px;">🏢 Ciclo Consolidado por Grupo × Indústria</h2>
+      <h2 id="sec-ciclo-grupo-ind" style="margin-top:24px;scroll-margin-top:90px;">🏢 Ciclo Consolidado por Grupo × Indústria</h2>
       <div style="font-size:11px;color:var(--mut);margin:-4px 0 8px;">Consolida todas as filiais de cada grupo, e separa por indústria principal. Útil pra ver o ciclo de compra "agregado" do grupo todo dentro de cada fornecedor.</div>
       <div class="tabwrap"><table id="t-ciclo-grupo-ind"><thead><tr>
         <th>Grupo</th><th>Indústria</th>
@@ -1795,7 +1803,7 @@ body.modo-crm #pane-crm { display: block !important; }
         <th>Status</th>
       </tr></thead><tbody></tbody></table></div>
 
-      <h2 style="margin-top:24px;">📈 Clientes com ciclo aumentando (espaçamento crescendo)</h2>
+      <h2 id="sec-ciclo-aumentando" style="margin-top:24px;scroll-margin-top:90px;">📈 Clientes com ciclo aumentando (espaçamento crescendo)</h2>
       <div style="font-size:11px;color:var(--mut);margin:-4px 0 8px;">Compara intervalo médio em 26 vs 25 — quando o cliente está demorando mais para repor, é sinal de risco.</div>
       <div class="tabwrap"><table id="t-ciclo-aumentando"><thead><tr>
         <th>Cliente</th><th>Grupo</th><th>Indústria principal</th>
