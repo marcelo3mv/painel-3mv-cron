@@ -92,37 +92,91 @@ def carregar_itens(dados):
 
 
 def classificar(dados):
+    """FIX 2026-05-15:
+       - Dedup defensivo por pedido_id (a API às vezes traz o mesmo pedido 97x).
+       - Critérios reescritos pra usar os campos que REALMENTE chegam na lista
+         pedidos_2026: data, fatura_status, entrega_status. data_fatura e
+         data_entrega não vêm preenchidos no objeto pedido, então a lógica antiga
+         de 'atrasados' nunca disparava — agora usa entrega_status='Pendente' +
+         idade do pedido (>=7 dias) como aproximação de entrega atrasada.
+    """
     hoje = date.today()
     peds = dados.get("pedidos_2026") or dados.get("pedidos") or []
+
+    # Dedup defensivo
+    vistos = set()
+    peds_dedup = []
+    for p in peds:
+        if not isinstance(p, dict):
+            continue
+        pid = p.get("pedido_id") or p.get("numero") or p.get("pedido") or id(p)
+        if pid in vistos:
+            continue
+        vistos.add(pid)
+        peds_dedup.append(p)
+    peds = peds_dedup
 
     criticos = []
     atrasados = []
     saldos = []
     for p in peds:
-        if not isinstance(p, dict):
-            continue
         status = (p.get("fatura_status") or "").strip()
+        ent = (p.get("entrega_status") or "").strip()
         dt = parse_data(p.get("data"))
         dt_fat = parse_data(p.get("data_fatura"))
         dt_ent = parse_data(p.get("data_entrega"))
 
+        # CRÍTICO: sem fatura e o pedido tem mais de 5 dias
         if status == "Sem fatura" and dt and (hoje - dt).days > 5:
             criticos.append(p)
-        if status in ("Total", "Parcial") and dt_fat and not dt_ent:
-            if (hoje - (dt_fat + timedelta(days=7))).days > 0:
+
+        # ATRASADO: faturado (Total/Parcial) mas com entrega pendente E pedido com +7 dias
+        # Usa entrega_status='Pendente' (que vem no JSON) já que data_fatura/data_entrega
+        # não são preenchidos em pedidos_2026.
+        if status in ("Total", "Parcial") and ent.lower() == "pendente":
+            ref = dt_fat or dt
+            if ref and (hoje - ref).days > 7:
                 atrasados.append(p)
+
+        # SALDO PARCIAL
         if status == "Parcial":
             saldos.append(p)
 
+    # Limita o corpo do email aos mais antigos (Excel anexo segue completo).
+    # Sem isso, com 400+ pedidos pendentes, o email vira ilegível.
+    def _idade(p):
+        d = parse_data(p.get("data_fatura")) or parse_data(p.get("data"))
+        return (hoje - d).days if d else 0
+
+    criticos = sorted(criticos, key=_idade, reverse=True)[:30]
+    atrasados = sorted(atrasados, key=_idade, reverse=True)[:30]
     return criticos, atrasados, saldos
 
 
 def agrupar_cli_ind(pedidos):
-    """Agrupa pedidos por (cliente, indústria) preservando ordem."""
+    """Agrupa pedidos por (cliente, indústria) preservando ordem.
+
+    FIX 2026-05-15: dedup defensivo por pedido_id/numero — a API às vezes
+    devolve o mesmo pedido várias vezes (97x p/ alguns pedidos), o que fazia
+    a tabela do email aparecer com linhas duplicadas. Aqui mantemos apenas
+    a primeira ocorrência de cada chave (pedido_id|numero|pedido).
+    """
     grupos = defaultdict(list)
+    vistos = set()
     for p in pedidos:
         cli = (p.get("cliente") or p.get("razao") or "—").strip() or "—"
         ind = (p.get("industria") or p.get("fornecedor") or "—").strip() or "—"
+        # Chave de dedupe: usa pedido_id, depois numero, depois pedido, depois OC+cliente
+        chave_id = (
+            str(p.get("pedido_id") or "").strip()
+            or str(p.get("numero") or "").strip()
+            or str(p.get("pedido") or "").strip()
+            or f"{p.get('ordem_compra','')}::{cli}::{ind}"
+        )
+        chave_completa = (cli, ind, chave_id)
+        if chave_completa in vistos:
+            continue
+        vistos.add(chave_completa)
         grupos[(cli, ind)].append(p)
     return grupos
 

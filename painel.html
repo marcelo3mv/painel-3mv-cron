@@ -257,8 +257,8 @@ body.modo-foco .layout { grid-template-columns: 1fr !important; }
 body.modo-foco .topbar { padding-left: 22px; }
 /* Botão de voltar pro selector na topbar quando em modo foco */
 body.modo-foco .btn-voltar-foco { display: inline-flex !important; }
-.btn-voltar-foco { display: none; align-items: center; gap: 6px; background: #1E40AF; color: #fff; border: 0; padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; text-decoration: none; }
-.btn-voltar-foco:hover { background: #1E3A8A; }
+.btn-voltar-foco { display: none; align-items: center; gap: 6px; background: #DC2626; color: #fff; border: 0; padding: 8px 16px; border-radius: 8px; font-weight: 800; font-size: 14px; cursor: pointer; text-decoration: none; box-shadow: 0 2px 6px rgba(220,38,38,0.4); transition: all 0.15s; }
+.btn-voltar-foco:hover { background: #B91C1C; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(220,38,38,0.5); }
 
 /* === FASE 9.41: Modo Avaliação — sidebar dedicada do card Avaliação Resultados === */
 body.modo-aval .sidebar:not(.sidebar-aval) { display: none !important; }
@@ -416,8 +416,8 @@ body.modo-crm #pane-crm { display: block !important; }
     <div class="selector-cards">
       <div class="selector-card" onclick="entrarApp('acompanhamento')">
         <div class="ic">📊</div>
-        <h3>Acompanhamento de Pedidos</h3>
-        <p>Painel em tempo real com saldos, faturamento, entregas, gráficos por status, exportação Excel e filtros.</p>
+        <h3>Central Comercial 3MV</h3>
+        <p>Painel completo: saldos, faturamento, entregas, Curva ABC, Ciclo de Vendas, Avaliação de Resultados, gráficos por status, exportação Excel e filtros.</p>
       </div>
       <div class="selector-card" onclick="entrarApp('pbi')">
         <div class="ic">📈</div>
@@ -677,11 +677,11 @@ body.modo-crm #pane-crm { display: block !important; }
         <h1>Central Comercial 3MV</h1>
         <div class="sub">3MV · API Suas Vendas + Power BI</div>
       </div>
-      <a href="javascript:voltarSelector()" class="btn-voltar-foco">← Voltar à seleção</a>
+      <a href="javascript:voltarSelector()" class="btn-voltar-foco" style="background:#DC2626;color:#fff;font-size:14px;padding:8px 16px;border-radius:8px;box-shadow:0 2px 6px rgba(220,38,38,0.4);">⬅ Voltar ao Menu Principal</a>
       <div class="right">
         <span>API: <span id="api-status">verificando…</span></span>
         <span>Período <b id="ano">2026</b></span>
-        <span>Atualizado <b id="updated">—</b></span>
+        <span>Última atualização: <b id="updated" title="Última geração do painel (gerado_em do dados.json)">—</b></span>
         <a href="javascript:carregar(true)" style="color:var(--azul);text-decoration:none;font-weight:600;">🔄 Recarregar</a>
         <button type="button" class="btn-pbi-top" onclick="entrarApp('pbi')">📈 Power BI</button>
         <a href="javascript:voltarSelector()" style="color:var(--azul);text-decoration:none;font-weight:600;font-size:11px;">⇆ Trocar</a>
@@ -715,6 +715,25 @@ body.modo-crm #pane-crm { display: block !important; }
     <!-- DASHBOARD -->
     <div class="pane active" id="pane-dashboard">
       <h2>🎯 Dashboard de Vendas 3MV</h2>
+
+      <!-- 🆕 FASE 9.66: Analítico topo — Mês Anterior × Mês Vigente + Pedidos sem faturar -->
+      <div id="kpi-meses-topo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:8px 0 16px;">
+        <div style="background:linear-gradient(135deg,#1E40AF,#3B82F6);color:#fff;padding:12px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(30,64,175,0.25);">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.5px;opacity:.9;text-transform:uppercase;">Mês anterior · <span id="topo-mes-ant-nome">—</span></div>
+          <div style="font-size:18px;font-weight:800;margin-top:2px;" id="topo-mes-ant-fat">R$ —</div>
+          <div style="font-size:11px;opacity:.95;margin-top:4px;">📋 <b id="topo-mes-ant-ped">—</b> pedidos · ⏳ <b id="topo-mes-ant-sf">—</b> sem faturar (<b id="topo-mes-ant-pct">—%</b>)</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#10B981,#34D399);color:#fff;padding:12px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(16,185,129,0.25);">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.5px;opacity:.9;text-transform:uppercase;">Mês vigente · <span id="topo-mes-vig-nome">—</span></div>
+          <div style="font-size:18px;font-weight:800;margin-top:2px;" id="topo-mes-vig-fat">R$ —</div>
+          <div style="font-size:11px;opacity:.95;margin-top:4px;">📋 <b id="topo-mes-vig-ped">—</b> pedidos · ⏳ <b id="topo-mes-vig-sf">—</b> sem faturar (<b id="topo-mes-vig-pct">—%</b>)</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#DC2626,#F87171);color:#fff;padding:12px 14px;border-radius:10px;box-shadow:0 2px 8px rgba(220,38,38,0.25);">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.5px;opacity:.9;text-transform:uppercase;">Pedidos sem faturar · Abril+Maio</div>
+          <div style="font-size:18px;font-weight:800;margin-top:2px;" id="topo-sf-abr-mai-valor">R$ —</div>
+          <div style="font-size:11px;opacity:.95;margin-top:4px;">📋 <b id="topo-sf-abr-mai-qtd">—</b> pedidos pendentes · <b id="topo-sf-abr-mai-clientes">—</b> clientes</div>
+        </div>
+      </div>
 
       <!-- 🎯 ACOMPANHAMENTO DO MÊS VIGENTE — primeira coisa que aparece -->
       <h2 style="margin-top:8px;">🎯 Acompanhamento de Metas — Mês Vigente</h2>
@@ -1865,7 +1884,8 @@ const GRUPOS_CLIENTES = {
   'Carrefour':          ['carrefour'],
   'Atacadão':           ['atacadao', 'atacadão'],
   'Assaí':              ['assai', 'assaí'],
-  'BIG / Bompreço':     ['bompreco', 'bompreço', ' big '],
+  'Bompreço':           ['bompreco', 'bompreço'],
+  'Big Mais':           ['big mais', 'bigmais'],
   'Mateus':             ['grupo mateus', 'mateus '],
   'Muffato':            ['muffato'],
   'GPA / Pão de Açúcar': ['gpa ', 'pao de acucar', 'pão de açúcar', 'extra '],
@@ -2324,6 +2344,7 @@ function renderDashboard() {
   const cresc = t25 > 0 ? (t26/t25 - 1) : null;
   renderBannerAtivas('banner-ativas-dashboard');
   renderMetasDashboard();
+  renderKPIsMesesTopo();   // FASE 9.66: cards Mês Anterior · Mês Vigente · Sem Faturar Abr+Mai
 
   const $ = (id) => document.getElementById(id);
   if ($('db-fat-25')) $('db-fat-25').textContent = 'R$ ' + fmt(t25);
@@ -2392,10 +2413,11 @@ function renderDashboard() {
     },
   };
 
-  // === FASE 9.20: Meta vs Realizado mensal (geral) — vertical com % ===
+  // === FASE 9.20 + 9.66: Meta vs Realizado mensal (geral) — Meta (cinza) · 2025 (azul) · 2026 (verde) ===
   if ($('db-meta-real-mes')) {
     const metas_mensal = (dadosCache.metas && dadosCache.metas.meta_geral_mensal) || {};
     const metaArr = MESES.map((_, i) => metas_mensal[String(i+1)] || 0);
+    const realArr25 = (h.mensal_25 || new Array(12).fill(0)).slice(0, 12);
     const realArr26 = (h.mensal_26 || new Array(12).fill(0)).slice(0, 12);
     const el = $('db-meta-real-mes');
     if (charts['db-meta-real-mes']) charts['db-meta-real-mes'].destroy();
@@ -2404,8 +2426,9 @@ function renderDashboard() {
       data: {
         labels: MESES,
         datasets: [
-          { label: 'Meta', data: metaArr, backgroundColor: '#94A3B833', borderColor: '#94A3B8', borderWidth: 2, borderRadius: 4 },
-          { label: 'Realizado 2026', data: realArr26, backgroundColor: '#10B981CC', borderColor: '#10B981', borderWidth: 1.5, borderRadius: 4 },
+          { label: 'Meta',            data: metaArr,   backgroundColor: '#94A3B833', borderColor: '#94A3B8', borderWidth: 2, borderRadius: 4 },
+          { label: 'Realizado 2025',  data: realArr25, backgroundColor: '#3B82F6CC', borderColor: '#3B82F6', borderWidth: 1.5, borderRadius: 4 },
+          { label: 'Realizado 2026',  data: realArr26, backgroundColor: '#10B981CC', borderColor: '#10B981', borderWidth: 1.5, borderRadius: 4 },
         ],
       },
       options: {
@@ -2413,7 +2436,7 @@ function renderDashboard() {
         layout: { padding: { top: 22 } },
         plugins:{ legend:{position:'bottom'}, tooltip:{callbacks:{label: c => c.dataset.label + ': R$ ' + fmt(c.parsed.y), afterLabel: c => {
           const m = metaArr[c.dataIndex]; const r = realArr26[c.dataIndex];
-          if (m>0) return 'Atingiu ' + (r/m*100).toFixed(1) + '% da meta';
+          if (m>0 && c.dataset.label === 'Realizado 2026') return 'Atingiu ' + (r/m*100).toFixed(1) + '% da meta';
           return '';
         }}} },
         scales:{ y:{beginAtZero:true, ticks:{callback:v => 'R$' + (v/1000).toFixed(0) + 'k'}} },
@@ -2606,6 +2629,63 @@ function renderDashboard() {
       [t26, totais.valor_total_saldo || 0],
       [COLORS[2], COLORS[1]]);
   }
+}
+
+// === FASE 9.66: KPIs do TOPO — Mês Anterior · Mês Vigente · Sem Faturar Abr+Mai ===
+function renderKPIsMesesTopo() {
+  if (!dadosCache) return;
+  const $ = (id) => document.getElementById(id);
+  const peds = (dadosCache.pedidos_2026 || []).filter(p => p && typeof p === 'object');
+
+  // Dedup defensivo (a API às vezes traz mesmo pedido várias vezes)
+  const __vistos = new Set();
+  const pedsU = [];
+  peds.forEach(p => {
+    const k = String(p.pedido_id || p.numero || p.pedido || (p.ordem_compra+'-'+p.cliente));
+    if (__vistos.has(k)) return;
+    __vistos.add(k);
+    pedsU.push(p);
+  });
+
+  const mesAtual = (typeof getMesAtual === 'function') ? getMesAtual() : (new Date().getMonth()+1);
+  const mesAnterior = mesAtual === 1 ? 12 : (mesAtual - 1);
+
+  function statsMes(m) {
+    const lista = pedsU.filter(p => Number(p.mes) === m);
+    const fatTotal = lista
+      .filter(p => p.fatura_status === 'Total' || p.fatura_status === 'Parcial')
+      .reduce((s, p) => s + (Number(p.valor_total) || 0), 0);
+    const semFat = lista.filter(p => (p.fatura_status||'').toLowerCase().includes('sem fatura')).length;
+    const pctFat = lista.length > 0 ? ((lista.length - semFat) / lista.length * 100) : 0;
+    return { total: lista.length, fat: fatTotal, semFat, pctFat };
+  }
+
+  const sA = statsMes(mesAnterior);
+  const sV = statsMes(mesAtual);
+
+  if ($('topo-mes-ant-nome')) $('topo-mes-ant-nome').textContent = (MESES[mesAnterior-1] || '—') + ' 2026';
+  if ($('topo-mes-ant-fat'))  $('topo-mes-ant-fat').textContent  = 'R$ ' + fmt(sA.fat);
+  if ($('topo-mes-ant-ped'))  $('topo-mes-ant-ped').textContent  = fmtInt(sA.total);
+  if ($('topo-mes-ant-sf'))   $('topo-mes-ant-sf').textContent   = fmtInt(sA.semFat);
+  if ($('topo-mes-ant-pct'))  $('topo-mes-ant-pct').textContent  = sA.pctFat.toFixed(0) + '%';
+
+  if ($('topo-mes-vig-nome')) $('topo-mes-vig-nome').textContent = (MESES[mesAtual-1] || '—') + ' 2026';
+  if ($('topo-mes-vig-fat'))  $('topo-mes-vig-fat').textContent  = 'R$ ' + fmt(sV.fat);
+  if ($('topo-mes-vig-ped'))  $('topo-mes-vig-ped').textContent  = fmtInt(sV.total);
+  if ($('topo-mes-vig-sf'))   $('topo-mes-vig-sf').textContent   = fmtInt(sV.semFat);
+  if ($('topo-mes-vig-pct'))  $('topo-mes-vig-pct').textContent  = sV.pctFat.toFixed(0) + '%';
+
+  // Pedidos SEM FATURAR Abril (4) + Maio (5) — analítico fixo solicitado
+  const semFaturarAbrMai = pedsU.filter(p => {
+    const m = Number(p.mes);
+    const st = (p.fatura_status||'').toLowerCase();
+    return (m === 4 || m === 5) && (st.includes('sem fatura') || st.includes('parcial'));
+  });
+  const valSF = semFaturarAbrMai.reduce((s, p) => s + (Number(p.valor_total) || 0), 0);
+  const clisSF = new Set(semFaturarAbrMai.map(p => p.cliente || '—')).size;
+  if ($('topo-sf-abr-mai-valor'))    $('topo-sf-abr-mai-valor').textContent    = 'R$ ' + fmt(valSF);
+  if ($('topo-sf-abr-mai-qtd'))      $('topo-sf-abr-mai-qtd').textContent      = fmtInt(semFaturarAbrMai.length);
+  if ($('topo-sf-abr-mai-clientes')) $('topo-sf-abr-mai-clientes').textContent = fmtInt(clisSF);
 }
 
 // === COMPARATIVO 25x26 (substitui renderComparativo) ===
@@ -6012,7 +6092,7 @@ Pra facilitar auditoria, usem sempre o formato:
    [CANCELAR SALDO] motivo do cancelamento aqui
 
 📊 ATUALIZAÇÃO:
-O painel atualiza automaticamente 4×/dia (seg-sex às 9h, 13h, 17h e 22h). Após editar a observação no Suas Vendas, o painel reflete na próxima execução.
+O painel atualiza automaticamente a cada 1h em horário comercial (seg-sex 7h-19h BRT) via GitHub Actions na nuvem — funciona mesmo com o computador desligado. Após editar a observação no Suas Vendas, o painel reflete no próximo ciclo.
 
 🔍 ONDE APARECE NO PAINEL:
 - Aba Vendas Faturadas → tabela "Pedidos com saldo" → coluna "Será Faturado?" (✓ SIM verde / ✗ NÃO vermelho)
@@ -6030,7 +6110,7 @@ Abraços!
 function abrirPlanilhaCRM() {
   const m = (dadosCache && dadosCache.crm) || {};
   const path = m.planilha_path || '/Users/marcelorodrigues/Library/CloudStorage/GoogleDrive-marcelo@3mvrepresentacao.com/Meu Drive/3MV/CRM 3MV/CRM_3MV.xlsx';
-  alert('📋 Planilha CRM 3MV:\n\n' + path + '\n\nAbas:\n• CRM Indústrias — contatos por setor (financeiro, ADM, MKT, etc)\n• Base de Clientes — emails, telefones, status, canal\n• Contatos Adicionais — emails extras\n\nApós editar e salvar, o painel atualiza no próximo ciclo (4×/dia).');
+  alert('📋 Planilha CRM 3MV:\n\n' + path + '\n\nAbas:\n• CRM Indústrias — contatos por setor (financeiro, ADM, MKT, etc)\n• Base de Clientes — emails, telefones, status, canal\n• Contatos Adicionais — emails extras\n\nApós editar e salvar, o painel atualiza no próximo ciclo (cada 1h).');
   try { window.open('file://' + encodeURI(path), '_blank'); } catch(e) {}
 }
 
@@ -6038,7 +6118,7 @@ function abrirPlanilhaCRM() {
 function abrirPlanilhaMetas() {
   const m = (dadosCache && dadosCache.metas) || {};
   const path = m.planilha_path || '/Users/marcelorodrigues/Library/CloudStorage/GoogleDrive-marcelo@3mvrepresentacao.com/Meu Drive/3MV/BI/2026/Metas.xlsx';
-  alert('📋 Planilha de Metas:\n\n' + path + '\n\nAbra no Finder com Cmd+Shift+G.\n\n• Aba "META GERAL": meta mensal geral (R$/mês)\n• Aba "META INDUSTRIA": meta por indústria por mês\n\nApós editar, salve e o painel atualiza no próximo ciclo (4×/dia) ou rode Atualizar_Painel_AUTO.command.');
+  alert('📋 Planilha de Metas:\n\n' + path + '\n\nAbra no Finder com Cmd+Shift+G.\n\n• Aba "META GERAL": meta mensal geral (R$/mês)\n• Aba "META INDUSTRIA": meta por indústria por mês\n\nApós editar, salve e o painel atualiza no próximo ciclo (cada 1h) ou rode Atualizar_Painel_AUTO.command.');
   try { window.open('file://' + encodeURI(path), '_blank'); } catch(e) {}
 }
 

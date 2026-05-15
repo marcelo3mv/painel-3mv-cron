@@ -439,6 +439,21 @@ def filtrar_e_extrair(
     pedidos_2026 = 0
     pedidos_parciais = 0
 
+    # FIX 2026-05-15: dedup defensivo dos pedidos vindos da API.
+    # A /Pedido sem filtros às vezes retorna o mesmo pedi_id múltiplas vezes,
+    # o que multiplicava as linhas no email de alerta e no painel.
+    _vistos_ped = set()
+    _peds_dedup = []
+    for _p in pedidos:
+        _pid = _p.get("pedi_id")
+        if _pid in _vistos_ped:
+            continue
+        _vistos_ped.add(_pid)
+        _peds_dedup.append(_p)
+    if len(_peds_dedup) < len(pedidos):
+        print(f"  ⚠ dedup: API devolveu {len(pedidos)} pedidos, {len(pedidos)-len(_peds_dedup)} duplicados removidos")
+    pedidos = _peds_dedup
+
     # Classificação adicional de TODOS os pedidos 2026
     n_totalmente_faturados = 0
     n_sem_fatura = 0
