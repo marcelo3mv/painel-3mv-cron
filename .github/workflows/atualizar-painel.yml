@@ -115,6 +115,11 @@ jobs:
         continue-on-error: true
         timeout-minutes: 20
 
+      - name: Etapa 4j — Injetar Sell-out via XLSX (FASE 9.66 — lê planilhas-snapshot/sellout_*.xlsx + R/SUAS VENDAS/ fallback)
+        run: python injetar_sellin_xlsx.py
+        continue-on-error: true
+        timeout-minutes: 10
+
       - name: Etapa 5 — Gerar painel HTML
         run: python gerar_painel.py
 
