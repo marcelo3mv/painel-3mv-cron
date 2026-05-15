@@ -9850,8 +9850,10 @@ function renderCicloVendas() {
       const cor = l.diffDias < 0 ? '#FEE2E2' : l.diffDias <= 7 ? '#FEF3C7' : '#DCFCE7';
       const corText = l.diffDias < 0 ? '#991B1B' : l.diffDias <= 7 ? '#92400E' : '#166534';
       const status = l.diffDias < 0 ? `🔴 atrasado ${Math.abs(l.diffDias)}d` : l.diffDias <= 7 ? `🟡 em ${l.diffDias}d` : `🟢 em ${l.diffDias}d`;
-      tbProx.innerHTML += `<tr style="background:${cor};">
-        <td>${esc(l.cliente)}</td>
+      // FASE 9.66: linha clicável → abre drill-down do cliente (último pedido + itens + ciclo)
+      const cliEsc = String(l.cliente).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      tbProx.innerHTML += `<tr style="background:${cor};cursor:pointer;" title="Clique para ver detalhes do cliente" data-cli="${cliEsc}" onclick="abrirDetalheCliente(this.dataset.cli)">
+        <td>${esc(l.cliente)} <span style="color:#1E40AF;font-size:10px;">🔍</span></td>
         <td><small>${esc(grupoCV(l.cliente))}</small></td>
         <td>${esc(l.industria)}</td>
         <td class="right">${formatDate(l.ultima26||l.ultima25||'')}</td>
@@ -9872,8 +9874,9 @@ function renderCicloVendas() {
     tbSem.innerHTML = '';
     sem26Linhas.slice(0, 200).forEach(l => {
       const diasSem = l.ultima25 ? Math.round((HOJE_TS - new Date(l.ultima25).getTime())/(1000*60*60*24)) : null;
-      tbSem.innerHTML += `<tr>
-        <td>${esc(l.cliente)}</td>
+      const cliEsc = String(l.cliente).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      tbSem.innerHTML += `<tr style="cursor:pointer;" title="Clique para ver detalhes do cliente" data-cli="${cliEsc}" onclick="abrirDetalheCliente(this.dataset.cli)">
+        <td>${esc(l.cliente)} <span style="color:#1E40AF;font-size:10px;">🔍</span></td>
         <td><small>${esc(grupoCV(l.cliente))}</small></td>
         <td>${esc(l.industria)}</td>
         <td class="right">R$ ${fmt(l.fat25)}</td>
