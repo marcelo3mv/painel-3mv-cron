@@ -630,10 +630,7 @@ async function carregarAgenda(token){
   }catch(e){console.error(e); showToast('Erro ao carregar agenda');}
 }
 // FASE 9.66 (#23): Carrega tarefas do Google Tasks (todas as listas) e funde com TAREFAS locais.
-<<<<<<< HEAD
-=======
 // FIX 2026-05-15 (#22): tarefas com due=HOJE também viram itens da AGENDA_HOJE (atendimentos do dia).
->>>>>>> 99aec6b (feat(sellin): categorias via API + intersecção cli+ind + agrupamento Dashboard)
 // Cria/atualiza um marcador na tarefa local com origem='google' pra não duplicar.
 async function carregarTarefasGoogle(token){
   try {
@@ -644,11 +641,8 @@ async function carregarTarefasGoogle(token){
     if(!rL.ok) { console.log('tasks lists err', rL.status); return; }
     const lists = (await rL.json()).items || [];
     let total = 0;
-<<<<<<< HEAD
-=======
     let tasksHoje = 0;
     const hojeYMD = new Date().toISOString().slice(0,10);  // 'YYYY-MM-DD'
->>>>>>> 99aec6b (feat(sellin): categorias via API + intersecção cli+ind + agrupamento Dashboard)
     for(const lst of lists){
       const rT = await fetch('https://tasks.googleapis.com/tasks/v1/lists/' + lst.id + '/tasks?showCompleted=false&maxResults=100', {
         headers: {Authorization: 'Bearer '+token}
@@ -675,8 +669,6 @@ async function carregarTarefasGoogle(token){
           });
           total++;
         }
-<<<<<<< HEAD
-=======
         // FIX 2026-05-15 (#22): tarefa com vencimento de HOJE também aparece na Agenda
         if(t.due){
           const dueYMD = String(t.due).slice(0,10);
@@ -695,7 +687,6 @@ async function carregarTarefasGoogle(token){
             }
           }
         }
->>>>>>> 99aec6b (feat(sellin): categorias via API + intersecção cli+ind + agrupamento Dashboard)
       });
     }
     if(total > 0){
@@ -703,8 +694,6 @@ async function carregarTarefasGoogle(token){
       if(typeof showToast === 'function') showToast('✓ ' + total + ' tarefa(s) do Google Tasks importadas');
       if(typeof renderMeusLembretes === 'function') renderMeusLembretes();
     }
-<<<<<<< HEAD
-=======
     if(tasksHoje > 0){
       // Reordena AGENDA_HOJE: eventos com hora primeiro, depois tarefas
       AGENDA_HOJE.sort((a,b) => {
@@ -715,7 +704,6 @@ async function carregarTarefasGoogle(token){
       renderAgenda();
       if(typeof showToast === 'function') showToast('✓ ' + tasksHoje + ' tarefa(s) de hoje na agenda');
     }
->>>>>>> 99aec6b (feat(sellin): categorias via API + intersecção cli+ind + agrupamento Dashboard)
   } catch(e){ console.error('carregarTarefasGoogle', e); }
 }
 
