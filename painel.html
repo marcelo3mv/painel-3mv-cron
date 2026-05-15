@@ -1299,10 +1299,13 @@ body.modo-crm #pane-crm { display: block !important; }
 
     <!-- ========== AVALIAÇÃO RESULTADOS CLIENTE (FASE 9.41) — wrapper com 2 sub-panes ========== -->
     <div class="pane" id="pane-avaliacao">
+      <!-- FASE 9.66 (#3): Banner cliente em foco quando filtra cliente específico -->
+      <div id="aval-cliente-foco" style="display:none;background:linear-gradient(135deg,#1E40AF,#3B82F6);color:#fff;border-radius:12px;padding:16px 20px;margin-bottom:14px;box-shadow:0 4px 12px rgba(30,64,175,0.3);"></div>
+
       <!-- Sub-pane 1: Curva ABC (default visível) -->
       <div id="aval-sub-abc" class="aval-sub aval-sub-active">
       <h2>📋 Avaliação Resultados Cliente — Curva ABC</h2>
-      <div style="font-size:11px;color:var(--mut);margin:-4px 0 10px;">Classificação A/B/C dos clientes por participação no faturamento 2026, com comparativos por grupo×indústria (% participação e 25×26).</div>
+      <div style="font-size:11px;color:var(--mut);margin:-4px 0 10px;">Classificação A/B/C dos clientes por participação no faturamento 2026, com comparativos por grupo×indústria (% participação e 25×26). <b>Dica:</b> use os filtros do cabeçalho (Cliente/Grupo) pra focar em um cliente específico — o resumo abaixo mostra a posição dele dentro da 3MV.</div>
 
       <h2>🎯 Resumo da Curva</h2>
       <div id="abc-cards" class="kpis kpis-1linha"></div>
@@ -1520,6 +1523,14 @@ body.modo-crm #pane-crm { display: block !important; }
       <!-- FASE 9.58: Sub-pane Sell-out / Histórico (3 anos) -->
       <div id="aval-sub-historico" class="aval-sub">
       <h2>📜 Sell-out / Histórico — Pedidos 2024 · 2025 · 2026</h2>
+      <!-- FASE 9.66 (#7): banner explicando quem envia Sell-out -->
+      <div style="background:#FEF3C7;border-left:4px solid #D97706;padding:10px 14px;border-radius:6px;margin-bottom:10px;font-size:12px;color:#92400E;">
+        ⚠️ <b>Sell-out real (vendas no PDV) só temos hoje de:</b> <span style="color:#0556AD;font-weight:700;">Grupo Aladim · Grupo Indiana Oriente</span>. Os demais clientes ainda não enviam Sell-out — pra eles a aba mostra apenas <b>Sell-in</b> (faturado pra eles). Toggle abaixo pra restringir a visão aos enviadores:
+        <label style="margin-left:8px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" id="hist-only-sellout" onchange="renderHistorico()" style="cursor:pointer;">
+          <span style="font-weight:600;">Mostrar só enviadores de Sell-out</span>
+        </label>
+      </div>
       <div style="font-size:11px;color:var(--mut);margin:-4px 0 10px;">Lê <code>/3MV/BI/Pedidos_Historico/Pedidos_2024_2025_2026.xlsx</code> — substitua mensalmente. Indiana CD BH é o maior cliente histórico. Use os filtros pra recortar.</div>
       <div id="hist-diag" style="background:#EFF6FF;border-left:4px solid #1E40AF;padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:12px;color:#1E40AF;">⏳ Carregando…</div>
       <div class="filtros" style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
@@ -6897,6 +6908,7 @@ function renderAvaliacao() {
   })).filter(l => l.fat26 > 0).sort((a,b) => b.fat26 - a.fat26);
 
   const totFat26 = linhas.reduce((s,l) => s + l.fat26, 0);
+  const totFat25 = linhas.reduce((s,l) => s + l.fat25, 0);
   let acum = 0;
   linhas.forEach(l => {
     acum += l.fat26;
@@ -6904,6 +6916,57 @@ function renderAvaliacao() {
     l.pct_part = totFat26 > 0 ? (l.fat26/totFat26*100) : 0;     // FASE 9.43: % participação individual
     l.classe = l.pct_acum <= 80 ? 'A' : l.pct_acum <= 95 ? 'B' : 'C';
   });
+
+  // FASE 9.66 (#3): Banner "Cliente em Foco" quando há filtro de cliente/grupo aplicado
+  const banner = document.getElementById('aval-cliente-foco');
+  if (banner) {
+    const fG = getFiltrosGlobais();
+    const cliFiltro = fG.cliente || '';
+    const grpFiltro = fG.grupo || '';
+    if (cliFiltro || grpFiltro) {
+      const alvoLinhas = cliFiltro
+        ? linhas.filter(l => l.cliente === cliFiltro)
+        : linhas.filter(l => l.grupo === grpFiltro);
+      const alvoFat26 = alvoLinhas.reduce((s,l) => s + l.fat26, 0);
+      const alvoFat25 = alvoLinhas.reduce((s,l) => s + l.fat25, 0);
+      const pct3MV = totFat26 > 0 ? (alvoFat26/totFat26*100) : 0;
+      const cresc = alvoFat25 > 0 ? ((alvoFat26/alvoFat25 - 1)*100) : null;
+      const classes = [...new Set(alvoLinhas.map(l => l.classe))].sort().join('/') || '—';
+      const posicao = alvoLinhas.length > 0
+        ? linhas.findIndex(l => l.cliente === alvoLinhas[0].cliente) + 1
+        : '—';
+      banner.style.display = 'block';
+      banner.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;">
+          <div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.5px;opacity:.9;text-transform:uppercase;margin-bottom:4px;">🎯 Cliente em foco · 3MV vs Filtrado</div>
+            <div style="font-size:18px;font-weight:800;">${esc(cliFiltro || grpFiltro)}</div>
+            <div style="font-size:11px;opacity:.95;margin-top:3px;">${alvoLinhas.length} cliente(s) · classe ${classes} · posição #${posicao} no ranking</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;flex:1;max-width:600px;">
+            <div style="background:rgba(255,255,255,0.15);padding:8px 10px;border-radius:8px;">
+              <div style="font-size:10px;opacity:.85;">Fat. filtrado 26 YTD</div>
+              <div style="font-size:16px;font-weight:800;">R$ ${fmt(alvoFat26)}</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.15);padding:8px 10px;border-radius:8px;">
+              <div style="font-size:10px;opacity:.85;">% da 3MV</div>
+              <div style="font-size:16px;font-weight:800;">${pct3MV.toFixed(1)}%</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.15);padding:8px 10px;border-radius:8px;">
+              <div style="font-size:10px;opacity:.85;">Δ vs 2025</div>
+              <div style="font-size:16px;font-weight:800;">${cresc === null ? '—' : (cresc>=0?'+':'')+cresc.toFixed(1)+'%'}</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.15);padding:8px 10px;border-radius:8px;">
+              <div style="font-size:10px;opacity:.85;">Total 3MV 26 YTD</div>
+              <div style="font-size:16px;font-weight:800;">R$ ${fmt(totFat26)}</div>
+            </div>
+          </div>
+        </div>`;
+    } else {
+      banner.style.display = 'none';
+      banner.innerHTML = '';
+    }
+  }
 
   // FASE 9.49: Cards resumo — agora com % do faturamento + tooltip com lista de clientes
   const counts = { A: 0, B: 0, C: 0 };
@@ -7612,21 +7675,65 @@ function renderAvaliacao() {
       const med25 = validos25.length ? validos25.reduce((s,v)=>s+v,0) / validos25.length : 0;
       const sugestao = med26 > 0 ? med26 : med25;
       return { cliente: l.cliente, ind: l.ind, med25, med26, sugestao };
-    }).filter(s => s.sugestao > 0).sort((a,b) => b.sugestao - a.sugestao);
+    }).filter(s => s.sugestao > 0);
+
     if (fSInd) sugLinhas = sugLinhas.filter(s => s.ind === fSInd);
+
+    // FASE 9.66 (#6): agrupa por indústria quando não há filtro específico
+    // - com filtro: lista flat ordenada por sugestao desc
+    // - sem filtro: indústria headers + linhas por indústria
+    sugLinhas.sort((a,b) => {
+      if (!fSInd) {
+        if (a.ind !== b.ind) return (a.ind||'zzz').localeCompare(b.ind||'zzz');
+      }
+      return b.sugestao - a.sugestao;
+    });
     tbS.innerHTML = '';
-    sugLinhas.slice(0, 200).forEach((s, i) => {
-      tbS.innerHTML += `<tr>
-        <td>${i+1}</td>
+    let lastInd = null;
+    let rank = 0;
+    let subInd = {n: 0, med25: 0, med26: 0, sug: 0};
+    function flushIndTotal() {
+      if (!lastInd || subInd.n === 0) return;
+      const tr = document.createElement('tr');
+      tr.style.background = '#1E40AF';
+      tr.style.color = '#fff';
+      tr.innerHTML = `<td colspan="3" style="text-align:right;padding:6px 10px;font-weight:800;">═ Subtotal ${esc(lastInd)} (${subInd.n} clientes) ═</td>
+        <td class="right" style="font-weight:800;">R$ ${fmt(subInd.med25)}</td>
+        <td class="right" style="font-weight:800;">R$ ${fmt(subInd.med26)}</td>
+        <td class="right" style="font-weight:800;">R$ ${fmt(subInd.sug)}</td>`;
+      tbS.appendChild(tr);
+      subInd = {n: 0, med25: 0, med26: 0, sug: 0};
+    }
+
+    sugLinhas.slice(0, 300).forEach(s => {
+      if (!fSInd && s.ind !== lastInd) {
+        flushIndTotal();
+        lastInd = s.ind;
+        const trH = document.createElement('tr');
+        trH.style.background = 'linear-gradient(90deg,#1E40AF,#3B82F6)';
+        trH.style.color = '#fff';
+        trH.innerHTML = `<td colspan="6" style="padding:8px 10px;font-weight:800;font-size:13px;">🏭 ${esc(s.ind)}</td>`;
+        tbS.appendChild(trH);
+        rank = 0;
+      }
+      rank += 1;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${rank}</td>
         <td><b>${esc(s.cliente)}</b></td>
         <td>${esc(s.ind)}</td>
         <td class="right">R$ ${fmt(s.med25)}</td>
         <td class="right">R$ ${fmt(s.med26)}</td>
-        <td class="right" style="color:#1E40AF;font-weight:700;">R$ ${fmt(s.sugestao)}</td>
-      </tr>`;
+        <td class="right" style="color:#1E40AF;font-weight:700;">R$ ${fmt(s.sugestao)}</td>`;
+      tbS.appendChild(tr);
+      subInd.n += 1;
+      subInd.med25 += s.med25;
+      subInd.med26 += s.med26;
+      subInd.sug += s.sugestao;
     });
+    if (!fSInd) flushIndTotal();
     const elSI = document.getElementById('sugestao-info');
-    if (elSI) elSI.textContent = `${sugLinhas.length} clientes com sugestão${fSInd ? ' em ' + fSInd : ''}`;
+    if (elSI) elSI.textContent = `${sugLinhas.length} clientes com sugestão${fSInd ? ' em ' + fSInd : ' (agrupados por indústria)'}`;
     window.__sugestao_linhas__ = sugLinhas;
   }
 
@@ -9147,10 +9254,19 @@ function renderHistorico() {
   }
   const fCli = (selCli||{}).value || '';
   const fInd = (selInd||{}).value || '';
+  // FASE 9.66 (#7): toggle pra mostrar SOMENTE clientes que enviam Sell-out (Aladim/Indiana Oriente)
+  const onlySO = !!(document.getElementById('hist-only-sellout') && document.getElementById('hist-only-sellout').checked);
+  const SELLOUT_GRUPOS = ['Aladim / DAC / DCA', 'Indiana Oriente', 'INDIANA', 'INDIANA CD BH', 'CASA ALADIM', 'DAC', 'DCA'];
+  const isSellOutCli = (nome) => {
+    if (!nome) return false;
+    const up = String(nome).toUpperCase();
+    return SELLOUT_GRUPOS.some(g => up.includes(g.toUpperCase()));
+  };
 
   // Aplica filtro
   let f24 = 0, f25 = 0, f26 = 0;
   let topsFiltrados = tops.slice();
+  if (onlySO) topsFiltrados = topsFiltrados.filter(t => isSellOutCli(t.cliente));
   if (fCli) topsFiltrados = topsFiltrados.filter(t => t.cliente === fCli);
   if (fInd) topsFiltrados = topsFiltrados.filter(t => (t.industrias || []).includes(fInd));
   // Recalcula totais aplicando o filtro
@@ -9222,12 +9338,17 @@ function renderHistorico() {
       const cor = t.delta_pct_26x25 === null ? '#94A3B8' : t.delta_pct_26x25 >= 10 ? '#16a34a' : t.delta_pct_26x25 >= -10 ? '#475569' : '#DC2626';
       const stat = t.delta_pct_26x25 === null ? '<small style="color:#94A3B8;">novo</small>'
         : t.delta_pct_26x25 >= 10 ? '<span class="ok">↑ crescendo</span>'
-        : t.delta_pct_26x25 >= -10 ? '<small style="color:#475569;">estável</small>'
+        : t.delta_pct_26x25 >= -10 ? '<small style="color:#475565;">estável</small>'
         : '<span class="warn">↓ caindo</span>';
       const inds = (t.industrias || []).slice(0, 3).join(', ') + ((t.industrias||[]).length > 3 ? '...' : '');
+      // FASE 9.66 (#7): badge "Envia Sell-out" pra Aladim/Indiana Oriente; "Sell-in apenas" pros outros
+      const enviaSO = isSellOutCli(t.cliente);
+      const badgeSO = enviaSO
+        ? '<span style="display:inline-block;padding:2px 6px;background:#DCFCE7;color:#166534;border-radius:6px;font-size:9px;font-weight:700;margin-left:4px;">📊 Sell-out</span>'
+        : '<span style="display:inline-block;padding:2px 6px;background:#FEF3C7;color:#92400E;border-radius:6px;font-size:9px;font-weight:700;margin-left:4px;" title="Cliente ainda não envia Sell-out — visão é Sell-in (faturado pra ele)">⚪ Sell-in apenas</span>';
       tb.innerHTML += `<tr>
         <td>${i+1}</td>
-        <td><b>${esc(t.cliente)}</b></td>
+        <td><b>${esc(t.cliente)}</b>${badgeSO}</td>
         <td><small>${esc(inds)}</small></td>
         <td class="right">R$ ${fmt(t.fat_24||0)}</td>
         <td class="right">R$ ${fmt(t.fat_25||0)}</td>
