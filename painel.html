@@ -7763,9 +7763,12 @@ function renderProdutos() {
   };
 
   // Enriquecer cada item com categoria + grupo + valor
+  // FIX 2026-05-15 (#5): prioriza it.categoria (já vem populada da API/Excel "INDÚSTRIA · SUBCAT"),
+  // só cai pro shorthand do código se não tiver. Antes a aba ficava "vazia" porque os agrupamentos
+  // usavam o prefixo do código (PA, GZ, 31...) ao invés do nome legível da categoria.
   const itensExt = itens.map(it => ({
     ...it,
-    cat: categoriaDoCodigo(it.produto_codigo),
+    cat: it.categoria || categoriaDoCodigo(it.produto_codigo),
     grupo: grupoDe(it.cliente),
     valor: (it.qtde_pedida || 0) * (it.preco_unit || 0),
     valor_fat: (it.qtde_faturada || 0) * (it.preco_unit || 0),
