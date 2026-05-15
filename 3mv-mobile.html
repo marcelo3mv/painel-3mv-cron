@@ -329,6 +329,12 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
     <div class="filter-chip" data-filtro="saldos" data-status="vencido" onclick="filtrarIndustrias(this,'saldos')">Com saldos</div>
     <div class="filter-chip" data-filtro="top10" onclick="filtrarIndustrias(this,'top10')">Top 10</div>
     <div class="filter-chip" data-filtro="multi" onclick="filtrarIndustrias(this,'multi')">Multi-cliente</div>
+    <div class="filter-chip" data-filtro="selecionar" onclick="abrirSeletorIndustrias()" style="background:linear-gradient(135deg,#1d8ad6,#1565a8);color:white;font-weight:700;">☑ Selecionar...</div>
+  </div>
+  <!-- FIX 2026-05-15 (#24): Multi-seleção de indústrias -->
+  <div id="industrias-selecionadas" style="display:none;padding:8px 14px;background:#f0f9ff;border-bottom:1px solid #cfe7fb;font-size:11px;color:#1565a8;font-weight:600;">
+    <span id="industrias-sel-resumo"></span>
+    <button onclick="limparSelecaoIndustrias()" style="margin-left:8px;background:none;border:1px solid #1565a8;color:#1565a8;padding:2px 8px;border-radius:6px;font-size:10px;cursor:pointer;font-weight:700;">✕ Limpar</button>
   </div>
   <div class="kpi-row" id="kpi-industrias"></div>
   <div class="section" style="margin-top:16px;"><div class="section-title">Indústrias <span class="badge-count" id="contador-industrias">0</span></div><div id="lista-industrias"></div></div>
@@ -624,6 +630,10 @@ async function carregarAgenda(token){
   }catch(e){console.error(e); showToast('Erro ao carregar agenda');}
 }
 // FASE 9.66 (#23): Carrega tarefas do Google Tasks (todas as listas) e funde com TAREFAS locais.
+<<<<<<< HEAD
+=======
+// FIX 2026-05-15 (#22): tarefas com due=HOJE também viram itens da AGENDA_HOJE (atendimentos do dia).
+>>>>>>> 99aec6b (feat(sellin): categorias via API + intersecção cli+ind + agrupamento Dashboard)
 // Cria/atualiza um marcador na tarefa local com origem='google' pra não duplicar.
 async function carregarTarefasGoogle(token){
   try {
@@ -634,6 +644,11 @@ async function carregarTarefasGoogle(token){
     if(!rL.ok) { console.log('tasks lists err', rL.status); return; }
     const lists = (await rL.json()).items || [];
     let total = 0;
+<<<<<<< HEAD
+=======
+    let tasksHoje = 0;
+    const hojeYMD = new Date().toISOString().slice(0,10);  // 'YYYY-MM-DD'
+>>>>>>> 99aec6b (feat(sellin): categorias via API + intersecção cli+ind + agrupamento Dashboard)
     for(const lst of lists){
       const rT = await fetch('https://tasks.googleapis.com/tasks/v1/lists/' + lst.id + '/tasks?showCompleted=false&maxResults=100', {
         headers: {Authorization: 'Bearer '+token}
@@ -660,6 +675,27 @@ async function carregarTarefasGoogle(token){
           });
           total++;
         }
+<<<<<<< HEAD
+=======
+        // FIX 2026-05-15 (#22): tarefa com vencimento de HOJE também aparece na Agenda
+        if(t.due){
+          const dueYMD = String(t.due).slice(0,10);
+          if(dueYMD === hojeYMD){
+            const titulo = (t.title || '(tarefa sem título)');
+            const jaTem = AGENDA_HOJE.some(a => a.titulo === titulo && a._origem === 'task');
+            if(!jaTem){
+              AGENDA_HOJE.push({
+                hora: '📋 Tarefa',
+                titulo: titulo,
+                cliente: extrairCliente(titulo),
+                _origem: 'task',
+                _list: lst.title,
+              });
+              tasksHoje++;
+            }
+          }
+        }
+>>>>>>> 99aec6b (feat(sellin): categorias via API + intersecção cli+ind + agrupamento Dashboard)
       });
     }
     if(total > 0){
@@ -667,6 +703,19 @@ async function carregarTarefasGoogle(token){
       if(typeof showToast === 'function') showToast('✓ ' + total + ' tarefa(s) do Google Tasks importadas');
       if(typeof renderMeusLembretes === 'function') renderMeusLembretes();
     }
+<<<<<<< HEAD
+=======
+    if(tasksHoje > 0){
+      // Reordena AGENDA_HOJE: eventos com hora primeiro, depois tarefas
+      AGENDA_HOJE.sort((a,b) => {
+        const ah = a._origem === 'task' ? 'zz' : (a.hora || '');
+        const bh = b._origem === 'task' ? 'zz' : (b.hora || '');
+        return ah.localeCompare(bh);
+      });
+      renderAgenda();
+      if(typeof showToast === 'function') showToast('✓ ' + tasksHoje + ' tarefa(s) de hoje na agenda');
+    }
+>>>>>>> 99aec6b (feat(sellin): categorias via API + intersecção cli+ind + agrupamento Dashboard)
   } catch(e){ console.error('carregarTarefasGoogle', e); }
 }
 
@@ -2275,7 +2324,100 @@ function aplicarFiltroIndustrias(lista){
   if(_filtroIndustrias==='saldos') return lista.filter(i=>i.totalSaldos>0);
   if(_filtroIndustrias==='top10') return lista.slice(0,10);
   if(_filtroIndustrias==='multi') return lista.filter(i=>i.clientes.length>=2);
+  // FIX 2026-05-15 (#24): multi-seleção manual via checkboxes
+  if(_filtroIndustrias==='selecionar' && _industriasSelecionadas && _industriasSelecionadas.size>0){
+    return lista.filter(i=>_industriasSelecionadas.has(i.nome));
+  }
   return lista;
+}
+
+// FIX 2026-05-15 (#24): Multi-seleção de indústrias com checkboxes
+let _industriasSelecionadas = new Set();
+
+function abrirSeletorIndustrias(){
+  if(INDUSTRIAS_AGREG.length === 0) calcularIndustriasAgreg();
+  const lista = INDUSTRIAS_AGREG.slice().sort((a,b)=>a.nome.localeCompare(b.nome));
+  let html = '<div class="modal aberto" id="modal-sel-ind" style="z-index:9000;" onclick="if(event.target===this)fecharSeletorIndustrias()">';
+  html += '<div class="modal-sheet" style="max-height:85vh;">';
+  html += '<div class="modal-handle"></div>';
+  html += '<div class="modal-header"><div><div class="modal-titulo">☑ Selecionar indústrias</div><div style="font-size:12px;color:var(--muted);margin-top:2px;">Marque para filtrar · '+_industriasSelecionadas.size+' selecionada(s)</div></div><button class="modal-fechar" onclick="fecharSeletorIndustrias()">Fechar</button></div>';
+  html += '<div style="padding:10px 18px;display:flex;gap:8px;flex-wrap:wrap;">';
+  html += '<button class="btn-primary" onclick="marcarTodasIndustrias(true)" style="background:#10b981;color:white;padding:8px 14px;border-radius:10px;font-weight:700;font-size:12px;border:none;cursor:pointer;">✓ Marcar todas</button>';
+  html += '<button class="btn-primary" onclick="marcarTodasIndustrias(false)" style="background:#ef4444;color:white;padding:8px 14px;border-radius:10px;font-weight:700;font-size:12px;border:none;cursor:pointer;">✕ Desmarcar todas</button>';
+  html += '<button class="btn-primary" onclick="aplicarSelecaoIndustrias()" style="background:linear-gradient(135deg,#1d8ad6,#1565a8);color:white;padding:8px 14px;border-radius:10px;font-weight:700;font-size:12px;border:none;cursor:pointer;margin-left:auto;">Aplicar →</button>';
+  html += '</div>';
+  html += '<div style="padding:0 18px 18px;overflow-y:auto;max-height:60vh;">';
+  lista.forEach(i=>{
+    const chk = _industriasSelecionadas.has(i.nome) ? 'checked' : '';
+    const idEsc = i.nome.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    html += '<label class="ind-sel-row" style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer;">';
+    html += '<input type="checkbox" '+chk+' onchange="toggleIndustriaSelecionada(\''+idEsc+'\',this.checked)" style="width:22px;height:22px;cursor:pointer;accent-color:#1565a8;">';
+    html += '<div style="flex:1;">';
+    html += '<div style="font-weight:800;font-size:14px;color:#0f172a;">'+i.nome+'</div>';
+    html += '<div style="font-size:11px;color:var(--muted);font-weight:600;">'+i.clientes.length+' cliente(s) · '+fmt(i.totalValor)+(i.totalSaldos>0?' · ⏳ '+i.totalSaldos+' saldos':'')+'</div>';
+    html += '</div>';
+    html += '</label>';
+  });
+  html += '</div></div></div>';
+  const old = document.getElementById('modal-sel-ind');
+  if(old) old.remove();
+  document.body.insertAdjacentHTML('beforeend', html);
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharSeletorIndustrias(){
+  const m = document.getElementById('modal-sel-ind');
+  if(m) m.remove();
+  document.body.style.overflow = '';
+}
+
+function toggleIndustriaSelecionada(nome, marcar){
+  if(marcar) _industriasSelecionadas.add(nome);
+  else _industriasSelecionadas.delete(nome);
+}
+
+function marcarTodasIndustrias(marcar){
+  if(marcar){
+    INDUSTRIAS_AGREG.forEach(i=>_industriasSelecionadas.add(i.nome));
+  } else {
+    _industriasSelecionadas.clear();
+  }
+  abrirSeletorIndustrias(); // re-renderiza
+}
+
+function aplicarSelecaoIndustrias(){
+  _filtroIndustrias = 'selecionar';
+  document.querySelectorAll('#filtros-industrias .filter-chip').forEach(x=>x.classList.remove('ativo'));
+  const chip = document.querySelector('#filtros-industrias .filter-chip[data-filtro="selecionar"]');
+  if(chip) chip.classList.add('ativo');
+  fecharSeletorIndustrias();
+  atualizarResumoSelecaoIndustrias();
+  renderIndustrias();
+  if(typeof showToast === 'function') showToast('✓ '+_industriasSelecionadas.size+' indústria(s) filtrada(s)');
+}
+
+function limparSelecaoIndustrias(){
+  _industriasSelecionadas.clear();
+  _filtroIndustrias = 'todas';
+  document.querySelectorAll('#filtros-industrias .filter-chip').forEach(x=>x.classList.remove('ativo'));
+  const chip = document.querySelector('#filtros-industrias .filter-chip[data-filtro="todas"]');
+  if(chip) chip.classList.add('ativo');
+  atualizarResumoSelecaoIndustrias();
+  renderIndustrias();
+}
+
+function atualizarResumoSelecaoIndustrias(){
+  const box = document.getElementById('industrias-selecionadas');
+  const resumo = document.getElementById('industrias-sel-resumo');
+  if(!box || !resumo) return;
+  if(_industriasSelecionadas.size === 0){
+    box.style.display = 'none';
+    return;
+  }
+  box.style.display = 'block';
+  const arr = Array.from(_industriasSelecionadas);
+  const txt = arr.length <= 3 ? arr.join(' · ') : arr.slice(0,2).join(' · ') + ' + '+(arr.length-2)+' outras';
+  resumo.textContent = '☑ Filtrando: ' + txt;
 }
 
 function aplicarFiltroClientes(lista){

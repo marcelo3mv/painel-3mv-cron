@@ -125,13 +125,26 @@ def main():
 
             ano_str = str(ano)
             por_ci_ano.setdefault(cliente, {}).setdefault(industria, {}).setdefault(ano_str, {
-                'valor': 0, 'faturado': 0, 'saldo': 0, 'qtd_pedidos': 0
+                'valor': 0, 'faturado': 0, 'saldo': 0, 'qtd_pedidos': 0,
+                'ultima_data': None, 'primeira_data': None,
             })
             d = por_ci_ano[cliente][industria][ano_str]
             d['valor'] += valor
             d['faturado'] += valor_fat
             d['saldo'] += saldo
             d['qtd_pedidos'] += 1
+            # FIX 2026-05-15: popular ultima_data e primeira_data por cliente×ind×ano
+            if isinstance(dt_venda, datetime):
+                dt_str = dt_venda.strftime('%Y-%m-%d')
+            elif isinstance(dt_venda, str) and len(dt_venda) >= 10:
+                dt_str = dt_venda[:10]
+            else:
+                dt_str = None
+            if dt_str:
+                if not d.get('ultima_data') or dt_str > d['ultima_data']:
+                    d['ultima_data'] = dt_str
+                if not d.get('primeira_data') or dt_str < d['primeira_data']:
+                    d['primeira_data'] = dt_str
 
             mensal_ind.setdefault(industria, {}).setdefault(ano_str, [0]*12)
             if 1 <= mes <= 12:
@@ -166,6 +179,29 @@ def main():
         return 0
 
     d = json.loads(DADOS_JSON.read_text(encoding='utf-8'))
+
+    # FIX 2026-05-15: cruzar com pedidos_2026 (API fresca) pra puxar últimas datas
+    # que ainda não chegaram no xlsx histórico (xlsx pode ter atraso de 1-7 dias)
+    pedidos_api_processados = 0
+    for p in (d.get('pedidos_2026') or []):
+        cli = (p.get('cliente') or '').upper().strip()
+        ind = (p.get('industria') or '').upper().strip()
+        dt = p.get('data') or p.get('data_pedido') or ''
+        if not cli or not ind or not isinstance(dt, str) or len(dt) < 10:
+            continue
+        dt = dt[:10]
+        ano_str = dt[:4]
+        node_ano = por_ci_ano.setdefault(cli, {}).setdefault(ind, {}).setdefault(ano_str, {
+            'valor': 0, 'faturado': 0, 'saldo': 0, 'qtd_pedidos': 0,
+            'ultima_data': None, 'primeira_data': None,
+        })
+        if not node_ano.get('ultima_data') or dt > node_ano['ultima_data']:
+            node_ano['ultima_data'] = dt
+        if not node_ano.get('primeira_data') or dt < node_ano['primeira_data']:
+            node_ano['primeira_data'] = dt
+        pedidos_api_processados += 1
+    print(f'  ✓ Cruzado com {pedidos_api_processados} pedidos da API pra popular ultima_data')
+
     try:
         mtime = datetime.fromtimestamp(XLSX.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
     except Exception:
