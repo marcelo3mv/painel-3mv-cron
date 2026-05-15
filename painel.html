@@ -1313,10 +1313,14 @@ body.modo-crm #pane-crm { display: block !important; }
         <div class="chart-card"><h3>Quantidade de Clientes por Classe</h3><div class="chart-wrap"><canvas id="abc-qtde"></canvas></div></div>
       </div>
 
-      <!-- FASE 9.49: Composição por Classe — empilhado dos top clientes -->
-      <h2 style="margin-top:24px;">📊 Composição da Curva — top clientes por classe (% YTD)</h2>
-      <div style="font-size:11px;color:var(--mut);margin:-4px 0 10px;">Cada linha mostra o tamanho total da classe (% YTD) decomposto pelos seus top clientes. Útil pra ver dependência: se uma classe é dominada por poucos clientes ou está bem distribuída.</div>
-      <div class="chart-card"><div class="chart-wrap" style="height:260px;"><canvas id="abc-stack-classe"></canvas></div></div>
+      <!-- FASE 9.49 + 9.66 (#4): Composição por Classe — formato mais claro: barras horizontais ranking + chart -->
+      <h2 style="margin-top:24px;">📊 Top 10 Clientes por Classe — quem responde pela receita</h2>
+      <div style="font-size:11px;color:var(--mut);margin:-4px 0 10px;">📖 <b>Como ler:</b> separamos os top 10 maiores clientes de cada classe (A=80% do total · B=15% · C=5%). Quanto mais concentrado em poucos clientes (Top 1+2+3 com % alto), maior o risco de dependência. Quanto mais espalhado, mais saudável é a base.</div>
+      <div id="abc-top-clientes-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin:0 0 16px;"></div>
+
+      <h2 style="margin-top:18px;">📊 Composição da Curva — top clientes empilhados (visão de barra única)</h2>
+      <div style="font-size:11px;color:var(--mut);margin:-4px 0 10px;">Cada linha = uma classe. Cada bloco colorido = um cliente. Tamanho proporcional ao % do YTD que ele representa.</div>
+      <div class="chart-card"><div class="chart-wrap" style="height:200px;"><canvas id="abc-stack-classe"></canvas></div></div>
 
       <!-- FASE 9.47: Grupo de Cliente por Tipo de Curva — comparando % 25 vs 26 -->
       <h2 style="margin-top:24px;">🏆 Grupo de Cliente por Tipo de Curva — % do YTD 25 × 26</h2>
@@ -6952,6 +6956,42 @@ function renderAvaliacao() {
   // ===========================================================
   // FASE 9.49: Composição da Curva — top clientes por classe (% YTD)
   // ===========================================================
+  // FASE 9.66 (#4): cards top 10 por classe — mais legível que o stacked bar
+  const elCards = document.getElementById('abc-top-clientes-cards');
+  if (elCards) {
+    const corClasse = { A: '#10B981', B: '#F59E0B', C: '#DC2626' };
+    const corBgClasse = { A: '#ECFDF5', B: '#FFFBEB', C: '#FEF2F2' };
+    const totalClasse = { A: pctA, B: pctB, C: pctC };
+    let cardsHtml = '';
+    ['A','B','C'].forEach(cl => {
+      const tops = linhas.filter(l => l.classe === cl).slice(0, 10);
+      const totCli = counts[cl];
+      const concentracao3 = tops.slice(0, 3).reduce((s,c) => s+c.pct_part, 0);
+      cardsHtml += `<div style="background:${corBgClasse[cl]};border-left:4px solid ${corClasse[cl]};border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid ${corClasse[cl]}33;padding-bottom:6px;margin-bottom:10px;">
+          <div style="font-size:18px;font-weight:800;color:${corClasse[cl]};">Classe ${cl}</div>
+          <div style="font-size:11px;color:#64748b;"><b>${totCli}</b> clientes · <b>${totalClasse[cl].toFixed(1)}%</b> do YTD</div>
+        </div>
+        <div style="font-size:11px;color:#475569;margin-bottom:8px;">🎯 Top 3 = <b style="color:${corClasse[cl]};">${concentracao3.toFixed(1)}%</b> do YTD ${cl === 'A' ? '(alta concentração = risco)' : '(diluído entre vários)'}</div>
+        ${tops.map((c, i) => {
+          const pctNum = c.pct_part;
+          const barW = Math.min(100, pctNum / (tops[0]?.pct_part || 1) * 100);
+          return `<div style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:4px;">
+            <div style="width:18px;color:#94a3b8;font-weight:700;">${i+1}.</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc((c.cliente||'').slice(0,28))}</div>
+              <div style="background:#fff;border-radius:4px;height:6px;overflow:hidden;margin-top:2px;">
+                <div style="background:${corClasse[cl]};width:${barW}%;height:100%;"></div>
+              </div>
+            </div>
+            <div style="font-weight:700;color:${corClasse[cl]};min-width:50px;text-align:right;">${pctNum.toFixed(1)}%</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    });
+    elCards.innerHTML = cardsHtml;
+  }
+
   const elStack = document.getElementById('abc-stack-classe');
   if (elStack) {
     if (charts['abc-stack-classe']) charts['abc-stack-classe'].destroy();
