@@ -7020,8 +7020,9 @@ function renderAvaliacao() {
   // FASE 9.49: Composição da Curva — top clientes por classe (% YTD)
   // ===========================================================
   // FASE 9.66 (#4): cards top 10 por classe — mais legível que o stacked bar
-  const elCards = document.getElementById('abc-top-clientes-cards');
-  if (elCards) {
+  // FIX 2026-05-15: renomeado pra elTopCards (havia colisão com elCards declarado acima na mesma função)
+  const elTopCards = document.getElementById('abc-top-clientes-cards');
+  if (elTopCards) {
     const corClasse = { A: '#10B981', B: '#F59E0B', C: '#DC2626' };
     const corBgClasse = { A: '#ECFDF5', B: '#FFFBEB', C: '#FEF2F2' };
     const totalClasse = { A: pctA, B: pctB, C: pctC };
@@ -7052,7 +7053,7 @@ function renderAvaliacao() {
         }).join('')}
       </div>`;
     });
-    elCards.innerHTML = cardsHtml;
+    elTopCards.innerHTML = cardsHtml;
   }
 
   const elStack = document.getElementById('abc-stack-classe');
