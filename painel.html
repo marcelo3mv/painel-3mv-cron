@@ -4338,19 +4338,89 @@ function renderVendasFaturadas() {
     return { ...p, valor_faturado: valor_fat, saldo_pedido: saldo, pct_fat, status_saldo, obs };
   });
 
-  // Tabela — ordena por data cronológica (mais antigo → mais recente por mês)
+  // Tabela — FASE 9.66 (#12): agora ordena/agrupa por INDÚSTRIA → CLIENTE → DATA
+  // com linhas de separador visual entre indústrias e entre clientes da mesma indústria.
   const tb = document.querySelector('#t-vendas tbody');
   if (tb) {
     tb.innerHTML = '';
-    enriched.sort((a, b) => {
-              const da = (a.data || '').slice(0, 10);
-              const db = (b.data || '').slice(0, 10);
-              return da.localeCompare(db);
-            })
-            .slice(0, 500)
-            .forEach(p => {
+    const ordenado = enriched.slice().sort((a, b) => {
+      const ia = (a.industria || 'zzz').toLowerCase();
+      const ib = (b.industria || 'zzz').toLowerCase();
+      if (ia !== ib) return ia.localeCompare(ib);
+      const ca = (a.cliente || 'zzz').toLowerCase();
+      const cb = (b.cliente || 'zzz').toLowerCase();
+      if (ca !== cb) return ca.localeCompare(cb);
+      return (a.data||'').localeCompare(b.data||'');
+    }).slice(0, 600);
+
+    let ultimoInd = null;
+    let ultimoCli = null;
+    let subtotaisInd = {fat:0, saldo:0, total:0, qtd:0};
+    let subtotaisCli = {fat:0, saldo:0, total:0, qtd:0};
+
+    function flushSubtotalCliente() {
+      if (ultimoCli == null || subtotaisCli.qtd === 0) return;
+      const tr = document.createElement('tr');
+      tr.style.background = '#F8FAFC';
+      tr.innerHTML = `
+        <td colspan="5" style="text-align:right;padding:4px 8px;color:#475569;font-weight:700;font-size:11px;">→ Subtotal cliente <i>${esc(ultimoCli)}</i> (${subtotaisCli.qtd} ped.)</td>
+        <td class="right" style="background:#F0FDF4;color:#166534;font-weight:700;">—</td>
+        <td class="right" style="background:#F0FDF4;color:#166534;font-weight:700;">R$ ${fmt(subtotaisCli.fat)}</td>
+        <td class="right" style="background:#F0FDF4;color:#166534;">—</td>
+        <td class="right" style="background:#FEF2F2;color:#991B1B;font-weight:700;">—</td>
+        <td class="right" style="background:#FEF2F2;color:#991B1B;font-weight:700;">R$ ${fmt(subtotaisCli.saldo)}</td>
+        <td style="background:#FEF2F2;"></td>
+        <td class="right" style="background:#EFF6FF;color:#1E40AF;font-weight:700;">R$ ${fmt(subtotaisCli.total)}</td>
+        <td style="background:#EFF6FF;"></td>`;
+      tb.appendChild(tr);
+      subtotaisCli = {fat:0, saldo:0, total:0, qtd:0};
+    }
+    function flushSubtotalIndustria() {
+      if (ultimoInd == null || subtotaisInd.qtd === 0) return;
+      const tr = document.createElement('tr');
+      tr.style.background = '#1E40AF';
+      tr.style.color = '#fff';
+      tr.innerHTML = `
+        <td colspan="5" style="text-align:right;padding:6px 8px;font-weight:800;font-size:12px;">═ TOTAL ${esc(ultimoInd)} (${subtotaisInd.qtd} pedidos) ═</td>
+        <td class="right" style="font-weight:800;">—</td>
+        <td class="right" style="font-weight:800;">R$ ${fmt(subtotaisInd.fat)}</td>
+        <td class="right">—</td>
+        <td class="right" style="font-weight:800;">—</td>
+        <td class="right" style="font-weight:800;">R$ ${fmt(subtotaisInd.saldo)}</td>
+        <td></td>
+        <td class="right" style="font-weight:800;">R$ ${fmt(subtotaisInd.total)}</td>
+        <td></td>`;
+      tb.appendChild(tr);
+      subtotaisInd = {fat:0, saldo:0, total:0, qtd:0};
+    }
+
+    ordenado.forEach(p => {
+      const ind = p.industria || '—';
+      const cli = p.cliente || '—';
+
+      if (ind !== ultimoInd) {
+        // fecha subtotais
+        flushSubtotalCliente();
+        flushSubtotalIndustria();
+        ultimoCli = null;
+        ultimoInd = ind;
+        // header da indústria
+        const trHead = document.createElement('tr');
+        trHead.style.background = 'linear-gradient(90deg,#1E40AF,#3B82F6)';
+        trHead.style.color = '#fff';
+        trHead.innerHTML = `<td colspan="13" style="padding:8px 10px;font-weight:800;font-size:13px;">🏭 ${esc(ind)}</td>`;
+        tb.appendChild(trHead);
+      }
+      if (cli !== ultimoCli) {
+        flushSubtotalCliente();
+        ultimoCli = cli;
+        const trCli = document.createElement('tr');
+        trCli.style.background = '#E0E7FF';
+        trCli.innerHTML = `<td colspan="13" style="padding:5px 10px;color:#1E3A8A;font-weight:700;font-size:11px;">👤 ${esc(cli)}</td>`;
+        tb.appendChild(trCli);
+      }
+
       const itens_fat = (p.itens_count || 0) - (p.itens_saldo_count || 0);
-      // Tag de "Será Faturado?" por pedido
       let tagHtml = '<span style="color:#9CA3AF;">—</span>';
       if (p.saldo_pedido > 0) {
         if (p.status_saldo === 'Cancelar') {
@@ -4376,7 +4446,18 @@ function renderVendasFaturadas() {
         <td style="background:#EFF6FF;color:#1E40AF;">${formatDate(p.data_fatura || '')}</td>
       `;
       tb.appendChild(tr);
+
+      subtotaisCli.fat += p.valor_faturado;
+      subtotaisCli.saldo += p.saldo_pedido;
+      subtotaisCli.total += p.valor_total;
+      subtotaisCli.qtd += 1;
+      subtotaisInd.fat += p.valor_faturado;
+      subtotaisInd.saldo += p.saldo_pedido;
+      subtotaisInd.total += p.valor_total;
+      subtotaisInd.qtd += 1;
     });
+    flushSubtotalCliente();
+    flushSubtotalIndustria();
   }
 
   // Gráfico: distribuição de status
