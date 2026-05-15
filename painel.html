@@ -3967,13 +3967,23 @@ function aplicarFiltros() {
   if (dadosCache) {
     renderKPIs();
     renderTab(abaAtiva);
-    // FASE 9.60: re-renderiza tb sub-panes da Avaliação se estiverem visíveis
-    if (typeof renderAvaliacao === 'function') renderAvaliacao();
-    if (typeof renderCicloVendas === 'function') renderCicloVendas();
-    if (typeof renderProdutos === 'function') renderProdutos();
-    if (typeof renderHistorico === 'function') renderHistorico();
-    // FASE 9.71: re-renderiza Sell-in JBP (Dashboard + Mensal) qdo filtro muda
-    if (typeof renderSellin === 'function') renderSellin();
+    // FASE 9.66 FIX: re-renderiza TODAS as abas que dependem dos filtros globais.
+    // Antes só renderizava algumas e o filtro "não funcionava" em várias abas.
+    const _safe = (fn, ...a) => { try { if (typeof window[fn] === 'function') window[fn](...a); } catch(e) { console.warn(fn, e); } };
+    _safe('renderAvaliacao');
+    _safe('renderCicloVendas');
+    _safe('renderProdutos');
+    _safe('renderHistorico');
+    _safe('renderSellin');
+    _safe('renderDashboard');
+    _safe('renderComp25x26');
+    _safe('renderTopCli');
+    _safe('renderTopInd');
+    _safe('renderVendasConsolid');
+    _safe('renderCRM');
+    _safe('renderContaCorrente');
+    _safe('renderNFD');
+    _safe('renderConsolidado');
   }
 }
 

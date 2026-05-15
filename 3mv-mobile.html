@@ -276,6 +276,16 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
   </div>
 
   <div id="banner-dados" class="banner-status banner-loading">⏳ Carregando dados... <button class="btn-refresh" onclick="recarregarDados()">↻</button></div>
+
+  <!-- FASE 9.66: Clientes com pedido sem faturar nos últimos 2 meses -->
+  <div class="section" id="sec-sf-mes-ant-vig">
+    <div class="section-title" style="background:linear-gradient(135deg,#DC2626,#F87171);color:#fff;padding:8px 12px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;">
+      <span>⏳ Sem faturar — <span id="sf-mes-label">Abr+Mai</span></span>
+      <span class="badge-count" id="badge-sf-mes-ant-vig" style="background:#fff;color:#DC2626;">0</span>
+    </div>
+    <div id="lista-sf-mes-ant-vig" style="margin-top:8px;"></div>
+  </div>
+
   <div class="section"><div class="section-title urgente">🔴 Atenção imediata <span class="badge-count" id="badge-urgente">0</span></div><div id="lista-urgente"></div></div>
   <div class="section"><div class="section-title proximo">🟡 Próximos do ciclo <span class="badge-count" id="badge-proximo">0</span></div><div id="lista-proximo"></div></div>
   <div class="section"><div class="section-title normal">🟢 Em dia <span class="badge-count" id="badge-normal">0</span></div><div id="lista-normal"></div></div>
@@ -666,7 +676,65 @@ function classificarCliente(c){if(c.todosSaldos&&c.todosSaldos.length>0)return '
 function fmt(v){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}).format(v||0);}
 function fmtData(d){if(!d)return '-';if(typeof d==='string'&&d.length>=10)return d.substring(8,10)+'/'+d.substring(5,7)+'/'+d.substring(0,4);return d;}
 function renderCard(c,container,classe){const totalSaldos=c.todosSaldos?c.todosSaldos.length:0;const valorSaldosTotal=c.todosSaldos?c.todosSaldos.reduce((s,x)=>s+(x.valor||0),0):0;const div=document.createElement('div');div.className='card '+classe;div.onclick=()=>abrirCliente(c.id);div.innerHTML='<div class="card-header"><div class="card-nome">'+c.nome+'</div><div class="card-meta">'+(c.cidade?'<span>📍 '+c.cidade+'</span>':'')+(totalSaldos>0?'<span class="badge badge-laranja">⏳ '+totalSaldos+' saldo'+(totalSaldos>1?'s':'')+(valorSaldosTotal>0?' · '+fmt(valorSaldosTotal):'')+'</span>':'')+(CLIENTES_HOJE.has(c.id)?'<span class="badge badge-roxo">📅 HOJE</span>':'')+(c.industrias.some(i=>i.diasSemComprar/i.ciclo>=1.1)?'<span class="badge badge-vermelho">Ciclo vencido</span>':'')+(c.industrias.some(i=>i.diasSemComprar/i.ciclo>=0.85&&i.diasSemComprar/i.ciclo<1.1)?'<span class="badge badge-amarelo">Vencendo</span>':'')+'</div></div><div class="industria-lista">'+c.industrias.slice(0,3).map(i=>{const s=statusCiclo(i);return '<div class="industria-row"><div class="industria-nome">'+i.nome+'</div><div class="industria-info"><div class="industria-valor">'+fmt(i.valor2026)+'</div><div class="industria-ciclo '+s.cls+'">'+s.txt+'</div></div></div>';}).join('')+(c.industrias.length>3?'<div style="text-align:center;padding:8px;font-size:11px;color:var(--muted);font-weight:600;">+ '+(c.industrias.length-3)+' indústria'+(c.industrias.length-3>1?'s':'')+'</div>':'')+'</div>';container.appendChild(div);}
-function renderClientes(filtro){filtro=filtro||'';const lu=document.getElementById('lista-urgente');const lp=document.getElementById('lista-proximo');const ln=document.getElementById('lista-normal');lu.innerHTML='';lp.innerHTML='';ln.innerHTML='';const f=filtro.toLowerCase();const fc=f?CLIENTES.filter(c=>c.nome.toLowerCase().includes(f)||(c.cidade||'').toLowerCase().includes(f)||c.industrias.some(i=>i.nome.toLowerCase().includes(f))):CLIENTES;const sortHoje=(a,b)=>{const ah=CLIENTES_HOJE.has(a.id)?1:0;const bh=CLIENTES_HOJE.has(b.id)?1:0;return bh-ah;};const fcFiltrado=aplicarFiltroClientes(fc);const urgentes=fcFiltrado.filter(c=>classificarCliente(c)==='urgente').sort(sortHoje);const proximos=fcFiltrado.filter(c=>classificarCliente(c)==='proximo').sort(sortHoje);const normais=fcFiltrado.filter(c=>classificarCliente(c)==='normal').sort(sortHoje);document.getElementById('badge-urgente').textContent=urgentes.length;document.getElementById('badge-proximo').textContent=proximos.length;document.getElementById('badge-normal').textContent=normais.length;if(urgentes.length===0)lu.innerHTML='<div class="vazio" style="padding:20px;font-size:13px;background:var(--verde-claro);border-radius:var(--raio);color:var(--verde);font-weight:600;">🎉 Nenhum cliente urgente!</div>';else urgentes.slice(0,30).forEach(c=>renderCard(c,lu,'urgente'));if(proximos.length===0)lp.innerHTML='<div class="vazio" style="padding:14px;font-size:12px;">Nenhum próximo do ciclo</div>';else proximos.slice(0,30).forEach(c=>renderCard(c,lp,'proximo'));normais.slice(0,40).forEach(c=>renderCard(c,ln,'normal'));if(normais.length>40)ln.insertAdjacentHTML('beforeend','<div class="vazio" style="padding:14px;font-size:12px">+ '+(normais.length-40)+' clientes - busca pra encontrar</div>');if(normais.length===0&&!f)ln.innerHTML='<div class="vazio" style="padding:14px;font-size:12px;">Nenhum cliente em dia</div>';}
+function renderClientes(filtro){filtro=filtro||'';const lu=document.getElementById('lista-urgente');const lp=document.getElementById('lista-proximo');const ln=document.getElementById('lista-normal');lu.innerHTML='';lp.innerHTML='';ln.innerHTML='';const f=filtro.toLowerCase();const fc=f?CLIENTES.filter(c=>c.nome.toLowerCase().includes(f)||(c.cidade||'').toLowerCase().includes(f)||c.industrias.some(i=>i.nome.toLowerCase().includes(f))):CLIENTES;const sortHoje=(a,b)=>{const ah=CLIENTES_HOJE.has(a.id)?1:0;const bh=CLIENTES_HOJE.has(b.id)?1:0;return bh-ah;};const fcFiltrado=aplicarFiltroClientes(fc);const urgentes=fcFiltrado.filter(c=>classificarCliente(c)==='urgente').sort(sortHoje);const proximos=fcFiltrado.filter(c=>classificarCliente(c)==='proximo').sort(sortHoje);const normais=fcFiltrado.filter(c=>classificarCliente(c)==='normal').sort(sortHoje);document.getElementById('badge-urgente').textContent=urgentes.length;document.getElementById('badge-proximo').textContent=proximos.length;document.getElementById('badge-normal').textContent=normais.length;if(urgentes.length===0)lu.innerHTML='<div class="vazio" style="padding:20px;font-size:13px;background:var(--verde-claro);border-radius:var(--raio);color:var(--verde);font-weight:600;">🎉 Nenhum cliente urgente!</div>';else urgentes.slice(0,30).forEach(c=>renderCard(c,lu,'urgente'));if(proximos.length===0)lp.innerHTML='<div class="vazio" style="padding:14px;font-size:12px;">Nenhum próximo do ciclo</div>';else proximos.slice(0,30).forEach(c=>renderCard(c,lp,'proximo'));normais.slice(0,40).forEach(c=>renderCard(c,ln,'normal'));if(normais.length>40)ln.insertAdjacentHTML('beforeend','<div class="vazio" style="padding:14px;font-size:12px">+ '+(normais.length-40)+' clientes - busca pra encontrar</div>');if(normais.length===0&&!f)ln.innerHTML='<div class="vazio" style="padding:14px;font-size:12px;">Nenhum cliente em dia</div>';renderSemFaturarMesAntVig();}
+
+// FASE 9.66: Lista de clientes com pedido SEM FATURAR no mês anterior + mês atual.
+// Configurável: por padrão pega os 2 últimos meses do calendário; pode ser sobrescrito
+// via localStorage('3mv_sf_meses') = "4,5" se Marcelo quiser fixar Abr/Mai.
+function renderSemFaturarMesAntVig(){
+  try {
+    const cont = document.getElementById('lista-sf-mes-ant-vig');
+    const badge = document.getElementById('badge-sf-mes-ant-vig');
+    const label = document.getElementById('sf-mes-label');
+    if(!cont) return;
+    const NOMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    // Meses a considerar
+    let meses;
+    const fixo = (localStorage.getItem('3mv_sf_meses') || '').split(',').map(s => parseInt(s,10)).filter(x => x >= 1 && x <= 12);
+    if(fixo.length){ meses = fixo; }
+    else {
+      const hoje = new Date();
+      const m = hoje.getMonth() + 1;
+      meses = [m === 1 ? 12 : (m-1), m];
+    }
+    if(label) label.textContent = meses.map(m => NOMES[m-1]).join('+');
+
+    // Identifica pedidos sem faturar nesses meses do DADOS_RAW.pedidos_2026
+    const peds = (window.DADOS_RAW && DADOS_RAW.pedidos_2026 || []).filter(p => {
+      const mm = Number(p.mes);
+      const st = (p.fatura_status || '').toLowerCase();
+      return meses.includes(mm) && (st.includes('sem fatura') || st === 'parcial');
+    });
+    // Agrupa por cliente
+    const porCli = {};
+    peds.forEach(p => {
+      const c = (p.cliente || '—').trim();
+      if(!porCli[c]) porCli[c] = { cliente: c, industrias: new Set(), pedidos: [], valor: 0 };
+      porCli[c].industrias.add(p.industria || '—');
+      porCli[c].pedidos.push(p);
+      porCli[c].valor += Number(p.valor_total || 0);
+    });
+    const lista = Object.values(porCli).sort((a,b) => b.valor - a.valor);
+    if(badge) badge.textContent = String(lista.length);
+    if(lista.length === 0){
+      cont.innerHTML = '<div class="vazio" style="padding:14px;font-size:12px;color:#059669;background:#d1fae5;border-radius:8px;text-align:center;font-weight:700;">🎉 Sem pendências nos meses ' + meses.map(m => NOMES[m-1]).join('+') + '!</div>';
+      return;
+    }
+    cont.innerHTML = lista.slice(0, 50).map(c => {
+      const inds = Array.from(c.industrias).slice(0, 3).join(' · ');
+      return '<div style="padding:10px 12px;background:#fff;border-radius:8px;margin-bottom:6px;border-left:3px solid #DC2626;box-shadow:0 1px 3px rgba(0,0,0,0.05);">'
+        + '<div style="font-weight:700;color:#1e293b;font-size:13px;margin-bottom:3px;">' + c.cliente + '</div>'
+        + '<div style="color:#64748b;font-size:11px;">' + inds + '</div>'
+        + '<div style="margin-top:4px;display:flex;justify-content:space-between;align-items:center;">'
+        + '<span style="color:#DC2626;font-weight:700;font-size:13px;">R$ ' + c.valor.toLocaleString('pt-BR', {minimumFractionDigits:2,maximumFractionDigits:2}) + '</span>'
+        + '<span style="color:#64748b;font-size:11px;">' + c.pedidos.length + ' pedido(s)</span>'
+        + '</div></div>';
+    }).join('');
+    if(lista.length > 50){
+      cont.innerHTML += '<div class="vazio" style="padding:10px;font-size:12px;color:#64748b;">+ ' + (lista.length - 50) + ' clientes</div>';
+    }
+  } catch(e) { console.error('renderSemFaturarMesAntVig erro', e); }
+}
 document.getElementById('busca-input').addEventListener('input',e=>renderClientes(e.target.value));
 function abrirCliente(id){const c=CLIENTES.find(x=>x.id===id);if(!c)return;document.getElementById('modal-nome').textContent=c.nome;document.getElementById('modal-chips').innerHTML=(c.cidade?'<span class="chip">📍 '+c.cidade+'</span>':'')+'<span class="chip">'+c.segmento+'</span><span class="chip">'+c.industrias.length+' indústria'+(c.industrias.length>1?'s':'')+'</span>';const tot=c.industrias.reduce((s,i)=>s+i.valor2026,0);const saldosTot=c.todosSaldos?c.todosSaldos.length:0;const valorSaldosTotal=c.todosSaldos?c.todosSaldos.reduce((s,x)=>s+(x.valor||0),0):0;let h='';if(saldosTot>0){h+='<div style="padding:14px 18px 0;"><div class="alerta-saldo"><div class="alerta-saldo-titulo">⏳ '+saldosTot+' item'+(saldosTot>1?'s':'')+' aguardando faturamento</div>'+(valorSaldosTotal>0?'<div class="alerta-saldo-valor">'+fmt(valorSaldosTotal)+'</div>':'')+'</div></div>';}h+='<div class="kpi-row" style="padding:'+(saldosTot>0?'4px 18px 0':'14px 18px 0')+';"><div class="kpi-card destaque"><div class="kpi-label">Total 2026</div><div class="kpi-valor">'+fmt(tot)+'</div><div class="kpi-sub">'+c.industrias.length+' indústria'+(c.industrias.length>1?'s':'')+'</div></div><div class="kpi-card"><div class="kpi-label">Pedidos</div><div class="kpi-valor">'+c.industrias.reduce((s,i)=>s+(i.qtdPedidos||0),0)+'</div><div class="kpi-sub">em 2026</div></div></div>';c.industrias.forEach(i=>{const s=statusCiclo(i);h+='<div class="separador"></div><div style="padding:0 18px 6px;"><div style="font-size:16px;font-weight:900;margin-bottom:5px;">'+i.nome+'</div><div style="font-size:12px;color:var(--muted);font-weight:600;">'+fmt(i.valor2026)+' em 2026 · '+(i.qtdPedidos||0)+' pedidos · Ciclo: '+i.ciclo+'d</div><div style="font-size:12px;margin-top:4px;font-weight:700;" class="'+s.cls+'">'+s.txt+'</div>'+'<div style="font-size:11px;margin-top:3px;color:var(--muted);font-weight:600;">📅 Último pedido: '+(i.ultimaCompra&&i.ultimaCompra!=='-'?i.ultimaCompra.split("-").reverse().join("/"):'Nunca')+(i.ultimaEntrega&&i.ultimaEntrega!=='-'?' · 📦 Última entrega: '+i.ultimaEntrega.split("-").reverse().join("/"):'')+'</div></div>';if(i.saldo&&i.saldo.length>0){h+='<div class="modal-secao saldo">⏳ Saldos pendentes ('+i.saldo.length+')</div>';i.saldo.forEach(x=>{h+='<div class="saldo-row"><div class="saldo-produto">'+x.prod+'</div><div class="saldo-qtd">'+x.qtd+' un</div><div class="saldo-data">'+x.pedido+'</div></div>';});}});const prodCli=PRODUTOS_POR_CLIENTE[c.nome.toUpperCase()]||{};const listaProd=Object.entries(prodCli).sort((a,b)=>b[1]-a[1]);if(listaProd.length>0){h+='<div class="separador"></div><div class="modal-secao">📦 Produtos comprados ('+listaProd.length+')</div>';listaProd.slice(0,30).forEach(([prod,qtd])=>{h+='<div class="produto-row"><div class="produto-nome">'+prod+'</div><div class="produto-qtd">'+qtd+' un</div></div>';});if(listaProd.length>30){h+='<div class="vazio" style="padding:10px;font-size:11px;">+ '+(listaProd.length-30)+' outros produtos</div>';}}const nfdCli=NFD_LISTA.filter(n=>(n.cliente||'').toUpperCase().includes(c.nome.toUpperCase().substring(0,15)));if(nfdCli.length>0){h+='<div class="separador"></div><div class="modal-secao">📄 Notas devolvidas ('+nfdCli.length+')</div>';nfdCli.slice(0,10).forEach(n=>{h+='<div class="nfd-row"><div class="nfd-info"><div class="nfd-cliente">NF '+(n.numero||'-')+'</div><div class="nfd-meta">'+(n.industria||'-')+' · '+fmtData(n.data)+' · '+(n.motivo||'-')+'</div></div><div class="nfd-valor devolvida">'+fmt(n.valor||0)+'</div></div>';});}const ccCli=CC_LISTA.filter(p=>(p.cliente||'').toUpperCase().includes(c.nome.toUpperCase().substring(0,15)));if(ccCli.length>0){const aberto=ccCli.filter(p=>(p.situacao||'').toLowerCase()!=='pago');h+='<div class="separador"></div><div class="modal-secao">💰 Conta corrente ('+ccCli.length+' parcelas, '+aberto.length+' em aberto)</div>';ccCli.slice(0,10).forEach(p=>{const sit=(p.situacao||'aberto').toLowerCase();const cls=sit==='pago'?'pago':(sit.includes('venc')?'vencido':'aberto');h+='<div class="cc-row"><div class="cc-info"><div class="cc-cliente">'+(p.parcela||'Parcela')+(p.numero?' #'+p.numero:'')+'</div><div class="cc-meta">Vence '+fmtData(p.vencimento)+' · '+(p.situacao||'-')+'</div></div><div class="cc-valor '+cls+'">'+fmt(p.valor||0)+'</div></div>';});}h+='<div style="padding:18px;"><div style="background:#dbeafe;border-radius:var(--raio);padding:14px;font-size:12px;color:#1e40af;text-align:center;font-weight:600;">📝 Pra registrar uma ata, abra o <b>OneNote</b> e use <b>@Lais</b>, <b>@Rafa</b> ou <b>@Marcelo</b>.</div></div>';document.getElementById('modal-body').innerHTML=h;document.getElementById('modal-cliente').classList.add('aberto');document.body.style.overflow='hidden';}
 function fecharModal(){document.getElementById('modal-cliente').classList.remove('aberto');document.body.style.overflow='';}
