@@ -91,12 +91,14 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .tarefa-texto{flex:1;font-size:14px;}
 .tarefa-texto.done{text-decoration:line-through;color:var(--muted);}
 .tarefa-resp{font-size:11px;color:var(--azul);font-weight:700;background:#dbeafe;padding:3px 9px;border-radius:20px;}
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(180deg,#ffffff 0%,#f0f9ff 100%);border-top:1.5px solid #e0f2fe;display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -4px 16px rgba(29,138,214,0.10);}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 4px 10px;cursor:pointer;color:#94a3b8;border:none;background:none;font-family:inherit;font-weight:600;}
-.nav-item.ativo{color:#1d8ad6;background:#e0f2fe;border-radius:12px;margin:4px 4px;font-weight:800;}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(180deg,#ffffff 0%,#f0f9ff 100%);border-top:1.5px solid #e0f2fe;display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -4px 16px rgba(29,138,214,0.10);overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;}
+.bottom-nav::-webkit-scrollbar{display:none;}
+.nav-item{flex:0 0 auto;min-width:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 10px 8px;cursor:pointer;color:#94a3b8;border:none;background:none;font-family:inherit;font-weight:600;scroll-snap-align:start;}
+.nav-item.ativo{color:#1d8ad6;background:#e0f2fe;border-radius:12px;margin:4px 2px;font-weight:800;}
 .nav-item.ativo .nav-icon{transform:scale(1.15);}
-.nav-icon{font-size:20px;margin-bottom:4px;transition:transform .2s;}
-.nav-label{font-size:10px;font-weight:700;letter-spacing:0.3px;}
+.nav-icon{font-size:22px;margin-bottom:3px;transition:transform .2s;}
+.nav-label{font-size:11px;font-weight:700;letter-spacing:0.2px;white-space:nowrap;}
+@media (min-width:480px){.nav-item{flex:1;min-width:0;}}
 .tela{display:none;}
 .tela.ativa{display:block;}
 .kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 16px 0;}
@@ -893,6 +895,7 @@ function renderMeusLembretes(){
         '</div>'+
       '</div>'+
       '<div class="card-acoes" style="padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;">'+
+        (!t.feita && (t._dias>3) ? '<button class="btn-mini" style="background:'+(t._dias>7?'#fee2e2;color:#991b1b':'#fef3c7;color:#78350f')+';font-weight:700;" onclick="abrirDetalheAtraso('+t.id+')">ℹ️ Detalhe ('+t._dias+'d)</button>':'')+
         (!t.feita ? '<button class="btn-mini" style="background:#10b981;color:white;font-weight:700;" onclick="efetivarLembrete('+t.id+')">✓ Efetivei</button>':'')+
         '<button class="btn-mini" style="background:#e0e7ff;color:#3730a3;" onclick="abrirEditarTarefa('+t.id+')">✏️ Editar</button>'+
         (t.feita ? '<button class="btn-mini" onclick="reabrirLembrete('+t.id+')">↺ Reabrir</button>':'')+
@@ -903,6 +906,37 @@ function renderMeusLembretes(){
   if(sorted.length > 60){
     cont.innerHTML += '<div class="vazio" style="padding:14px;">+ '+(sorted.length-60)+' tarefas — refine os filtros pra ver</div>';
   }
+}
+
+function abrirDetalheAtraso(id){
+  const t = (TAREFAS||[]).find(x => x.id === id);
+  if(!t) return;
+  const respList = Array.isArray(t.responsavel) ? t.responsavel : [t.responsavel];
+  const cor = (t._dias||0) > 7 ? '#dc2626' : ((t._dias||0) > 3 ? '#d97706' : '#059669');
+  const grav = (t._dias||0) > 7 ? '🚨 CRÍTICO' : ((t._dias||0) > 3 ? '⚠️ ATENÇÃO' : '🟢 No prazo');
+  let h = '<div style="padding:16px 18px 8px;"><div style="background:'+cor+';color:#fff;padding:12px 16px;border-radius:8px;font-weight:800;font-size:13px;">'+grav+' · '+(t._dias||0)+' dia'+((t._dias||0)!==1?'s':'')+' atrás</div></div>';
+  h += '<div style="padding:6px 18px 12px;font-size:15px;font-weight:700;color:#1e3a8a;line-height:1.35;">'+(t.texto||'(sem descrição)')+'</div>';
+  h += '<div style="padding:0 18px 16px;display:grid;gap:8px;">';
+  h += '<div style="background:#f8fafc;border-radius:8px;padding:10px 12px;"><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">Responsável (não executou)</div><div style="font-size:14px;font-weight:800;color:'+cor+';margin-top:4px;">'+respList.map(r=>'@'+r).join(' · ')+'</div></div>';
+  if(t.cliente) h += '<div style="background:#f8fafc;border-radius:8px;padding:10px 12px;"><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">Cliente</div><div style="font-size:13px;font-weight:700;color:#1e3a8a;margin-top:3px;">📍 '+t.cliente+'</div></div>';
+  if(t.industria) h += '<div style="background:#f8fafc;border-radius:8px;padding:10px 12px;"><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">Indústria</div><div style="font-size:13px;font-weight:700;color:#1e3a8a;margin-top:3px;">🏭 '+t.industria+'</div></div>';
+  h += '<div style="background:#f8fafc;border-radius:8px;padding:10px 12px;"><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">Criada em</div><div style="font-size:13px;font-weight:700;color:#1e3a8a;margin-top:3px;">📅 '+(t.data||'-')+(t.fonte_onenote?' · '+t.fonte_onenote:'')+'</div></div>';
+  // Histórico de envios (cobranças)
+  if(t.envios && t.envios.length>0){
+    h += '<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:10px 12px;"><div style="font-size:10px;color:#047857;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">Foi cobrado '+t.envios.length+'x</div>';
+    t.envios.slice(-3).forEach(e => {
+      h += '<div style="font-size:11px;color:#065f46;font-weight:600;margin-top:3px;">'+(e.canal==='email'?'📧':'💬')+' '+(e.canal||'')+(e.quando?' · '+e.quando:'')+'</div>';
+    });
+    h += '</div>';
+  } else {
+    h += '<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;"><div style="font-size:11px;color:#92400e;font-weight:700;">⚠️ Nunca foi cobrado. Use os botões 📧 ou 💬 na lista pra cobrar agora.</div></div>';
+  }
+  h += '</div>';
+  document.getElementById('modal-nome').textContent = 'Atraso · ' + ((t._dias||0)+' dia'+((t._dias||0)!==1?'s':''));
+  document.getElementById('modal-chips').innerHTML = '';
+  document.getElementById('modal-body').innerHTML = h;
+  document.getElementById('modal-cliente').classList.add('aberto');
+  document.body.style.overflow='hidden';
 }
 
 function efetivarLembrete(id){
@@ -1168,13 +1202,23 @@ function renderTarefas(){
   document.getElementById('contador-pendentes').textContent=p.length;
   const fab = document.getElementById('fab-tarefa');
   if(fab) fab.style.display='flex';
+  // Anota dias atrasada em cada pendente pra usar em abrirDetalheAtraso
+  const hoje = new Date();
+  function _dias(d){if(!d)return 0;const partes=d.includes('/')?d.split('/'):null;let dt;if(partes&&partes.length===3)dt=new Date(+partes[2],+partes[1]-1,+partes[0]);else dt=new Date(d);if(isNaN(dt.getTime()))return 0;return Math.max(0,Math.round((hoje-dt)/86400000));}
+  p.forEach(t => t._dias = _dias(t.data));
   const lp=document.getElementById('lista-pendentes');
   lp.innerHTML = p.length===0
     ? '<div class="vazio"><div class="vazio-icon">🎉</div>Nenhuma pendência! Clique no + pra criar uma.</div>'
     : p.map(t => renderTarefaItem(t,false)).join('');
-  document.getElementById('lista-concluidas').innerHTML = c.length===0
-    ? '<div class="vazio"><div class="vazio-icon">📋</div>Nenhuma ainda</div>'
-    : c.slice(-8).reverse().map(t => renderTarefaItem(t,true)).join('');
+  // Concluídas: oculta por padrão (só mostra contador + botão "ver")
+  const lc = document.getElementById('lista-concluidas');
+  if(c.length===0){
+    lc.innerHTML = '<div class="vazio"><div class="vazio-icon">📋</div>Nenhuma ainda</div>';
+  } else if(window.__mostrarConcluidas){
+    lc.innerHTML = '<div style="text-align:right;padding:6px 14px;"><button class="btn-mini" style="background:#e0e7ff;color:#3730a3;" onclick="window.__mostrarConcluidas=false;renderTarefas();">▲ Esconder</button></div>' + c.slice(-12).reverse().map(t => renderTarefaItem(t,true)).join('');
+  } else {
+    lc.innerHTML = '<div class="vazio" style="padding:14px;font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;"><span>✓ '+c.length+' tarefa'+(c.length>1?'s':'')+' concluída'+(c.length>1?'s':'')+'</span><button class="btn-mini" style="background:#e0e7ff;color:#3730a3;" onclick="window.__mostrarConcluidas=true;renderTarefas();">▼ Ver últimas 12</button></div>';
+  }
 }
 
 function renderTarefaItem(t, concluida){
@@ -1204,6 +1248,11 @@ function renderTarefaItem(t, concluida){
     }
     // FASE 9.23 — botão editar
     acoes += '<button class="btn-mini" style="background:#e0e7ff;color:#3730a3;font-weight:700;" onclick="event.stopPropagation();abrirEditarTarefa('+t.id+')">✏️ Editar</button>';
+    // Botão "Detalhe atraso" se atrasada (>3 dias)
+    if((t._dias||0) > 3){
+      const cor = (t._dias||0) > 7 ? '#fee2e2;color:#991b1b' : '#fef3c7;color:#78350f';
+      acoes += '<button class="btn-mini" style="background:'+cor+';font-weight:700;" onclick="event.stopPropagation();abrirDetalheAtraso('+t.id+')">ℹ️ Detalhe ('+(t._dias||0)+'d)</button>';
+    }
 
     // Status de envios
     if(t.envios && t.envios.length>0){
