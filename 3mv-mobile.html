@@ -276,19 +276,24 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
   </div>
 
   <div id="banner-dados" class="banner-status banner-loading">⏳ Carregando dados... <button class="btn-refresh" onclick="recarregarDados()">↻</button></div>
-
-  <!-- FASE 9.66: Clientes com pedido sem faturar nos últimos 2 meses -->
-  <div class="section" id="sec-sf-mes-ant-vig">
-    <div class="section-title" style="background:linear-gradient(135deg,#DC2626,#F87171);color:#fff;padding:8px 12px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;">
-      <span>⏳ Sem faturar — <span id="sf-mes-label">Abr+Mai</span></span>
-      <span class="badge-count" id="badge-sf-mes-ant-vig" style="background:#fff;color:#DC2626;">0</span>
-    </div>
-    <div id="lista-sf-mes-ant-vig" style="margin-top:8px;"></div>
-  </div>
-
   <div class="section"><div class="section-title urgente">🔴 Atenção imediata <span class="badge-count" id="badge-urgente">0</span></div><div id="lista-urgente"></div></div>
   <div class="section"><div class="section-title proximo">🟡 Próximos do ciclo <span class="badge-count" id="badge-proximo">0</span></div><div id="lista-proximo"></div></div>
   <div class="section"><div class="section-title normal">🟢 Em dia <span class="badge-count" id="badge-normal">0</span></div><div id="lista-normal"></div></div>
+</div>
+<div class="tela" id="tela-entregas">
+  <div class="header">
+    <div class="header-top"><img src="logo_3mv_completa.png" alt="3MV" class="logo-img"><div class="header-date">Entregas</div></div>
+    <div class="search-box"><span>🔍</span><input type="text" id="busca-entregas" placeholder="Buscar cliente, OC, indústria..." autocomplete="off" oninput="renderEntregasMob(this.value)"></div>
+  </div>
+  <div class="kpi-row" id="kpi-entregas"></div>
+  <div class="filter-row" id="filtros-entregas">
+    <div class="filter-chip ativo" data-periodo="abr-mai" onclick="filtroEntregasPer(this,'abr-mai')">Abr+Mai</div>
+    <div class="filter-chip" data-periodo="4" onclick="filtroEntregasPer(this,'4')">Abril</div>
+    <div class="filter-chip" data-periodo="5" onclick="filtroEntregasPer(this,'5')">Maio</div>
+    <div class="filter-chip" data-periodo="ano" onclick="filtroEntregasPer(this,'ano')">2026</div>
+  </div>
+  <div class="section" style="margin-top:14px;"><div class="section-title">🥇 Curva A — Top clientes 2026 <span class="badge-count" id="contador-curva-a">0</span></div><div id="lista-curva-a" style="display:grid;gap:8px;"></div></div>
+  <div class="section" style="margin-top:14px;"><div class="section-title">📦 Faturado por Cliente <span class="badge-count" id="contador-entregas">0</span></div><div class="card" id="lista-entregas"></div></div>
 </div>
 <div class="tela" id="tela-nfd">
   <div class="header">
@@ -329,12 +334,6 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
     <div class="filter-chip" data-filtro="saldos" data-status="vencido" onclick="filtrarIndustrias(this,'saldos')">Com saldos</div>
     <div class="filter-chip" data-filtro="top10" onclick="filtrarIndustrias(this,'top10')">Top 10</div>
     <div class="filter-chip" data-filtro="multi" onclick="filtrarIndustrias(this,'multi')">Multi-cliente</div>
-    <div class="filter-chip" data-filtro="selecionar" onclick="abrirSeletorIndustrias()" style="background:linear-gradient(135deg,#1d8ad6,#1565a8);color:white;font-weight:700;">☑ Selecionar...</div>
-  </div>
-  <!-- FIX 2026-05-15 (#24): Multi-seleção de indústrias -->
-  <div id="industrias-selecionadas" style="display:none;padding:8px 14px;background:#f0f9ff;border-bottom:1px solid #cfe7fb;font-size:11px;color:#1565a8;font-weight:600;">
-    <span id="industrias-sel-resumo"></span>
-    <button onclick="limparSelecaoIndustrias()" style="margin-left:8px;background:none;border:1px solid #1565a8;color:#1565a8;padding:2px 8px;border-radius:6px;font-size:10px;cursor:pointer;font-weight:700;">✕ Limpar</button>
   </div>
   <div class="kpi-row" id="kpi-industrias"></div>
   <div class="section" style="margin-top:16px;"><div class="section-title">Indústrias <span class="badge-count" id="contador-industrias">0</span></div><div id="lista-industrias"></div></div>
@@ -535,6 +534,7 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 </div>
 <nav class="bottom-nav">
   <button class="nav-item ativo" onclick="irPara('clientes',this)"><span class="nav-icon">👥</span><span class="nav-label">Clientes</span></button>
+  <button class="nav-item" onclick="irPara('entregas',this)"><span class="nav-icon">🚚</span><span class="nav-label">Entregas</span></button>
   <button class="nav-item" onclick="irPara('industrias',this)"><span class="nav-icon">🏭</span><span class="nav-label">Indústrias</span></button>
   <button class="nav-item" onclick="irPara('nfd',this)"><span class="nav-icon">📄</span><span class="nav-label">NFD</span></button>
   <button class="nav-item" onclick="irPara('cc',this)"><span class="nav-icon">💰</span><span class="nav-label">CC</span></button>
@@ -563,10 +563,10 @@ function carregarGSIeAutoConectar(){
 }
 
 function iniciarAuthAutomatico(){
-  // FASE 9.66 (#23): inclui scope tasks.readonly pra pegar tarefas do Google Tasks também
+  // Inicia client de token (reutilizado pra silent re-auth e clique manual)
   _gcalTokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
-    scope: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks.readonly',
+    scope: 'https://www.googleapis.com/auth/calendar.readonly',
     prompt: '', // vazio = silent quando há sessão ativa
     callback: (resp) => {
       if(resp.access_token){
@@ -575,8 +575,8 @@ function iniciarAuthAutomatico(){
         localStorage.setItem('gcal_token_exp', expiraEm.toString());
         localStorage.setItem('gcal_conectado', '1');
         carregarAgenda(resp.access_token);
-        carregarTarefasGoogle(resp.access_token);  // FASE 9.66: tarefas do Google
       } else if(resp.error === 'access_denied'){
+        // usuário cancelou — limpa flag pra não tentar de novo
         localStorage.removeItem('gcal_conectado');
       }
     }
@@ -588,7 +588,6 @@ function iniciarAuthAutomatico(){
   if(tokenSalvo && Date.now() < expiraEm - 60000){
     // Token ainda válido (com folga de 1 min)
     carregarAgenda(tokenSalvo);
-    carregarTarefasGoogle(tokenSalvo);  // FASE 9.66: tasks também
     return;
   }
 
@@ -629,84 +628,6 @@ async function carregarAgenda(token){
     showToast('✓ Agenda sincronizada: ' + AGENDA_HOJE.length + ' eventos');
   }catch(e){console.error(e); showToast('Erro ao carregar agenda');}
 }
-// FASE 9.66 (#23): Carrega tarefas do Google Tasks (todas as listas) e funde com TAREFAS locais.
-// FIX 2026-05-15 (#22): tarefas com due=HOJE também viram itens da AGENDA_HOJE (atendimentos do dia).
-// Cria/atualiza um marcador na tarefa local com origem='google' pra não duplicar.
-async function carregarTarefasGoogle(token){
-  try {
-    // 1) Lista todas as task-lists do usuário
-    const rL = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists', {
-      headers: {Authorization: 'Bearer '+token}
-    });
-    if(!rL.ok) { console.log('tasks lists err', rL.status); return; }
-    const lists = (await rL.json()).items || [];
-    let total = 0;
-    let tasksHoje = 0;
-    const hojeYMD = new Date().toISOString().slice(0,10);  // 'YYYY-MM-DD'
-    for(const lst of lists){
-      const rT = await fetch('https://tasks.googleapis.com/tasks/v1/lists/' + lst.id + '/tasks?showCompleted=false&maxResults=100', {
-        headers: {Authorization: 'Bearer '+token}
-      });
-      if(!rT.ok) continue;
-      const tks = (await rT.json()).items || [];
-      tks.forEach(t => {
-        // Importa se ainda não existir na lista local (chave = google_id)
-        if(!Array.isArray(window.TAREFAS)) window.TAREFAS = [];
-        if(!TAREFAS.some(x => x.google_id === t.id)){
-          const dataFmt = t.due ? new Date(t.due).toLocaleDateString('pt-BR') : '';
-          TAREFAS.push({
-            id: Date.now() + Math.floor(Math.random()*1000),
-            google_id: t.id,
-            google_list: lst.title,
-            origem: 'google_tasks',
-            texto: t.title || '(sem título)',
-            data: dataFmt,
-            cliente: '', industria: '', tipo: 'task',
-            responsavel: ['Marcelo'],
-            canais: [], prioridade: 'media',
-            feita: t.status === 'completed',
-            criada_em: t.updated || new Date().toISOString(),
-          });
-          total++;
-        }
-        // FIX 2026-05-15 (#22): tarefa com vencimento de HOJE também aparece na Agenda
-        if(t.due){
-          const dueYMD = String(t.due).slice(0,10);
-          if(dueYMD === hojeYMD){
-            const titulo = (t.title || '(tarefa sem título)');
-            const jaTem = AGENDA_HOJE.some(a => a.titulo === titulo && a._origem === 'task');
-            if(!jaTem){
-              AGENDA_HOJE.push({
-                hora: '📋 Tarefa',
-                titulo: titulo,
-                cliente: extrairCliente(titulo),
-                _origem: 'task',
-                _list: lst.title,
-              });
-              tasksHoje++;
-            }
-          }
-        }
-      });
-    }
-    if(total > 0){
-      try { localStorage.setItem('3mv_tarefas', JSON.stringify(TAREFAS)); } catch(e){}
-      if(typeof showToast === 'function') showToast('✓ ' + total + ' tarefa(s) do Google Tasks importadas');
-      if(typeof renderMeusLembretes === 'function') renderMeusLembretes();
-    }
-    if(tasksHoje > 0){
-      // Reordena AGENDA_HOJE: eventos com hora primeiro, depois tarefas
-      AGENDA_HOJE.sort((a,b) => {
-        const ah = a._origem === 'task' ? 'zz' : (a.hora || '');
-        const bh = b._origem === 'task' ? 'zz' : (b.hora || '');
-        return ah.localeCompare(bh);
-      });
-      renderAgenda();
-      if(typeof showToast === 'function') showToast('✓ ' + tasksHoje + ' tarefa(s) de hoje na agenda');
-    }
-  } catch(e){ console.error('carregarTarefasGoogle', e); }
-}
-
 function extrairCliente(titulo){
   // Pega primeiro nome em maiúsculas, ou tudo
   const t = titulo.toUpperCase();
@@ -761,67 +682,9 @@ function classificarCliente(c){if(c.todosSaldos&&c.todosSaldos.length>0)return '
 function fmt(v){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}).format(v||0);}
 function fmtData(d){if(!d)return '-';if(typeof d==='string'&&d.length>=10)return d.substring(8,10)+'/'+d.substring(5,7)+'/'+d.substring(0,4);return d;}
 function renderCard(c,container,classe){const totalSaldos=c.todosSaldos?c.todosSaldos.length:0;const valorSaldosTotal=c.todosSaldos?c.todosSaldos.reduce((s,x)=>s+(x.valor||0),0):0;const div=document.createElement('div');div.className='card '+classe;div.onclick=()=>abrirCliente(c.id);div.innerHTML='<div class="card-header"><div class="card-nome">'+c.nome+'</div><div class="card-meta">'+(c.cidade?'<span>📍 '+c.cidade+'</span>':'')+(totalSaldos>0?'<span class="badge badge-laranja">⏳ '+totalSaldos+' saldo'+(totalSaldos>1?'s':'')+(valorSaldosTotal>0?' · '+fmt(valorSaldosTotal):'')+'</span>':'')+(CLIENTES_HOJE.has(c.id)?'<span class="badge badge-roxo">📅 HOJE</span>':'')+(c.industrias.some(i=>i.diasSemComprar/i.ciclo>=1.1)?'<span class="badge badge-vermelho">Ciclo vencido</span>':'')+(c.industrias.some(i=>i.diasSemComprar/i.ciclo>=0.85&&i.diasSemComprar/i.ciclo<1.1)?'<span class="badge badge-amarelo">Vencendo</span>':'')+'</div></div><div class="industria-lista">'+c.industrias.slice(0,3).map(i=>{const s=statusCiclo(i);return '<div class="industria-row"><div class="industria-nome">'+i.nome+'</div><div class="industria-info"><div class="industria-valor">'+fmt(i.valor2026)+'</div><div class="industria-ciclo '+s.cls+'">'+s.txt+'</div></div></div>';}).join('')+(c.industrias.length>3?'<div style="text-align:center;padding:8px;font-size:11px;color:var(--muted);font-weight:600;">+ '+(c.industrias.length-3)+' indústria'+(c.industrias.length-3>1?'s':'')+'</div>':'')+'</div>';container.appendChild(div);}
-function renderClientes(filtro){filtro=filtro||'';const lu=document.getElementById('lista-urgente');const lp=document.getElementById('lista-proximo');const ln=document.getElementById('lista-normal');lu.innerHTML='';lp.innerHTML='';ln.innerHTML='';const f=filtro.toLowerCase();const fc=f?CLIENTES.filter(c=>c.nome.toLowerCase().includes(f)||(c.cidade||'').toLowerCase().includes(f)||c.industrias.some(i=>i.nome.toLowerCase().includes(f))):CLIENTES;const sortHoje=(a,b)=>{const ah=CLIENTES_HOJE.has(a.id)?1:0;const bh=CLIENTES_HOJE.has(b.id)?1:0;return bh-ah;};const fcFiltrado=aplicarFiltroClientes(fc);const urgentes=fcFiltrado.filter(c=>classificarCliente(c)==='urgente').sort(sortHoje);const proximos=fcFiltrado.filter(c=>classificarCliente(c)==='proximo').sort(sortHoje);const normais=fcFiltrado.filter(c=>classificarCliente(c)==='normal').sort(sortHoje);document.getElementById('badge-urgente').textContent=urgentes.length;document.getElementById('badge-proximo').textContent=proximos.length;document.getElementById('badge-normal').textContent=normais.length;if(urgentes.length===0)lu.innerHTML='<div class="vazio" style="padding:20px;font-size:13px;background:var(--verde-claro);border-radius:var(--raio);color:var(--verde);font-weight:600;">🎉 Nenhum cliente urgente!</div>';else urgentes.slice(0,30).forEach(c=>renderCard(c,lu,'urgente'));if(proximos.length===0)lp.innerHTML='<div class="vazio" style="padding:14px;font-size:12px;">Nenhum próximo do ciclo</div>';else proximos.slice(0,30).forEach(c=>renderCard(c,lp,'proximo'));normais.slice(0,40).forEach(c=>renderCard(c,ln,'normal'));if(normais.length>40)ln.insertAdjacentHTML('beforeend','<div class="vazio" style="padding:14px;font-size:12px">+ '+(normais.length-40)+' clientes - busca pra encontrar</div>');if(normais.length===0&&!f)ln.innerHTML='<div class="vazio" style="padding:14px;font-size:12px;">Nenhum cliente em dia</div>';renderSemFaturarMesAntVig();}
-
-// FASE 9.66: Lista de clientes com pedido SEM FATURAR no mês anterior + mês atual.
-// Configurável: por padrão pega os 2 últimos meses do calendário; pode ser sobrescrito
-// via localStorage('3mv_sf_meses') = "4,5" se Marcelo quiser fixar Abr/Mai.
-function renderSemFaturarMesAntVig(){
-  try {
-    const cont = document.getElementById('lista-sf-mes-ant-vig');
-    const badge = document.getElementById('badge-sf-mes-ant-vig');
-    const label = document.getElementById('sf-mes-label');
-    if(!cont) return;
-    const NOMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-    // Meses a considerar
-    let meses;
-    const fixo = (localStorage.getItem('3mv_sf_meses') || '').split(',').map(s => parseInt(s,10)).filter(x => x >= 1 && x <= 12);
-    if(fixo.length){ meses = fixo; }
-    else {
-      const hoje = new Date();
-      const m = hoje.getMonth() + 1;
-      meses = [m === 1 ? 12 : (m-1), m];
-    }
-    if(label) label.textContent = meses.map(m => NOMES[m-1]).join('+');
-
-    // Identifica pedidos sem faturar nesses meses do DADOS_RAW.pedidos_2026
-    const peds = (window.DADOS_RAW && DADOS_RAW.pedidos_2026 || []).filter(p => {
-      const mm = Number(p.mes);
-      const st = (p.fatura_status || '').toLowerCase();
-      return meses.includes(mm) && (st.includes('sem fatura') || st === 'parcial');
-    });
-    // Agrupa por cliente
-    const porCli = {};
-    peds.forEach(p => {
-      const c = (p.cliente || '—').trim();
-      if(!porCli[c]) porCli[c] = { cliente: c, industrias: new Set(), pedidos: [], valor: 0 };
-      porCli[c].industrias.add(p.industria || '—');
-      porCli[c].pedidos.push(p);
-      porCli[c].valor += Number(p.valor_total || 0);
-    });
-    const lista = Object.values(porCli).sort((a,b) => b.valor - a.valor);
-    if(badge) badge.textContent = String(lista.length);
-    if(lista.length === 0){
-      cont.innerHTML = '<div class="vazio" style="padding:14px;font-size:12px;color:#059669;background:#d1fae5;border-radius:8px;text-align:center;font-weight:700;">🎉 Sem pendências nos meses ' + meses.map(m => NOMES[m-1]).join('+') + '!</div>';
-      return;
-    }
-    cont.innerHTML = lista.slice(0, 50).map(c => {
-      const inds = Array.from(c.industrias).slice(0, 3).join(' · ');
-      return '<div style="padding:10px 12px;background:#fff;border-radius:8px;margin-bottom:6px;border-left:3px solid #DC2626;box-shadow:0 1px 3px rgba(0,0,0,0.05);">'
-        + '<div style="font-weight:700;color:#1e293b;font-size:13px;margin-bottom:3px;">' + c.cliente + '</div>'
-        + '<div style="color:#64748b;font-size:11px;">' + inds + '</div>'
-        + '<div style="margin-top:4px;display:flex;justify-content:space-between;align-items:center;">'
-        + '<span style="color:#DC2626;font-weight:700;font-size:13px;">R$ ' + c.valor.toLocaleString('pt-BR', {minimumFractionDigits:2,maximumFractionDigits:2}) + '</span>'
-        + '<span style="color:#64748b;font-size:11px;">' + c.pedidos.length + ' pedido(s)</span>'
-        + '</div></div>';
-    }).join('');
-    if(lista.length > 50){
-      cont.innerHTML += '<div class="vazio" style="padding:10px;font-size:12px;color:#64748b;">+ ' + (lista.length - 50) + ' clientes</div>';
-    }
-  } catch(e) { console.error('renderSemFaturarMesAntVig erro', e); }
-}
+function renderClientes(filtro){filtro=filtro||'';const lu=document.getElementById('lista-urgente');const lp=document.getElementById('lista-proximo');const ln=document.getElementById('lista-normal');lu.innerHTML='';lp.innerHTML='';ln.innerHTML='';const f=filtro.toLowerCase();const fc=f?CLIENTES.filter(c=>c.nome.toLowerCase().includes(f)||(c.cidade||'').toLowerCase().includes(f)||c.industrias.some(i=>i.nome.toLowerCase().includes(f))):CLIENTES;const sortHoje=(a,b)=>{const ah=CLIENTES_HOJE.has(a.id)?1:0;const bh=CLIENTES_HOJE.has(b.id)?1:0;return bh-ah;};const fcFiltrado=aplicarFiltroClientes(fc);const urgentes=fcFiltrado.filter(c=>classificarCliente(c)==='urgente').sort(sortHoje);const proximos=fcFiltrado.filter(c=>classificarCliente(c)==='proximo').sort(sortHoje);const normais=fcFiltrado.filter(c=>classificarCliente(c)==='normal').sort(sortHoje);document.getElementById('badge-urgente').textContent=urgentes.length;document.getElementById('badge-proximo').textContent=proximos.length;document.getElementById('badge-normal').textContent=normais.length;if(urgentes.length===0)lu.innerHTML='<div class="vazio" style="padding:20px;font-size:13px;background:var(--verde-claro);border-radius:var(--raio);color:var(--verde);font-weight:600;">🎉 Nenhum cliente urgente!</div>';else urgentes.slice(0,30).forEach(c=>renderCard(c,lu,'urgente'));if(proximos.length===0)lp.innerHTML='<div class="vazio" style="padding:14px;font-size:12px;">Nenhum próximo do ciclo</div>';else proximos.slice(0,30).forEach(c=>renderCard(c,lp,'proximo'));normais.slice(0,40).forEach(c=>renderCard(c,ln,'normal'));if(normais.length>40)ln.insertAdjacentHTML('beforeend','<div class="vazio" style="padding:14px;font-size:12px">+ '+(normais.length-40)+' clientes - busca pra encontrar</div>');if(normais.length===0&&!f)ln.innerHTML='<div class="vazio" style="padding:14px;font-size:12px;">Nenhum cliente em dia</div>';}
 document.getElementById('busca-input').addEventListener('input',e=>renderClientes(e.target.value));
-function abrirCliente(id){const c=CLIENTES.find(x=>x.id===id);if(!c)return;document.getElementById('modal-nome').textContent=c.nome;document.getElementById('modal-chips').innerHTML=(c.cidade?'<span class="chip">📍 '+c.cidade+'</span>':'')+'<span class="chip">'+c.segmento+'</span><span class="chip">'+c.industrias.length+' indústria'+(c.industrias.length>1?'s':'')+'</span>';const tot=c.industrias.reduce((s,i)=>s+i.valor2026,0);const saldosTot=c.todosSaldos?c.todosSaldos.length:0;const valorSaldosTotal=c.todosSaldos?c.todosSaldos.reduce((s,x)=>s+(x.valor||0),0):0;let h='';if(saldosTot>0){h+='<div style="padding:14px 18px 0;"><div class="alerta-saldo"><div class="alerta-saldo-titulo">⏳ '+saldosTot+' item'+(saldosTot>1?'s':'')+' aguardando faturamento</div>'+(valorSaldosTotal>0?'<div class="alerta-saldo-valor">'+fmt(valorSaldosTotal)+'</div>':'')+'</div></div>';}h+='<div class="kpi-row" style="padding:'+(saldosTot>0?'4px 18px 0':'14px 18px 0')+';"><div class="kpi-card destaque"><div class="kpi-label">Total 2026</div><div class="kpi-valor">'+fmt(tot)+'</div><div class="kpi-sub">'+c.industrias.length+' indústria'+(c.industrias.length>1?'s':'')+'</div></div><div class="kpi-card"><div class="kpi-label">Pedidos</div><div class="kpi-valor">'+c.industrias.reduce((s,i)=>s+(i.qtdPedidos||0),0)+'</div><div class="kpi-sub">em 2026</div></div></div>';c.industrias.forEach(i=>{const s=statusCiclo(i);h+='<div class="separador"></div><div style="padding:0 18px 6px;"><div style="font-size:16px;font-weight:900;margin-bottom:5px;">'+i.nome+'</div><div style="font-size:12px;color:var(--muted);font-weight:600;">'+fmt(i.valor2026)+' em 2026 · '+(i.qtdPedidos||0)+' pedidos · Ciclo: '+i.ciclo+'d</div><div style="font-size:12px;margin-top:4px;font-weight:700;" class="'+s.cls+'">'+s.txt+'</div>'+'<div style="font-size:11px;margin-top:3px;color:var(--muted);font-weight:600;">📅 Último pedido: '+(i.ultimaCompra&&i.ultimaCompra!=='-'?i.ultimaCompra.split("-").reverse().join("/"):'Nunca')+(i.ultimaEntrega&&i.ultimaEntrega!=='-'?' · 📦 Última entrega: '+i.ultimaEntrega.split("-").reverse().join("/"):'')+'</div></div>';if(i.saldo&&i.saldo.length>0){h+='<div class="modal-secao saldo">⏳ Saldos pendentes ('+i.saldo.length+')</div>';i.saldo.forEach(x=>{h+='<div class="saldo-row"><div class="saldo-produto">'+x.prod+'</div><div class="saldo-qtd">'+x.qtd+' un</div><div class="saldo-data">'+x.pedido+'</div></div>';});}});const prodCli=PRODUTOS_POR_CLIENTE[c.nome.toUpperCase()]||{};const listaProd=Object.entries(prodCli).sort((a,b)=>b[1]-a[1]);if(listaProd.length>0){h+='<div class="separador"></div><div class="modal-secao">📦 Produtos comprados ('+listaProd.length+')</div>';listaProd.slice(0,30).forEach(([prod,qtd])=>{h+='<div class="produto-row"><div class="produto-nome">'+prod+'</div><div class="produto-qtd">'+qtd+' un</div></div>';});if(listaProd.length>30){h+='<div class="vazio" style="padding:10px;font-size:11px;">+ '+(listaProd.length-30)+' outros produtos</div>';}}const nfdCli=NFD_LISTA.filter(n=>(n.cliente||'').toUpperCase().includes(c.nome.toUpperCase().substring(0,15)));if(nfdCli.length>0){h+='<div class="separador"></div><div class="modal-secao">📄 Notas devolvidas ('+nfdCli.length+')</div>';nfdCli.slice(0,10).forEach(n=>{h+='<div class="nfd-row"><div class="nfd-info"><div class="nfd-cliente">NF '+(n.numero||'-')+'</div><div class="nfd-meta">'+(n.industria||'-')+' · '+fmtData(n.data)+' · '+(n.motivo||'-')+'</div></div><div class="nfd-valor devolvida">'+fmt(n.valor||0)+'</div></div>';});}const ccCli=CC_LISTA.filter(p=>(p.cliente||'').toUpperCase().includes(c.nome.toUpperCase().substring(0,15)));if(ccCli.length>0){const aberto=ccCli.filter(p=>(p.situacao||'').toLowerCase()!=='pago');h+='<div class="separador"></div><div class="modal-secao">💰 Conta corrente ('+ccCli.length+' parcelas, '+aberto.length+' em aberto)</div>';ccCli.slice(0,10).forEach(p=>{const sit=(p.situacao||'aberto').toLowerCase();const cls=sit==='pago'?'pago':(sit.includes('venc')?'vencido':'aberto');h+='<div class="cc-row"><div class="cc-info"><div class="cc-cliente">'+(p.parcela||'Parcela')+(p.numero?' #'+p.numero:'')+'</div><div class="cc-meta">Vence '+fmtData(p.vencimento)+' · '+(p.situacao||'-')+'</div></div><div class="cc-valor '+cls+'">'+fmt(p.valor||0)+'</div></div>';});}h+='<div style="padding:18px;"><div style="background:#dbeafe;border-radius:var(--raio);padding:14px;font-size:12px;color:#1e40af;text-align:center;font-weight:600;">📝 Pra registrar uma ata, abra o <b>OneNote</b> e use <b>@Lais</b>, <b>@Rafa</b> ou <b>@Marcelo</b>.</div></div>';document.getElementById('modal-body').innerHTML=h;document.getElementById('modal-cliente').classList.add('aberto');document.body.style.overflow='hidden';}
+function abrirCliente(id){const c=CLIENTES.find(x=>x.id===id);if(!c)return;document.getElementById('modal-nome').textContent=c.nome;document.getElementById('modal-chips').innerHTML=(c.cidade?'<span class="chip">📍 '+c.cidade+'</span>':'')+'<span class="chip">'+c.segmento+'</span><span class="chip">'+c.industrias.length+' indústria'+(c.industrias.length>1?'s':'')+'</span>';const tot=c.industrias.reduce((s,i)=>s+i.valor2026,0);const saldosTot=c.todosSaldos?c.todosSaldos.length:0;const valorSaldosTotal=c.todosSaldos?c.todosSaldos.reduce((s,x)=>s+(x.valor||0),0):0;let h='';if(saldosTot>0){h+='<div style="padding:14px 18px 0;"><div class="alerta-saldo"><div class="alerta-saldo-titulo">⏳ '+saldosTot+' item'+(saldosTot>1?'s':'')+' aguardando faturamento</div>'+(valorSaldosTotal>0?'<div class="alerta-saldo-valor">'+fmt(valorSaldosTotal)+'</div>':'')+'</div></div>';}h+='<div class="kpi-row" style="padding:'+(saldosTot>0?'4px 18px 0':'14px 18px 0')+';"><div class="kpi-card destaque"><div class="kpi-label">Total 2026</div><div class="kpi-valor">'+fmt(tot)+'</div><div class="kpi-sub">'+c.industrias.length+' indústria'+(c.industrias.length>1?'s':'')+'</div></div><div class="kpi-card"><div class="kpi-label">Pedidos</div><div class="kpi-valor">'+c.industrias.reduce((s,i)=>s+(i.qtdPedidos||0),0)+'</div><div class="kpi-sub">em 2026</div></div></div>';c.industrias.forEach(i=>{const s=statusCiclo(i);const _esc=v=>String(v||'').replace(/"/g,'&quot;');h+='<div class="separador"></div><div style="padding:0 18px 6px;"><div class="ind-clickable" data-cli="'+_esc(c.nome)+'" data-ind="'+_esc(i.nome)+'" style="font-size:16px;font-weight:900;margin-bottom:5px;cursor:pointer;color:#1e3a8a;">'+i.nome+' <span style="font-size:13px;color:#3b82f6;">›</span></div><div style="font-size:12px;color:var(--muted);font-weight:600;">'+fmt(i.valor2026)+' em 2026 · '+(i.qtdPedidos||0)+' pedidos · Ciclo: '+i.ciclo+'d</div><div style="font-size:12px;margin-top:4px;font-weight:700;" class="'+s.cls+'">'+s.txt+'</div>'+'<div style="font-size:11px;margin-top:3px;color:var(--muted);font-weight:600;">📅 Último pedido: '+(i.ultimaCompra&&i.ultimaCompra!=='-'?i.ultimaCompra.split("-").reverse().join("/"):'Nunca')+(i.ultimaEntrega&&i.ultimaEntrega!=='-'?' · 📦 Última entrega: '+i.ultimaEntrega.split("-").reverse().join("/"):'')+'</div></div>';if(i.saldo&&i.saldo.length>0){h+='<div class="modal-secao saldo">⏳ Saldos pendentes ('+i.saldo.length+')</div>';i.saldo.forEach(x=>{h+='<div class="saldo-row"><div class="saldo-produto">'+x.prod+'</div><div class="saldo-qtd">'+x.qtd+' un</div><div class="saldo-data">'+x.pedido+'</div></div>';});}});const prodCli=PRODUTOS_POR_CLIENTE[c.nome.toUpperCase()]||{};const listaProd=Object.entries(prodCli).sort((a,b)=>b[1]-a[1]);if(listaProd.length>0){h+='<div class="separador"></div><div class="modal-secao">📦 Produtos comprados ('+listaProd.length+')</div>';listaProd.slice(0,30).forEach(([prod,qtd])=>{h+='<div class="produto-row"><div class="produto-nome">'+prod+'</div><div class="produto-qtd">'+qtd+' un</div></div>';});if(listaProd.length>30){h+='<div class="vazio" style="padding:10px;font-size:11px;">+ '+(listaProd.length-30)+' outros produtos</div>';}}const nfdCli=NFD_LISTA.filter(n=>(n.cliente||'').toUpperCase().includes(c.nome.toUpperCase().substring(0,15)));if(nfdCli.length>0){h+='<div class="separador"></div><div class="modal-secao">📄 Notas devolvidas ('+nfdCli.length+')</div>';nfdCli.slice(0,10).forEach(n=>{h+='<div class="nfd-row"><div class="nfd-info"><div class="nfd-cliente">NF '+(n.numero||'-')+'</div><div class="nfd-meta">'+(n.industria||'-')+' · '+fmtData(n.data)+' · '+(n.motivo||'-')+'</div></div><div class="nfd-valor devolvida">'+fmt(n.valor||0)+'</div></div>';});}const ccCli=CC_LISTA.filter(p=>(p.cliente||'').toUpperCase().includes(c.nome.toUpperCase().substring(0,15)));if(ccCli.length>0){const aberto=ccCli.filter(p=>(p.situacao||'').toLowerCase()!=='pago');h+='<div class="separador"></div><div class="modal-secao">💰 Conta corrente ('+ccCli.length+' parcelas, '+aberto.length+' em aberto)</div>';ccCli.slice(0,10).forEach(p=>{const sit=(p.situacao||'aberto').toLowerCase();const cls=sit==='pago'?'pago':(sit.includes('venc')?'vencido':'aberto');h+='<div class="cc-row"><div class="cc-info"><div class="cc-cliente">'+(p.parcela||'Parcela')+(p.numero?' #'+p.numero:'')+'</div><div class="cc-meta">Vence '+fmtData(p.vencimento)+' · '+(p.situacao||'-')+'</div></div><div class="cc-valor '+cls+'">'+fmt(p.valor||0)+'</div></div>';});}h+='<div style="padding:18px;"><div style="background:#dbeafe;border-radius:var(--raio);padding:14px;font-size:12px;color:#1e40af;text-align:center;font-weight:600;">📝 Pra registrar uma ata, abra o <b>OneNote</b> e use <b>@Lais</b>, <b>@Rafa</b> ou <b>@Marcelo</b>.</div></div>';document.getElementById('modal-body').innerHTML=h;document.getElementById('modal-cliente').classList.add('aberto');document.body.style.overflow='hidden';}
 function fecharModal(){document.getElementById('modal-cliente').classList.remove('aberto');document.body.style.overflow='';}
 document.getElementById('modal-cliente').addEventListener('click',function(e){if(e.target===this)fecharModal();});
 function renderNFD(filtro){filtro=filtro||'';const f=filtro.toLowerCase();let lista=f?NFD_LISTA.filter(n=>(n.cliente||'').toLowerCase().includes(f)||(n.numero||'').toString().includes(f)||(n.industria||'').toLowerCase().includes(f)):NFD_LISTA;lista=aplicarFiltroPeriodoNFD(lista);const totalValor=lista.reduce((s,n)=>s+(n.valor||0),0);document.getElementById('kpi-nfd').innerHTML='<div class="kpi-card urgente"><div class="kpi-label">Total devolvido</div><div class="kpi-valor">'+fmt(totalValor)+'</div><div class="kpi-sub">'+lista.length+' nota'+(lista.length!==1?'s':'')+'</div></div><div class="kpi-card"><div class="kpi-label">Indústrias</div><div class="kpi-valor">'+(new Set(lista.map(n=>n.industria||'-')).size)+'</div><div class="kpi-sub">com devolução</div></div>';document.getElementById('contador-nfd').textContent=lista.length;const ul=document.getElementById('lista-nfd');if(lista.length===0){ul.innerHTML='<div class="vazio"><div class="vazio-icon">📄</div>'+(NFD_LISTA.length===0?'Dados de NFD ainda não disponíveis':'Nenhuma nota encontrada')+'</div>';return;}ul.innerHTML=lista.slice(0,100).map(n=>'<div class="nfd-row"><div class="nfd-info"><div class="nfd-cliente">'+(n.cliente||'-')+'</div><div class="nfd-meta">NF '+(n.numero||'-')+' · '+(n.industria||'-')+' · '+fmtData(n.data)+(n.motivo?' · '+n.motivo:'')+'</div></div><div class="nfd-valor devolvida">'+fmt(n.valor||0)+'</div></div>').join('');}
@@ -932,29 +795,19 @@ function renderMeusLembretes(){
   cont.innerHTML = ''; kpi.innerHTML = '';
   const USUARIO = (window.USUARIO_LOGADO && window.USUARIO_LOGADO.nome) || 'Marcelo';
 
-  // FIX 2026-05-15: garante que INDUSTRIAS_AGREG está populado ANTES de montar o filtro.
-  // Antes o filtro era populado uma única vez (length<=1) e às vezes vinha vazio.
-  if((!INDUSTRIAS_AGREG || INDUSTRIAS_AGREG.length === 0) && typeof calcularIndustriasAgreg === 'function'){
-    try { calcularIndustriasAgreg(); } catch(e) {}
-  }
-
-  // Popular filtros — agora SEMPRE reconstrói a lista pra capturar indústrias que apareceram depois.
+  // Popular filtros (1ª vez)
   const filIndEl = document.getElementById('filt-lemb-ind');
   const filCliEl = document.getElementById('filt-lemb-cli');
-  if(filIndEl){
-    const valorAnterior = filIndEl.value;
+  if(filIndEl && filIndEl.options.length <= 1){
     const inds = new Set();
     (TAREFAS||[]).forEach(t => { if(t.industria) inds.add(t.industria); });
     (INDUSTRIAS_AGREG||[]).forEach(ind => { if(ind.nome) inds.add(ind.nome); });
-    // Também puxa do DADOS_RAW.industrias_ativas se existir, e dos clientes
-    (CLIENTES||[]).forEach(c => (c.industrias||[]).forEach(i => i.nome && inds.add(i.nome)));
-    const listaInds = Array.from(inds).filter(x => x && x !== '—').sort();
-    filIndEl.innerHTML = '<option value="">🏭 Todas indústrias</option>' +
-      listaInds.map(i => '<option value="' + i.replace(/"/g,'&quot;') + '">' + i + '</option>').join('');
-    if(valorAnterior && listaInds.includes(valorAnterior)) filIndEl.value = valorAnterior;
+    Array.from(inds).sort().forEach(ind => {
+      const opt = document.createElement('option'); opt.value = ind; opt.textContent = ind;
+      filIndEl.appendChild(opt);
+    });
   }
-  if(filCliEl){
-    const valorAnterior = filCliEl.value;
+  if(filCliEl && filCliEl.options.length <= 1){
     const cliSet = new Set();
     (TAREFAS||[]).forEach(t => {
       if(!t.cliente) return;
@@ -965,10 +818,10 @@ function renderMeusLembretes(){
       const g = grupoDoCliente(c.nome) || c.nome;
       cliSet.add(g);
     });
-    const listaCli = Array.from(cliSet).filter(x => x).sort();
-    filCliEl.innerHTML = '<option value="">📋 Todos clientes/grupos</option>' +
-      listaCli.map(c => '<option value="' + c.replace(/"/g,'&quot;') + '">' + c + '</option>').join('');
-    if(valorAnterior && listaCli.includes(valorAnterior)) filCliEl.value = valorAnterior;
+    Array.from(cliSet).sort().forEach(c => {
+      const opt = document.createElement('option'); opt.value = c; opt.textContent = c;
+      filCliEl.appendChild(opt);
+    });
   }
   const filtroInd = (filIndEl && filIndEl.value) || '';
   const filtroCli = (filCliEl && filCliEl.value) || '';
@@ -1070,34 +923,31 @@ function efetivarLembrete(id){
   }
 }
 
-// FASE 9.66 (FIX 2026-05-15) — Abre WhatsApp DIRETO com a mensagem preenchida.
-// O usuário envia manualmente no app. Sem confirm() bloqueante que estava
-// impedindo o navegador iOS/Android de abrir o wa.me (perdia o gesto).
-// O histórico de envio é registrado via setTimeout depois da abertura.
+// FASE 9.66 — Preview da mensagem WhatsApp antes de abrir o app
+// Mostra um alert/modal com a mensagem que será enviada e o número.
+// Se o usuário confirmar, deixa o link prosseguir (abre wa.me).
+// Se cancelar, impede a navegação.
 function previewWhatsMsg(ev, tarefaId, destNome, destNum){
   try {
     const t = (TAREFAS||[]).find(x => x.id === tarefaId);
-    if (!t) return true;
-    // Sanitiza número: só dígitos. Se não tiver DDI, prefixa 55 (Brasil).
-    let fone = String(destNum||'').replace(/\D/g,'');
-    if (fone.length === 10 || fone.length === 11) fone = '55' + fone;  // adiciona DDI
-    if (!fone) {
-      ev.preventDefault();
-      alert('⚠️ Sem número de WhatsApp cadastrado para ' + destNome);
-      return false;
-    }
+    if (!t) { return abrirConfirmarEnvio(tarefaId, 'whats'); }
     const msg = (typeof montarMsgWhats === 'function') ? montarMsgWhats(t) : (t.texto || '');
-    // Reescreve o href dinamicamente garantindo encodeURIComponent correto
-    const url = 'https://wa.me/' + fone + '?text=' + encodeURIComponent(msg);
-    if (ev && ev.currentTarget && ev.currentTarget.tagName === 'A') {
-      ev.currentTarget.setAttribute('href', url);
+    const fone = String(destNum||'').replace(/\D/g,'');
+    const foneFmt = fone.length >= 12
+      ? '+' + fone.slice(0,2) + ' (' + fone.slice(2,4) + ') ' + fone.slice(4,9) + '-' + fone.slice(9)
+      : '+' + fone;
+    const aviso = '💬 WhatsApp para *' + destNome + '*\n📱 ' + foneFmt + '\n\n— MENSAGEM —\n' + msg + '\n\n— FIM —\n\nConfirmar e abrir o WhatsApp?';
+    if (!confirm(aviso)) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      return false;
     }
   } catch(e) {
     console.error('previewWhatsMsg erro', e);
   }
-  // Registra envio para o histórico (não bloqueia a navegação)
+  // Registra envio para o histórico (mesmo padrão de abrirConfirmarEnvio)
   if (typeof abrirConfirmarEnvio === 'function') {
-    setTimeout(() => abrirConfirmarEnvio(tarefaId, 'whats'), 800);
+    setTimeout(() => abrirConfirmarEnvio(tarefaId, 'whats'), 600);
   }
   return true;
 }
@@ -1807,7 +1657,208 @@ function irPara(t,b){
   if(t==='nfd')renderNFD(document.getElementById('busca-nfd').value);
   if(t==='cc')renderCC(document.getElementById('busca-cc').value);
   if(t==='industrias')renderIndustrias(document.getElementById('busca-industria').value);
+  if(t==='entregas')renderEntregasMob(document.getElementById('busca-entregas')?.value||'');
 if(t==="abnocompra")renderABSemCompra();if(t==="lembretes")renderMeusLembretes();if(t==="abnocompraind")renderABSemCompraInd();}
+
+// ========== DASHBOARD ENTREGAS MOBILE ==========
+let ENTREGAS_PERIODO = 'abr-mai';
+function filtroEntregasPer(el, val){
+  document.querySelectorAll('#filtros-entregas .filter-chip').forEach(c=>c.classList.remove('ativo'));
+  el.classList.add('ativo');
+  ENTREGAS_PERIODO = val;
+  renderEntregasMob(document.getElementById('busca-entregas')?.value||'');
+}
+function _entr_fmt(n){ return (n??0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function _entr_inPer(mes){
+  if(ENTREGAS_PERIODO==='abr-mai') return mes===4||mes===5;
+  if(ENTREGAS_PERIODO==='4') return mes===4;
+  if(ENTREGAS_PERIODO==='5') return mes===5;
+  return true;
+}
+function _entr_calc(){
+  if(!DADOS_RAW) return null;
+  const pedidos = DADOS_RAW.pedidos_2026 || [];
+  const itens = DADOS_RAW.itens || [];
+  const saldoPorPed = {};
+  for(const it of itens){
+    if((it.valor_saldo||0)>0){
+      saldoPorPed[it.pedido_id] = (saldoPorPed[it.pedido_id]||0)+(it.valor_saldo||0);
+    }
+  }
+  return pedidos.map(p => {
+    const valor = p.valor_total||0;
+    const saldo = saldoPorPed[p.pedido_id]||0;
+    const fat = Math.max(0, valor - saldo);
+    const status = p.fatura_status || (saldo>=valor?'Sem fatura':(saldo>0?'Parcial':'Total'));
+    return {...p, valor, saldo, faturado:fat, status_calc:status};
+  });
+}
+function renderEntregasMob(filtro){
+  filtro = (filtro||'').toLowerCase();
+  const enriched = _entr_calc();
+  if(!enriched){
+    document.getElementById('lista-entregas').innerHTML = '<div class="vazio">Dados não carregados.</div>';
+    return;
+  }
+  const escopo = enriched.filter(p => _entr_inPer(p.mes||0));
+  // Filtro busca
+  const fc = filtro ? escopo.filter(p => {
+    const s = ((p.cliente||'')+' '+(p.industria||'')+' '+(p.ordem_compra||'')+' '+(p.pedido_id||'')).toLowerCase();
+    return s.includes(filtro);
+  }) : escopo;
+
+  // KPIs
+  const totFat = fc.reduce((s,p)=>s+p.faturado,0);
+  const totSaldo = fc.reduce((s,p)=>s+p.saldo,0);
+  const totPed = fc.reduce((s,p)=>s+p.valor,0);
+  const nPed = fc.length;
+  const pct = totPed>0?(totFat/totPed*100):0;
+  document.getElementById('kpi-entregas').innerHTML =
+    '<div class="kpi-card destaque"><div class="kpi-label">Faturado</div><div class="kpi-valor">'+fmt(totFat)+'</div><div class="kpi-sub">'+nPed+' pedido'+(nPed!==1?'s':'')+'</div></div>'+
+    '<div class="kpi-card '+(totSaldo>0?'urgente':'')+'"><div class="kpi-label">Saldo a entregar</div><div class="kpi-valor">'+fmt(totSaldo)+'</div><div class="kpi-sub">'+pct.toFixed(1)+'% entregue</div></div>';
+
+  // Agrupa por cliente
+  const agg = new Map();
+  fc.forEach(p => {
+    const k = p.cliente||'(s/cli)';
+    if(!agg.has(k)) agg.set(k,{cliente:k,n:0,pedido:0,faturado:0,saldo:0,parc:0,industrias:new Set()});
+    const a = agg.get(k);
+    a.n++; a.pedido+=p.valor; a.faturado+=p.faturado; a.saldo+=p.saldo;
+    if(p.status_calc==='Parcial') a.parc++;
+    if(p.industria) a.industrias.add(p.industria);
+  });
+  const linhas = Array.from(agg.values()).sort((a,b)=>b.faturado-a.faturado);
+  document.getElementById('contador-entregas').textContent = linhas.length;
+
+  // Render cards
+  const ul = document.getElementById('lista-entregas');
+  if(!linhas.length){ ul.innerHTML='<div class="vazio">Sem pedidos no período.</div>'; }
+  else ul.innerHTML = linhas.map(l => {
+    const pctL = l.pedido>0?(l.faturado/l.pedido*100):0;
+    const cls = pctL>=80?'pago':(pctL>=50?'aberto':'vencido');
+    const ind = Array.from(l.industrias).slice(0,3).join(', ');
+    return '<div class="cc-row" onclick="abrirClienteEntregas('+JSON.stringify(l.cliente)+')" style="cursor:pointer;">'+
+      '<div class="cc-info">'+
+        '<div class="cc-cliente">'+l.cliente+'</div>'+
+        '<div class="cc-meta">'+l.n+' ped · '+ind+(l.industrias.size>3?' +'+(l.industrias.size-3):'')+(l.parc>0?' · '+l.parc+' parcial'+(l.parc>1?'is':''):'')+'</div>'+
+      '</div>'+
+      '<div style="text-align:right;">'+
+        '<div class="cc-valor '+cls+'">'+fmt(l.faturado)+'</div>'+
+        '<div style="font-size:10px;color:var(--muted);font-weight:600;">'+pctL.toFixed(0)+'%'+(l.saldo>0?' · '+fmt(l.saldo)+' saldo':'')+'</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  // Curva A (sempre ano 2026 todo)
+  const fatPorCli = new Map();
+  enriched.forEach(p => {
+    if(!p.faturado) return;
+    fatPorCli.set(p.cliente, (fatPorCli.get(p.cliente)||0)+p.faturado);
+  });
+  const rank = Array.from(fatPorCli.entries()).map(([c,v])=>({c,v})).sort((a,b)=>b.v-a.v);
+  const tot = rank.reduce((s,r)=>s+r.v,0);
+  let acc=0; const curvaA = [];
+  for(const r of rank){
+    acc += r.v;
+    curvaA.push({...r, pct: tot>0?r.v/tot*100:0, pctAcc: tot>0?acc/tot*100:0});
+    if(tot>0 && acc/tot >= 0.80) break;
+  }
+  document.getElementById('contador-curva-a').textContent = curvaA.length;
+  const cul = document.getElementById('lista-curva-a');
+  if(!curvaA.length){ cul.innerHTML='<div class="vazio" style="padding:14px;font-size:12px;">Sem dados de faturamento 2026.</div>'; }
+  else cul.innerHTML = curvaA.map((r,i) =>
+    '<div class="card" style="padding:12px 14px;cursor:pointer;border-left:4px solid var(--azul,#1d4ed8);" onclick="abrirClienteEntregas('+JSON.stringify(r.c)+')">'+
+      '<div style="display:flex;align-items:center;gap:8px;justify-content:space-between;">'+
+        '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">'+
+          '<span style="background:#1d4ed8;color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;flex-shrink:0;">A'+(i+1)+'</span>'+
+          '<span style="font-size:13px;font-weight:700;color:#1e3a8a;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+r.c+'</span>'+
+        '</div>'+
+        '<div style="text-align:right;flex-shrink:0;"><div style="font-size:14px;font-weight:800;color:#1e3a8a;">'+fmt(r.v)+'</div><div style="font-size:10px;color:var(--muted);">'+r.pct.toFixed(1)+'%</div></div>'+
+      '</div>'+
+    '</div>'
+  ).join('');
+}
+
+// Drill: ao clicar num cliente na lista de Entregas, mostra o modal de cliente
+function abrirClienteEntregas(nomeCliente){
+  const c = CLIENTES.find(x => (x.nome||'').toUpperCase() === (nomeCliente||'').toUpperCase());
+  if(c){ abrirCliente(c.id); return; }
+  // Fallback: cliente do dataset de pedidos mas não no CLIENTES (provavelmente sem CRM) — mostra modal cru
+  alert('Cliente não encontrado no CRM: '+nomeCliente);
+}
+
+// Event delegation: click numa indústria dentro do modal cliente abre drill de itens
+if(!window.__indDrillBound){
+  window.__indDrillBound = true;
+  document.addEventListener('click', function(ev){
+    const el = ev.target.closest && ev.target.closest('.ind-clickable');
+    if(!el) return;
+    const cli = el.getAttribute('data-cli');
+    const ind = el.getAttribute('data-ind');
+    if(cli && ind) abrirItensCliInd(cli, ind);
+  });
+}
+
+// Drill indústria → últimos itens (valor e quantidade)
+function abrirItensCliInd(nomeCli, nomeInd){
+  const itens = (DADOS_RAW && DADOS_RAW.itens) || [];
+  const pedidos = (DADOS_RAW && DADOS_RAW.pedidos_2026) || [];
+  const cli = (nomeCli||'').toUpperCase();
+  const ind = (nomeInd||'').toUpperCase();
+  // Pega itens do cliente+industria (faturados ou em saldo) — ordena por data desc
+  const lista = itens.filter(it =>
+    (String(it.cliente||'').toUpperCase()) === cli &&
+    (String(it.industria||'').toUpperCase()) === ind
+  );
+  // Soma agregada por produto: qtd total (faturada + saldo) e valor (faturado + saldo)
+  const porProd = new Map();
+  lista.forEach(it => {
+    const k = (it.produto_codigo||'')+'||'+(it.produto||'-');
+    if(!porProd.has(k)) porProd.set(k,{codigo:it.produto_codigo||'-', produto:it.produto||'-', qtdFat:0, qtdSaldo:0, valorFat:0, valorSaldo:0, ultData:''});
+    const r = porProd.get(k);
+    r.qtdFat += (it.qtde_faturada||0);
+    r.qtdSaldo += (it.qtde_saldo||0);
+    const preco = it.preco_unit||0;
+    r.valorFat += (it.qtde_faturada||0) * preco;
+    r.valorSaldo += (it.valor_saldo||(it.qtde_saldo||0)*preco);
+    const d = it.data_fatura||it.data_cadastro||it.data_envio||'';
+    if(d > r.ultData) r.ultData = d;
+  });
+  const prods = Array.from(porProd.values()).sort((a,b) => (b.ultData||'').localeCompare(a.ultData||''));
+  // Pedidos do cliente+industria 2026 (resumo)
+  const peds = pedidos.filter(p =>
+    (String(p.cliente||'').toUpperCase()) === cli &&
+    (String(p.industria||'').toUpperCase()) === ind
+  );
+  const totFat2026 = peds.length;
+  const ultPedido = peds.map(p=>p.data).filter(Boolean).sort().pop()||'-';
+
+  // Render no modal-body (mantém modal-cliente, troca conteúdo)
+  document.getElementById('modal-nome').textContent = nomeCli + ' › ' + nomeInd;
+  document.getElementById('modal-chips').innerHTML = '<span class="chip">🏭 '+nomeInd+'</span><span class="chip">📅 Último ped: '+(ultPedido!=='-'?ultPedido.split("-").reverse().join("/"):'—')+'</span><span class="chip">'+totFat2026+' ped 2026</span>';
+  let h = '';
+  if(!prods.length){
+    h = '<div class="vazio" style="padding:20px;">Sem itens registrados pra este cliente/indústria no período de saldo.</div>';
+  } else {
+    h += '<div style="padding:14px 18px 6px;"><div style="font-size:13px;font-weight:700;color:#1e3a8a;">📦 Últimos itens comprados ('+prods.length+')</div></div>';
+    prods.slice(0,40).forEach(p => {
+      const qtdTot = (p.qtdFat||0) + (p.qtdSaldo||0);
+      const valTot = (p.valorFat||0) + (p.valorSaldo||0);
+      const dataFmt = p.ultData ? p.ultData.split("-").reverse().join("/") : '—';
+      h += '<div class="produto-row" style="padding:8px 18px;border-bottom:1px solid var(--border);">'+
+        '<div class="produto-nome" style="font-size:12px;font-weight:600;line-height:1.3;">'+(p.codigo!=='-'?'<span style="color:var(--muted);font-weight:500;">'+p.codigo+'</span> · ':'')+p.produto+'</div>'+
+        '<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;">'+
+          '<span style="color:var(--muted);">📅 '+dataFmt+' · '+_entr_fmt(qtdTot)+' un'+(p.qtdSaldo>0?' (📋 '+_entr_fmt(p.qtdSaldo)+' saldo)':'')+'</span>'+
+          '<span style="font-weight:700;color:#1e3a8a;">'+fmt(valTot)+'</span>'+
+        '</div>'+
+      '</div>';
+    });
+    if(prods.length>40) h += '<div class="vazio" style="padding:10px;font-size:11px;">+ '+(prods.length-40)+' produtos</div>';
+  }
+  // Botão voltar pro cliente
+  h = '<div style="padding:12px 18px 0;"><button onclick="(function(){const c=CLIENTES.find(x=>(x.nome||\'\').toUpperCase()===\''+cli.replace(/'/g,"\\'")+'\');if(c)abrirCliente(c.id);})()" style="background:#eff6ff;color:#1e3a8a;border:1px solid #bfdbfe;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">← Voltar ao cliente</button></div>' + h;
+  document.getElementById('modal-body').innerHTML = h;
+}
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('visivel');setTimeout(()=>t.classList.remove('visivel'),2500);}
 function clientesDemo(){return[{id:1,nome:'SUPERMERCADO CENTRAL',cidade:'Ipatinga',segmento:'Ativo',industrias:[{nome:'CASA MADEIRA',ultimaCompra:'Mar/26',ciclo:45,diasSemComprar:52,valor2026:18400,qtdPedidos:8,saldo:[]}],todosSaldos:[]},{id:2,nome:'MERCADO BOM PRECO',cidade:'Coronel Fabriciano',segmento:'Ativo',industrias:[{nome:'CASA MADEIRA',ultimaCompra:'Fev/26',ciclo:60,diasSemComprar:88,valor2026:22100,qtdPedidos:6,saldo:[]}],todosSaldos:[]}];}
 function nfdDemo(){return[];}
@@ -1939,6 +1990,25 @@ async function mostrarApp(){
   await carregarDados();
   await carregarTarefas();
   carregarGSIeAutoConectar();
+  // Auto-refresh dos dados a cada 10min (silencioso, mantém aba/scroll)
+  if(!window.__refreshTimer){
+    window.__refreshTimer = setInterval(() => {
+      try { carregarDados(); } catch(e) { console.warn('auto-refresh erro:', e); }
+    }, 10 * 60 * 1000);
+  }
+  // Re-checa agenda a cada 30min (silent re-auth se token expirou)
+  if(!window.__agendaTimer){
+    window.__agendaTimer = setInterval(() => {
+      try {
+        const exp = parseInt(localStorage.getItem('gcal_token_exp') || '0', 10);
+        if(localStorage.getItem('gcal_conectado') === '1' && Date.now() > exp - 5*60*1000){
+          if(_gcalTokenClient) _gcalTokenClient.requestAccessToken({prompt: ''});
+        } else if(localStorage.getItem('gcal_token')){
+          carregarAgenda(localStorage.getItem('gcal_token'));
+        }
+      } catch(e) { console.warn('auto-agenda erro:', e); }
+    }, 30 * 60 * 1000);
+  }
 }
 
 // BOOT
@@ -2312,100 +2382,7 @@ function aplicarFiltroIndustrias(lista){
   if(_filtroIndustrias==='saldos') return lista.filter(i=>i.totalSaldos>0);
   if(_filtroIndustrias==='top10') return lista.slice(0,10);
   if(_filtroIndustrias==='multi') return lista.filter(i=>i.clientes.length>=2);
-  // FIX 2026-05-15 (#24): multi-seleção manual via checkboxes
-  if(_filtroIndustrias==='selecionar' && _industriasSelecionadas && _industriasSelecionadas.size>0){
-    return lista.filter(i=>_industriasSelecionadas.has(i.nome));
-  }
   return lista;
-}
-
-// FIX 2026-05-15 (#24): Multi-seleção de indústrias com checkboxes
-let _industriasSelecionadas = new Set();
-
-function abrirSeletorIndustrias(){
-  if(INDUSTRIAS_AGREG.length === 0) calcularIndustriasAgreg();
-  const lista = INDUSTRIAS_AGREG.slice().sort((a,b)=>a.nome.localeCompare(b.nome));
-  let html = '<div class="modal aberto" id="modal-sel-ind" style="z-index:9000;" onclick="if(event.target===this)fecharSeletorIndustrias()">';
-  html += '<div class="modal-sheet" style="max-height:85vh;">';
-  html += '<div class="modal-handle"></div>';
-  html += '<div class="modal-header"><div><div class="modal-titulo">☑ Selecionar indústrias</div><div style="font-size:12px;color:var(--muted);margin-top:2px;">Marque para filtrar · '+_industriasSelecionadas.size+' selecionada(s)</div></div><button class="modal-fechar" onclick="fecharSeletorIndustrias()">Fechar</button></div>';
-  html += '<div style="padding:10px 18px;display:flex;gap:8px;flex-wrap:wrap;">';
-  html += '<button class="btn-primary" onclick="marcarTodasIndustrias(true)" style="background:#10b981;color:white;padding:8px 14px;border-radius:10px;font-weight:700;font-size:12px;border:none;cursor:pointer;">✓ Marcar todas</button>';
-  html += '<button class="btn-primary" onclick="marcarTodasIndustrias(false)" style="background:#ef4444;color:white;padding:8px 14px;border-radius:10px;font-weight:700;font-size:12px;border:none;cursor:pointer;">✕ Desmarcar todas</button>';
-  html += '<button class="btn-primary" onclick="aplicarSelecaoIndustrias()" style="background:linear-gradient(135deg,#1d8ad6,#1565a8);color:white;padding:8px 14px;border-radius:10px;font-weight:700;font-size:12px;border:none;cursor:pointer;margin-left:auto;">Aplicar →</button>';
-  html += '</div>';
-  html += '<div style="padding:0 18px 18px;overflow-y:auto;max-height:60vh;">';
-  lista.forEach(i=>{
-    const chk = _industriasSelecionadas.has(i.nome) ? 'checked' : '';
-    const idEsc = i.nome.replace(/'/g,"\\'").replace(/"/g,'&quot;');
-    html += '<label class="ind-sel-row" style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer;">';
-    html += '<input type="checkbox" '+chk+' onchange="toggleIndustriaSelecionada(\''+idEsc+'\',this.checked)" style="width:22px;height:22px;cursor:pointer;accent-color:#1565a8;">';
-    html += '<div style="flex:1;">';
-    html += '<div style="font-weight:800;font-size:14px;color:#0f172a;">'+i.nome+'</div>';
-    html += '<div style="font-size:11px;color:var(--muted);font-weight:600;">'+i.clientes.length+' cliente(s) · '+fmt(i.totalValor)+(i.totalSaldos>0?' · ⏳ '+i.totalSaldos+' saldos':'')+'</div>';
-    html += '</div>';
-    html += '</label>';
-  });
-  html += '</div></div></div>';
-  const old = document.getElementById('modal-sel-ind');
-  if(old) old.remove();
-  document.body.insertAdjacentHTML('beforeend', html);
-  document.body.style.overflow = 'hidden';
-}
-
-function fecharSeletorIndustrias(){
-  const m = document.getElementById('modal-sel-ind');
-  if(m) m.remove();
-  document.body.style.overflow = '';
-}
-
-function toggleIndustriaSelecionada(nome, marcar){
-  if(marcar) _industriasSelecionadas.add(nome);
-  else _industriasSelecionadas.delete(nome);
-}
-
-function marcarTodasIndustrias(marcar){
-  if(marcar){
-    INDUSTRIAS_AGREG.forEach(i=>_industriasSelecionadas.add(i.nome));
-  } else {
-    _industriasSelecionadas.clear();
-  }
-  abrirSeletorIndustrias(); // re-renderiza
-}
-
-function aplicarSelecaoIndustrias(){
-  _filtroIndustrias = 'selecionar';
-  document.querySelectorAll('#filtros-industrias .filter-chip').forEach(x=>x.classList.remove('ativo'));
-  const chip = document.querySelector('#filtros-industrias .filter-chip[data-filtro="selecionar"]');
-  if(chip) chip.classList.add('ativo');
-  fecharSeletorIndustrias();
-  atualizarResumoSelecaoIndustrias();
-  renderIndustrias();
-  if(typeof showToast === 'function') showToast('✓ '+_industriasSelecionadas.size+' indústria(s) filtrada(s)');
-}
-
-function limparSelecaoIndustrias(){
-  _industriasSelecionadas.clear();
-  _filtroIndustrias = 'todas';
-  document.querySelectorAll('#filtros-industrias .filter-chip').forEach(x=>x.classList.remove('ativo'));
-  const chip = document.querySelector('#filtros-industrias .filter-chip[data-filtro="todas"]');
-  if(chip) chip.classList.add('ativo');
-  atualizarResumoSelecaoIndustrias();
-  renderIndustrias();
-}
-
-function atualizarResumoSelecaoIndustrias(){
-  const box = document.getElementById('industrias-selecionadas');
-  const resumo = document.getElementById('industrias-sel-resumo');
-  if(!box || !resumo) return;
-  if(_industriasSelecionadas.size === 0){
-    box.style.display = 'none';
-    return;
-  }
-  box.style.display = 'block';
-  const arr = Array.from(_industriasSelecionadas);
-  const txt = arr.length <= 3 ? arr.join(' · ') : arr.slice(0,2).join(' · ') + ' + '+(arr.length-2)+' outras';
-  resumo.textContent = '☑ Filtrando: ' + txt;
 }
 
 function aplicarFiltroClientes(lista){
