@@ -7,10 +7,10 @@ compatibility_date = "2025-01-01"
 binding = "FIELD"
 id = "6011f1d52c1e49f590bb5d10456c0bf9"
 
-# Cron auto-cobrança: roda 3x/dia seg-sex (11h, 14h, 17h BRT = 14, 17, 20 UTC) + sáb 11h BRT
+# Cron auto-cobrança: 1x/dia às 9h BRT (= 12h UTC) seg-sáb
 # Tarefas atrasadas (passou prazo_dias) e não notificadas nas últimas 24h recebem e-mail
 [triggers]
-crons = ["0 14,17,20 * * 1-5", "0 14 * * 6"]
+crons = ["0 12 * * 1-6"]
 
 # Variáveis (a Bearer token é a única secret; configure via: wrangler secret put FIELD_TOKEN)
 [vars]

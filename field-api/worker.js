@@ -94,27 +94,52 @@ async function removeItem(env, kind, id) {
   await writeIdx(env, kind, novo);
 }
 
-// === MailChannels: envia email via Cloudflare Workers gratuito ===
+// === Gmail API: envia email autenticado como marcelo@3mvrepresentacao.com ===
+// Secrets necessárias: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN
+async function _gmailAccessToken(env) {
+  const r = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: env.GMAIL_CLIENT_ID,
+      client_secret: env.GMAIL_CLIENT_SECRET,
+      refresh_token: env.GMAIL_REFRESH_TOKEN,
+      grant_type: 'refresh_token',
+    }),
+  });
+  if (!r.ok) throw new Error('oauth_refresh_failed:' + (await r.text()).slice(0,120));
+  const j = await r.json();
+  return j.access_token;
+}
+
+function _b64urlUtf8(str) {
+  const b = btoa(unescape(encodeURIComponent(str)));
+  return b.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
 async function enviarEmail(env, { to, subject, html, replyTo }) {
-  const fromAddr = env.MAIL_FROM || 'tarefas@3mvrepresentacao.com';
+  const fromAddr = env.MAIL_FROM || 'marcelo@3mvrepresentacao.com';
   const fromName = '3MV Tarefas (auto)';
-  const personalizations = (Array.isArray(to) ? to : [to]).map(t =>
-    typeof t === 'string' ? { to: [{ email: t }] } : { to: [t] }
-  );
-  const payload = {
-    personalizations,
-    from: { email: fromAddr, name: fromName },
-    subject,
-    content: [{ type: 'text/html', value: html }],
-  };
-  if (replyTo) payload.reply_to = { email: replyTo };
+  const toList = (Array.isArray(to) ? to : [to]).filter(Boolean).join(', ');
+  const subjEnc = '=?UTF-8?B?' + btoa(unescape(encodeURIComponent(subject))) + '?=';
+  const headers = [
+    `From: ${fromName} <${fromAddr}>`,
+    `To: ${toList}`,
+    `Subject: ${subjEnc}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: text/html; charset="UTF-8"`,
+    `Content-Transfer-Encoding: 8bit`,
+  ];
+  if (replyTo) headers.push(`Reply-To: ${replyTo}`);
+  const rawMime = headers.join('\r\n') + '\r\n\r\n' + html;
   try {
-    const r = await fetch('https://api.mailchannels.net/tx/v1/send', {
+    const token = await _gmailAccessToken(env);
+    const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ raw: _b64urlUtf8(rawMime) }),
     });
-    return { ok: r.ok, status: r.status, text: r.ok ? '' : await r.text() };
+    return { ok: r.ok, status: r.status, text: r.ok ? '' : (await r.text()).slice(0,200) };
   } catch (e) {
     return { ok: false, status: 0, text: e.message };
   }
