@@ -2023,26 +2023,36 @@ function renderEntregasMob(filtro, usarCache){
     '<div class="kpi-card destaque"><div class="kpi-label">Faturado</div><div class="kpi-valor">'+fmt(totFat)+'</div><div class="kpi-sub">'+nPed+' pedido'+(nPed!==1?'s':'')+'</div></div>'+
     '<div class="kpi-card '+(totSaldo>0?'urgente':'')+'"><div class="kpi-label">Saldo a entregar</div><div class="kpi-valor">'+fmt(totSaldo)+'</div><div class="kpi-sub">'+pct.toFixed(1)+'% entregue</div></div>';
 
-  // Agrupa por GRUPO de cliente → filiais → indústrias → pedidos
-  const aggGrupo = new Map();
-  fc.forEach(p => {
-    const cliente = p.cliente||'(s/cli)';
-    const grupo = _entr_grupo(cliente);
-    const ind = p.industria||'(s/ind)';
-    if(!aggGrupo.has(grupo)) aggGrupo.set(grupo,{grupo,n:0,pedido:0,faturado:0,saldo:0,parc:0,filiais:new Map()});
-    const G = aggGrupo.get(grupo);
-    G.n++; G.pedido+=p.valor; G.faturado+=p.faturado; G.saldo+=p.saldo;
-    if(p.status_calc==='Parcial') G.parc++;
-    if(!G.filiais.has(cliente)) G.filiais.set(cliente,{cliente,n:0,pedido:0,faturado:0,saldo:0,parc:0,industrias:new Map()});
-    const F = G.filiais.get(cliente);
-    F.n++; F.pedido+=p.valor; F.faturado+=p.faturado; F.saldo+=p.saldo;
-    if(p.status_calc==='Parcial') F.parc++;
-    if(!F.industrias.has(ind)) F.industrias.set(ind,{ind,n:0,pedido:0,faturado:0,saldo:0,pedidos:[]});
-    const I = F.industrias.get(ind);
-    I.n++; I.pedido+=p.valor; I.faturado+=p.faturado; I.saldo+=p.saldo;
-    I.pedidos.push(p);
-  });
-  const linhas = Array.from(aggGrupo.values()).sort((a,b)=>b.faturado-a.faturado);
+  // Agrupa por GRUPO de cliente → filiais → indústrias → pedidos (com cache)
+  let aggGrupo, linhas;
+  if(usarCache && window.__entregasCache__ && window.__entregasCache__.aggGrupo && window.__entregasCache__.key === cacheKey){
+    aggGrupo = window.__entregasCache__.aggGrupo;
+    linhas = window.__entregasCache__.linhas;
+  } else {
+    aggGrupo = new Map();
+    fc.forEach(p => {
+      const cliente = p.cliente||'(s/cli)';
+      const grupo = _entr_grupo(cliente);
+      const ind = p.industria||'(s/ind)';
+      if(!aggGrupo.has(grupo)) aggGrupo.set(grupo,{grupo,n:0,pedido:0,faturado:0,saldo:0,parc:0,filiais:new Map()});
+      const G = aggGrupo.get(grupo);
+      G.n++; G.pedido+=p.valor; G.faturado+=p.faturado; G.saldo+=p.saldo;
+      if(p.status_calc==='Parcial') G.parc++;
+      if(!G.filiais.has(cliente)) G.filiais.set(cliente,{cliente,n:0,pedido:0,faturado:0,saldo:0,parc:0,industrias:new Map()});
+      const F = G.filiais.get(cliente);
+      F.n++; F.pedido+=p.valor; F.faturado+=p.faturado; F.saldo+=p.saldo;
+      if(p.status_calc==='Parcial') F.parc++;
+      if(!F.industrias.has(ind)) F.industrias.set(ind,{ind,n:0,pedido:0,faturado:0,saldo:0,pedidos:[]});
+      const I = F.industrias.get(ind);
+      I.n++; I.pedido+=p.valor; I.faturado+=p.faturado; I.saldo+=p.saldo;
+      I.pedidos.push(p);
+    });
+    linhas = Array.from(aggGrupo.values()).sort((a,b)=>b.faturado-a.faturado);
+    if(window.__entregasCache__){
+      window.__entregasCache__.aggGrupo = aggGrupo;
+      window.__entregasCache__.linhas = linhas;
+    }
+  }
   document.getElementById('contador-entregas').textContent = linhas.length;
 
   window.__entregasDrillOpen__ = window.__entregasDrillOpen__ || new Set();
@@ -2215,10 +2225,20 @@ function renderEntregasMob(filtro, usarCache){
             const saldo = saldoPorPed[p.pedido_id]||0;
             const fat = Math.max(0,(p.valor_total||0)-saldo);
             const pctFat = (p.valor_total>0)?(fat/p.valor_total*100):0;
-            return '<div style="padding:6px 0;border-bottom:1px dashed #dbeafe;font-size:11px;">'+
+            const pctSaldo = (p.valor_total>0)?(saldo/p.valor_total*100):0;
+            // Mesmo formato multi-linha do "Faturado por Cliente"
+            const statusFat = dataFat ? '📄 Faturado em '+_br(dataFat) : ((p.fatura_status||'')==='Sem fatura' ? '📄 Sem fatura ainda' : '📄 Faturado');
+            const statusEnt = dataEnt ? '📦 Entregue em '+_br(dataEnt) : ((p.fatura_status||'')==='Sem fatura' ? '📦 Aguardando faturamento' : '📦 Entrega pendente');
+            return '<div style="padding:8px 0;border-bottom:1px dashed #dbeafe;font-size:11px;">'+
               '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
-                '<div style="flex:1;min-width:0;"><div style="color:#1e3a8a;font-weight:700;">OC '+(p.ordem_compra||p.pedido_id)+' · '+(p.industria||'-')+'</div><div style="color:var(--muted);font-size:10px;line-height:1.4;margin-top:2px;">📅 '+_br(p.data)+(dataFat?' · 📄 '+_br(dataFat):'')+(dataEnt?' · 📦 '+_br(dataEnt):'')+'</div></div>'+
-                '<div style="text-align:right;"><div style="font-weight:800;color:#1e3a8a;">'+fmt(p.valor_total||0)+'</div><div style="font-size:9px;color:var(--verde);font-weight:700;">✓ '+pctFat.toFixed(0)+'%</div></div>'+
+                '<div style="flex:1;min-width:0;">'+
+                  '<div style="color:#1e3a8a;font-weight:700;">OC '+(p.ordem_compra||p.pedido_id)+' · '+(p.industria||'-')+'</div>'+
+                  '<div style="color:var(--muted);margin-top:3px;font-size:10px;line-height:1.5;">📅 Pedido em '+_br(p.data)+'<br>'+statusFat+'<br>'+statusEnt+'</div>'+
+                '</div>'+
+                '<div style="text-align:right;flex-shrink:0;">'+
+                  '<div style="font-weight:800;color:#1e3a8a;">'+fmt(p.valor_total||0)+'</div>'+
+                  '<div style="font-size:10px;font-weight:700;margin-top:3px;"><span style="color:var(--verde);">✓ '+pctFat.toFixed(0)+'%</span>'+(saldo>0?' · <span style="color:var(--vermelho);">⏳ '+pctSaldo.toFixed(0)+'%</span>':'')+'</div>'+
+                '</div>'+
               '</div>'+
             '</div>';
           }).join('')+
