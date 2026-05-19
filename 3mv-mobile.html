@@ -1911,14 +1911,132 @@ function aplicarFiltroMesGlobal(){
   if(typeof renderIndustrias === 'function') try{ renderIndustrias(document.getElementById('busca-industria')?.value||''); }catch(e){}
   if(typeof showToast === 'function') showToast(window.__filtroMesGlobal__ ? '📅 Filtro: '+['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(window.__filtroMesGlobal__,10)] : '📅 Todos os meses');
 }
+// Toggle via DOM (lazy render). Sem re-render da árvore inteira.
 function entregasMobToggleDrill(key){
   window.__entregasDrillOpen__ = window.__entregasDrillOpen__ || new Set();
-  if(window.__entregasDrillOpen__.has(key)) window.__entregasDrillOpen__.delete(key);
-  else window.__entregasDrillOpen__.add(key);
-  // Render fora do click handler pra UI responder ao toque instantaneamente
-  requestAnimationFrame(() => {
-    renderEntregasMob(document.getElementById('busca-entregas')?.value||'', /*usarCache*/ true);
-  });
+  const ehAbrir = !window.__entregasDrillOpen__.has(key);
+  if(ehAbrir) window.__entregasDrillOpen__.add(key);
+  else window.__entregasDrillOpen__.delete(key);
+  entregasMobAbrirDrillDOM(key, ehAbrir);
+}
+
+function entregasMobAbrirDrillDOM(key, ehAbrir){
+  const host = document.querySelector('[data-drill-host="'+CSS.escape(key)+'"]');
+  if(!host) return;
+  // Atualiza ícone (+ ↔ −)
+  document.querySelectorAll('[data-toggle-icon="'+CSS.escape(key)+'"]').forEach(el => { el.textContent = ehAbrir ? '−' : '+'; });
+  if(!ehAbrir){ host.hidden = true; return; }
+  // Lazy render: se ainda não foi renderizado, gera HTML uma vez
+  if(host.dataset.loaded !== '1'){
+    host.innerHTML = _renderDrillContent(key);
+    host.dataset.loaded = '1';
+    // Re-aplica estado de drills internos abertos (se houver)
+    if(window.__entregasDrillOpen__){
+      Array.from(window.__entregasDrillOpen__).forEach(k => {
+        if(k !== key && k.startsWith(key.split('::')[0]==='g' ? 'f::' : 'i::')){
+          entregasMobAbrirDrillDOM(k, true);
+        }
+      });
+    }
+  }
+  host.hidden = false;
+}
+
+function _renderDrillContent(key){
+  const aggGrupo = window.__entregasAggMap__;
+  if(!aggGrupo) return '';
+  if(key.startsWith('g::')){
+    const grupoNome = key.slice(3);
+    const G = aggGrupo.get(grupoNome);
+    if(!G) return '';
+    const filiais = Array.from(G.filiais.values()).sort((a,b)=>b.faturado-a.faturado);
+    return filiais.map(F => {
+      const pctF = F.pedido>0?(F.faturado/F.pedido*100):0;
+      const keyF = 'f::'+F.cliente;
+      return '<div data-toggle-key="'+_attrEsc(keyF)+'" data-stop-prop="1" style="padding:10px 14px 10px 22px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">'+
+          '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">'+
+            '<span data-toggle-icon="'+_attrEsc(keyF)+'" style="background:#1d4ed8;color:#fff;font-size:18px;font-weight:900;width:34px;height:34px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(29,78,216,.3);">+</span>'+
+            '<div style="min-width:0;">'+
+              '<div style="font-size:12px;font-weight:700;color:#1e3a8a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 '+F.cliente+'</div>'+
+              '<div style="font-size:10px;color:var(--muted);">'+F.n+' ped · '+F.industrias.size+' ind'+(F.parc>0?' · '+F.parc+' parc':'')+'</div>'+
+            '</div>'+
+          '</div>'+
+          '<div style="text-align:right;flex-shrink:0;">'+
+            '<div style="font-weight:800;color:#1e3a8a;font-size:13px;">'+fmt(F.faturado)+'</div>'+
+            '<div style="font-size:10px;color:var(--muted);">'+pctF.toFixed(0)+'%'+(F.saldo>0?' · ⏳ '+fmt(F.saldo):'')+'</div>'+
+          '</div>'+
+        '</div>'+
+        '<div data-drill-host="'+_attrEsc(keyF)+'" hidden style="background:#eff6ff;border-top:1px solid #dbeafe;"></div>';
+    }).join('');
+  }
+  if(key.startsWith('f::')){
+    // Achar o cliente nas filiais de algum grupo
+    const cliente = key.slice(3);
+    let F = null;
+    for(const G of aggGrupo.values()){
+      if(G.filiais.has(cliente)){ F = G.filiais.get(cliente); break; }
+    }
+    if(!F) return '';
+    const inds = Array.from(F.industrias.values()).sort((a,b)=>b.faturado-a.faturado);
+    return inds.map(I => {
+      const pctI = I.pedido>0?(I.faturado/I.pedido*100):0;
+      const keyI = 'i::'+F.cliente+'||'+I.ind;
+      return '<div data-toggle-key="'+_attrEsc(keyI)+'" data-stop-prop="1" style="padding:8px 8px 8px 24px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #dbeafe;">'+
+          '<div style="display:flex;align-items:center;gap:6px;font-size:12px;">'+
+            '<span data-toggle-icon="'+_attrEsc(keyI)+'" style="background:#3b82f6;color:#fff;font-size:17px;font-weight:900;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 4px rgba(59,130,246,.25);">+</span>'+
+            '<span style="font-weight:700;color:#1e3a8a;">🏭 '+I.ind+'</span>'+
+            '<span style="color:var(--muted);font-size:10px;">('+I.n+' ped)</span>'+
+          '</div>'+
+          '<div style="text-align:right;">'+
+            '<div style="font-weight:700;color:#1e3a8a;font-size:12px;">'+fmt(I.faturado)+'</div>'+
+            '<div style="font-size:9px;color:var(--muted);font-weight:600;">'+pctI.toFixed(0)+'%'+(I.saldo>0?' · ⏳ '+fmt(I.saldo):'')+'</div>'+
+          '</div>'+
+        '</div>'+
+        '<div data-drill-host="'+_attrEsc(keyI)+'" hidden style="padding:4px 8px 8px 36px;"></div>';
+    }).join('');
+  }
+  if(key.startsWith('i::')){
+    const rest = key.slice(3);
+    const idx = rest.indexOf('||');
+    if(idx < 0) return '';
+    const cliente = rest.slice(0, idx);
+    const ind = rest.slice(idx+2);
+    let I = null;
+    for(const G of aggGrupo.values()){
+      const F = G.filiais.get(cliente);
+      if(F && F.industrias.has(ind)){ I = F.industrias.get(ind); break; }
+    }
+    if(!I) return '';
+    const peds = I.pedidos.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+    return peds.map(p => _renderPedidoEntr(p)).join('');
+  }
+  return '';
+}
+
+// Renderiza um pedido individual (formato multi-linha com data_fatura/data_entrega da API)
+function _renderPedidoEntr(p){
+  const pctFatP = p.valor>0 ? (p.faturado/p.valor*100) : 0;
+  const pctSaldoP = p.valor>0 ? (p.saldo/p.valor*100) : 0;
+  const itensPed = ((DADOS_RAW&&DADOS_RAW.itens)||[]).filter(it => it.pedido_id===p.pedido_id);
+  const datasFat = itensPed.map(it => it.data_fatura).filter(Boolean).sort();
+  const dataFat = datasFat.length ? datasFat[datasFat.length-1] : '';
+  const datasEnt = itensPed.map(it => it.data_entrega).filter(Boolean).sort();
+  const dataEnt = datasEnt.length ? datasEnt[datasEnt.length-1] : '';
+  const _br = (d) => d ? d.split("-").reverse().join("/") : '—';
+  const statusFat = dataFat ? '📄 Faturado em '+_br(dataFat) : (p.fatura_status==='Sem fatura' ? '📄 Sem fatura ainda' : '📄 Faturado');
+  const statusEnt = dataEnt ? '📦 Entregue em '+_br(dataEnt) : (p.fatura_status==='Sem fatura' ? '📦 Aguardando faturamento' : '📦 Entrega pendente');
+  return '<div style="padding:8px 0;border-bottom:1px dashed #e2e8f0;font-size:11px;">'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
+      '<div style="flex:1;min-width:0;">'+
+        '<div style="font-weight:700;color:#1e3a8a;">OC '+(p.ordem_compra||p.pedido_id)+'</div>'+
+        '<div style="color:var(--muted);margin-top:3px;font-size:10px;line-height:1.5;">📅 Pedido em '+_br(p.data)+'<br>'+statusFat+'<br>'+statusEnt+'</div>'+
+      '</div>'+
+      '<div style="text-align:right;flex-shrink:0;">'+
+        '<div style="font-weight:800;color:#1e3a8a;">'+fmt(p.valor)+'</div>'+
+        '<div style="font-size:10px;font-weight:700;margin-top:3px;"><span style="color:var(--verde);">✓ '+pctFatP.toFixed(0)+'%</span>'+(p.saldo>0?' · <span style="color:var(--vermelho);">⏳ '+pctSaldoP.toFixed(0)+'%</span>':'')+'</div>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
 }
 // Helper de escape pra HTML attribute
 function _attrEsc(v){ return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -2097,78 +2215,38 @@ function renderEntregasMob(filtro, usarCache){
     '</div>';
   };
 
+  // RENDER LAZY: lista apenas os GRUPOS. Filiais/Indústrias/Pedidos são renderizados on-demand no toggle.
+  // Cada nível tem um <div data-drill-host="key" hidden> que é lazy-preenchido na primeira abertura.
+  // Toggle subsequente apenas alterna `hidden` — sem re-render.
+  window.__entregasAggMap__ = aggGrupo;  // disponível pro toggle
   const ul = document.getElementById('lista-entregas');
-  if(!linhas.length){ ul.innerHTML='<div class="vazio">Sem pedidos no período.</div>'; }
-  else ul.innerHTML = linhas.map(G => {
-    const pctG = G.pedido>0?(G.faturado/G.pedido*100):0;
-    const clsG = pctG>=80?'pago':(pctG>=50?'aberto':'vencido');
-    const keyG = 'g::'+G.grupo;
-    const abertoG = isOpen(keyG);
-    const filiais = Array.from(G.filiais.values()).sort((a,b)=>b.faturado-a.faturado);
-    const labelG = G.grupo + (filiais.length>1?' <span style="font-size:9px;color:var(--muted);background:#f3f4f6;padding:1px 6px;border-radius:6px;font-weight:700;">'+filiais.length+' filiais</span>':'');
-    let drillG = '';
-    if(abertoG){
-      drillG = '<div style="background:#f8fafc;border-top:1px solid var(--border);">';
-      filiais.forEach(F => {
-        const pctF = F.pedido>0?(F.faturado/F.pedido*100):0;
-        const keyF = 'f::'+F.cliente;
-        const abertoF = isOpen(keyF);
-        const inds = Array.from(F.industrias.values()).sort((a,b)=>b.faturado-a.faturado);
-        let drillF = '';
-        if(abertoF){
-          drillF = '<div style="background:#eff6ff;padding:0 16px 6px 24px;border-top:1px solid #dbeafe;">';
-          inds.forEach(I => {
-            const pctI = I.pedido>0?(I.faturado/I.pedido*100):0;
-            const keyI = 'i::'+F.cliente+'||'+I.ind;
-            const abertoI = isOpen(keyI);
-            const peds = I.pedidos.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
-            const drillI = abertoI ? '<div style="padding:4px 8px 8px 12px;">'+peds.map(renderPedido).join('')+'</div>' : '';
-            drillF += '<div data-toggle-key="'+_attrEsc(keyI)+'" data-stop-prop="1" style="padding:8px 8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #dbeafe;">'+
-              '<div style="display:flex;align-items:center;gap:6px;font-size:12px;">'+
-                '<span style="background:#3b82f6;color:#fff;font-size:17px;font-weight:900;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 4px rgba(59,130,246,.25);transition:transform .08s;">'+(abertoI?'−':'+')+'</span>'+
-                '<span style="font-weight:700;color:#1e3a8a;">🏭 '+I.ind+'</span>'+
-                '<span style="color:var(--muted);font-size:10px;">('+I.n+' ped)</span>'+
-              '</div>'+
-              '<div style="text-align:right;">'+
-                '<div style="font-weight:700;color:#1e3a8a;font-size:12px;">'+fmt(I.faturado)+'</div>'+
-                '<div style="font-size:9px;color:var(--muted);font-weight:600;">'+pctI.toFixed(0)+'%'+(I.saldo>0?' · ⏳ '+fmt(I.saldo):'')+'</div>'+
-              '</div>'+
-            '</div>'+
-            drillI;
-          });
-          drillF += '</div>';
-        }
-        drillG += '<div data-toggle-key="'+_attrEsc(keyF)+'" data-stop-prop="1" style="padding:10px 14px 10px 22px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">'+
-          '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">'+
-            '<span style="background:#1d4ed8;color:#fff;font-size:18px;font-weight:900;width:34px;height:34px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(29,78,216,.3);transition:transform .08s;">'+(abertoF?'−':'+')+'</span>'+
-            '<div style="min-width:0;">'+
-              '<div style="font-size:12px;font-weight:700;color:#1e3a8a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 '+F.cliente+'</div>'+
-              '<div style="font-size:10px;color:var(--muted);">'+F.n+' ped · '+F.industrias.size+' ind'+(F.parc>0?' · '+F.parc+' parc':'')+'</div>'+
-            '</div>'+
+  if(!linhas.length){
+    ul.innerHTML = '<div class="vazio">Sem pedidos no período.</div>';
+  } else {
+    const html = linhas.map(G => {
+      const pctG = G.pedido>0?(G.faturado/G.pedido*100):0;
+      const clsG = pctG>=80?'pago':(pctG>=50?'aberto':'vencido');
+      const keyG = 'g::'+G.grupo;
+      const labelG = G.grupo + (G.filiais.size>1?' <span style="font-size:9px;color:var(--muted);background:#f3f4f6;padding:1px 6px;border-radius:6px;font-weight:700;">'+G.filiais.size+' filiais</span>':'');
+      return '<div>'+
+        '<div class="cc-row" data-toggle-key="'+_attrEsc(keyG)+'" style="cursor:pointer;">'+
+          '<div class="cc-info">'+
+            '<div class="cc-cliente" style="display:flex;align-items:center;gap:10px;"><span data-toggle-icon="'+_attrEsc(keyG)+'" style="background:#e85d04;color:#fff;font-size:20px;font-weight:900;width:36px;height:36px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(232,93,4,.35);">+</span><span style="flex:1;">'+labelG+'</span></div>'+
+            '<div class="cc-meta">'+G.n+' ped · '+G.filiais.size+' filia'+(G.filiais.size>1?'is':'l')+(G.parc>0?' · '+G.parc+' parcial'+(G.parc>1?'is':''):'')+'</div>'+
           '</div>'+
-          '<div style="text-align:right;flex-shrink:0;">'+
-            '<div style="font-weight:800;color:#1e3a8a;font-size:13px;">'+fmt(F.faturado)+'</div>'+
-            '<div style="font-size:10px;color:var(--muted);">'+pctF.toFixed(0)+'%'+(F.saldo>0?' · ⏳ '+fmt(F.saldo):'')+'</div>'+
+          '<div style="text-align:right;">'+
+            '<div class="cc-valor '+clsG+'">'+fmt(G.faturado)+'</div>'+
+            '<div style="font-size:10px;color:var(--muted);font-weight:600;">✓ '+pctG.toFixed(0)+'%'+(G.saldo>0?' · ⏳ '+fmt(G.saldo):'')+'</div>'+
           '</div>'+
         '</div>'+
-        drillF;
-      });
-      drillG += '</div>';
-    }
-    return '<div>'+
-      '<div class="cc-row" data-toggle-key="'+_attrEsc(keyG)+'" style="cursor:pointer;">'+
-        '<div class="cc-info">'+
-          '<div class="cc-cliente" style="display:flex;align-items:center;gap:10px;"><span style="background:#e85d04;color:#fff;font-size:20px;font-weight:900;width:36px;height:36px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(232,93,4,.35);transition:transform .08s;">'+(abertoG?'−':'+')+'</span><span style="flex:1;">'+labelG+'</span></div>'+
-          '<div class="cc-meta">'+G.n+' ped · '+G.filiais.size+' filia'+(G.filiais.size>1?'is':'l')+(G.parc>0?' · '+G.parc+' parcial'+(G.parc>1?'is':''):'')+'</div>'+
-        '</div>'+
-        '<div style="text-align:right;">'+
-          '<div class="cc-valor '+clsG+'">'+fmt(G.faturado)+'</div>'+
-          '<div style="font-size:10px;color:var(--muted);font-weight:600;">✓ '+pctG.toFixed(0)+'%'+(G.saldo>0?' · ⏳ '+fmt(G.saldo):'')+'</div>'+
-        '</div>'+
-      '</div>'+
-      drillG+
-    '</div>';
-  }).join('');
+        '<div data-drill-host="'+_attrEsc(keyG)+'" hidden style="background:#f8fafc;border-top:1px solid var(--border);"></div>'+
+      '</div>';
+    }).join('');
+    ul.innerHTML = html;
+    // Re-aplica estado das drills abertas (se voltou pra aba com cache)
+    window.__entregasDrillOpen__ = window.__entregasDrillOpen__ || new Set();
+    Array.from(window.__entregasDrillOpen__).forEach(k => entregasMobAbrirDrillDOM(k, true));
+  }
 
   // Curva A — usa historico_pedidos (ano completo, 4519+ pedidos), não pedidos_2026 (subset da API)
   const fatPorCli = new Map();
