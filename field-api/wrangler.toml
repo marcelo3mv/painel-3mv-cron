@@ -2,18 +2,21 @@ name = "field-api"
 main = "worker.js"
 compatibility_date = "2025-01-01"
 
-# Bind do KV - rode primeiro: wrangler kv namespace create FIELD
-# Depois copie o id retornado abaixo (substitua "COLE_O_ID_AQUI"):
+# KV: tarefas + lembretes sincronizados entre desktop/mobile
 [[kv_namespaces]]
 binding = "FIELD"
-id = "COLE_O_ID_AQUI"
+id = "6011f1d52c1e49f590bb5d10456c0bf9"
+
+# Cron auto-cobrança: roda 3x/dia seg-sex (11h, 14h, 17h BRT = 14, 17, 20 UTC) + sáb 11h BRT
+# Tarefas atrasadas (passou prazo_dias) e não notificadas nas últimas 24h recebem e-mail
+[triggers]
+crons = ["0 14,17,20 * * 1-5", "0 14 * * 6"]
+
+# Variáveis (a Bearer token é a única secret; configure via: wrangler secret put FIELD_TOKEN)
+[vars]
+URL_BASE = "https://field-api.marcelo-778.workers.dev"
 
 # Custom domain (opcional - depois de apontar DNS no Cloudflare)
 # routes = [
 #   { pattern = "field-api.3mvrepresentacao.com", custom_domain = true }
-# ]
-
-# Em alternativa, montar a Field API DENTRO do dominio painel.3mvrepresentacao.com:
-# routes = [
-#   { pattern = "painel.3mvrepresentacao.com/api/field/*", zone_name = "3mvrepresentacao.com" }
 # ]
