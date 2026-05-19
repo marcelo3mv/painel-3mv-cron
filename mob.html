@@ -137,8 +137,11 @@ body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;backgro
 .alerta-saldo-valor{font-size:22px;font-weight:900;color:#9a3412;}
 .modal-secao{padding:8px 18px 6px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);margin-top:12px;}
 .modal-secao.saldo{color:var(--laranja);}
-.nfd-row,.cc-row{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.nfd-row,.cc-row{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;transition:background .08s;}
 .nfd-row:last-child,.cc-row:last-child{border-bottom:none;}
+.cc-row:active{background:#dbeafe;}
+.cc-row:active span[style*="background:#e85d04"]{transform:scale(0.92);}
+span[style*="background:#1d4ed8"]:active,span[style*="background:#3b82f6"]:active{transform:scale(0.88);}
 .nfd-info,.cc-info{flex:1;}
 .nfd-cliente,.cc-cliente{font-size:14px;font-weight:700;margin-bottom:3px;}
 .nfd-meta,.cc-meta{font-size:11px;color:var(--muted);font-weight:500;}
@@ -2086,7 +2089,7 @@ function renderEntregasMob(filtro){
             const drillI = abertoI ? '<div style="padding:4px 8px 8px 12px;">'+peds.map(renderPedido).join('')+'</div>' : '';
             drillF += '<div onclick="event.stopPropagation();entregasMobToggleDrill('+_ocArg(keyI)+')" style="padding:8px 8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #dbeafe;">'+
               '<div style="display:flex;align-items:center;gap:6px;font-size:12px;">'+
-                '<span style="background:#3b82f6;color:#fff;font-size:11px;font-weight:900;width:20px;height:20px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">'+(abertoI?'−':'+')+'</span>'+
+                '<span style="background:#3b82f6;color:#fff;font-size:17px;font-weight:900;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 4px rgba(59,130,246,.25);transition:transform .08s;">'+(abertoI?'−':'+')+'</span>'+
                 '<span style="font-weight:700;color:#1e3a8a;">🏭 '+I.ind+'</span>'+
                 '<span style="color:var(--muted);font-size:10px;">('+I.n+' ped)</span>'+
               '</div>'+
@@ -2101,7 +2104,7 @@ function renderEntregasMob(filtro){
         }
         drillG += '<div onclick="event.stopPropagation();entregasMobToggleDrill('+_ocArg(keyF)+')" style="padding:10px 14px 10px 22px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">'+
           '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">'+
-            '<span style="background:#1d4ed8;color:#fff;font-size:12px;font-weight:900;width:22px;height:22px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">'+(abertoF?'−':'+')+'</span>'+
+            '<span style="background:#1d4ed8;color:#fff;font-size:18px;font-weight:900;width:34px;height:34px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(29,78,216,.3);transition:transform .08s;">'+(abertoF?'−':'+')+'</span>'+
             '<div style="min-width:0;">'+
               '<div style="font-size:12px;font-weight:700;color:#1e3a8a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 '+F.cliente+'</div>'+
               '<div style="font-size:10px;color:var(--muted);">'+F.n+' ped · '+F.industrias.size+' ind'+(F.parc>0?' · '+F.parc+' parc':'')+'</div>'+
@@ -2119,7 +2122,7 @@ function renderEntregasMob(filtro){
     return '<div>'+
       '<div class="cc-row" onclick="entregasMobToggleDrill('+_ocArg(keyG)+')" style="cursor:pointer;">'+
         '<div class="cc-info">'+
-          '<div class="cc-cliente">'+(abertoG?'➖':'➕')+' '+labelG+'</div>'+
+          '<div class="cc-cliente" style="display:flex;align-items:center;gap:10px;"><span style="background:#e85d04;color:#fff;font-size:20px;font-weight:900;width:36px;height:36px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(232,93,4,.35);transition:transform .08s;">'+(abertoG?'−':'+')+'</span><span style="flex:1;">'+labelG+'</span></div>'+
           '<div class="cc-meta">'+G.n+' ped · '+G.filiais.size+' filia'+(G.filiais.size>1?'is':'l')+(G.parc>0?' · '+G.parc+' parcial'+(G.parc>1?'is':''):'')+'</div>'+
         '</div>'+
         '<div style="text-align:right;">'+
@@ -2131,12 +2134,24 @@ function renderEntregasMob(filtro){
     '</div>';
   }).join('');
 
-  // Curva A (sempre ano 2026 todo)
+  // Curva A — usa historico_pedidos (ano completo, 4519+ pedidos), não pedidos_2026 (subset da API)
   const fatPorCli = new Map();
-  enriched.forEach(p => {
-    if(!p.faturado) return;
-    fatPorCli.set(p.cliente, (fatPorCli.get(p.cliente)||0)+p.faturado);
+  const hp = (DADOS_RAW && DADOS_RAW.historico_pedidos && DADOS_RAW.historico_pedidos.por_cliente_industria_ano) || {};
+  Object.entries(hp).forEach(([cliente, inds]) => {
+    let totalCli = 0;
+    Object.values(inds).forEach(ano => {
+      const ano26 = ano && ano['2026'];
+      if(ano26 && ano26.faturado) totalCli += ano26.faturado;
+    });
+    if(totalCli > 0) fatPorCli.set(cliente, totalCli);
   });
+  // Fallback: se historico vazio, usa pedidos_2026 (subset)
+  if(fatPorCli.size === 0){
+    enriched.forEach(p => {
+      if(!p.faturado) return;
+      fatPorCli.set(p.cliente, (fatPorCli.get(p.cliente)||0)+p.faturado);
+    });
+  }
   const rank = Array.from(fatPorCli.entries()).map(([c,v])=>({c,v})).sort((a,b)=>b.v-a.v);
   const tot = rank.reduce((s,r)=>s+r.v,0);
   let acc=0; const curvaA = [];
