@@ -463,7 +463,16 @@ span[style*="background:#1d4ed8"]:active,span[style*="background:#3b82f6"]:activ
       <div class="chip-prio ativo" data-prio="media" onclick="setPrio(this,'media')">🟡 Média</div>
       <div class="chip-prio" data-prio="baixa" onclick="setPrio(this,'baixa')">🟢 Baixa</div>
     </div>
-    
+
+    <label>📤 Reportar execução para</label>
+    <div class="chips-grupo">
+      <div class="chip-resp ativo" id="rep-marcelo" onclick="setReportar('marcelo')">👤 Marcelo (3MV)</div>
+      <div class="chip-resp" id="rep-cliente" onclick="setReportar('cliente')">📋 Cliente / Indústria</div>
+    </div>
+
+    <label>⏰ Prazo (dias até cobrança automática)</label>
+    <input type="number" id="t-prazo" min="1" max="30" value="2" style="width:100%;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:10px;font-size:14px;">
+
     <div class="modal-form-actions">
       <button class="btn-secondary" onclick="fecharNovaTarefa()">Cancelar</button>
       <button class="btn-primary" onclick="salvarTarefa()">Salvar e enviar</button>
@@ -1658,11 +1667,21 @@ function montarMsgWhats(t){
 }
 
 // ============== NOVA TAREFA - MODAL ==============
+let _reportarSel = 'marcelo'; // 'marcelo' ou 'cliente'
+function setReportar(v){
+  _reportarSel = v;
+  document.getElementById('rep-marcelo').classList.toggle('ativo', v==='marcelo');
+  document.getElementById('rep-cliente').classList.toggle('ativo', v==='cliente');
+}
 function abrirNovaTarefa(){
   // Reset campos
   document.getElementById('t-texto').value='';
   document.getElementById('t-cliente').value='';
   document.getElementById('t-industria').value='';
+  const _prazoEl = document.getElementById('t-prazo'); if(_prazoEl) _prazoEl.value = 2;
+  _reportarSel = 'marcelo';
+  const _rm = document.getElementById('rep-marcelo'); if(_rm) _rm.classList.add('ativo');
+  const _rc = document.getElementById('rep-cliente'); if(_rc) _rc.classList.remove('ativo');
   _prioSel='media';
   _respSel=[];
   _destSel = [];
@@ -1689,7 +1708,12 @@ function abrirNovaTarefa(){
   const optionsGrupos = Array.from(gruposUsados).sort().map(g => '<option value="'+g.replace(/"/g,'&quot;')+'">');
   const optionsCli = (CLIENTES||[]).slice(0,200).map(c => '<option value="'+c.nome.replace(/"/g,'&quot;')+'">');
   document.getElementById('datalist-clientes').innerHTML = optionsGrupos.join('') + optionsCli.join('');
-  document.getElementById('datalist-industrias').innerHTML = (INDUSTRIAS_AGREG||[]).slice(0,200).map(ind=>'<option value="'+ind.nome.replace(/"/g,'&quot;')+'">').join('');
+  // Indústrias ATIVAS no CRM (status_erp='ATIVO' OU sem CRM com valor>0)
+  const _crmInd = (typeof DADOS_RAW !== 'undefined' && DADOS_RAW && DADOS_RAW.crm && DADOS_RAW.crm.industrias) || {};
+  const _ativasSet = new Set(Object.entries(_crmInd).filter(([n,info])=>!info||(info.status_erp||'').toUpperCase()==='ATIVO').map(([n])=>n.toUpperCase()));
+  const _temCrm = _ativasSet.size > 0;
+  const _indsAtivas = (INDUSTRIAS_AGREG||[]).filter(ind => !_temCrm || _ativasSet.has((ind.nome||'').toUpperCase()));
+  document.getElementById('datalist-industrias').innerHTML = _indsAtivas.slice(0,200).map(ind=>'<option value="'+ind.nome.replace(/"/g,'&quot;')+'">').join('');
   
   document.getElementById('modal-tarefa').classList.add('aberto');
   
@@ -1840,6 +1864,8 @@ function abrirEditarTarefa(id){
     _canalSel = Array.isArray(t.canais) ? t.canais.slice() : ['email','whats'];
     document.getElementById('canal-email').classList.toggle('ativo', _canalSel.includes('email'));
     document.getElementById('canal-whats').classList.toggle('ativo', _canalSel.includes('whats'));
+    setReportar(t.reportar_para === 'cliente' ? 'cliente' : 'marcelo');
+    const _pe = document.getElementById('t-prazo'); if(_pe) _pe.value = t.prazo_dias || 2;
     document.querySelector('.modal-form-titulo').textContent = '✏️ Editar tarefa';
   }, 50);
 }
@@ -1868,6 +1894,8 @@ function salvarTarefa(){
         responsavel: _respSel.slice(),
         canais: _canalSel.slice(),
         prioridade: _prioSel,
+        reportar_para: _reportarSel,
+        prazo_dias: Math.max(1, parseInt((document.getElementById('t-prazo')||{}).value||2,10)),
       });
       localStorage.setItem('3mv_tarefas', JSON.stringify(TAREFAS));
       renderTarefas();
@@ -1886,10 +1914,12 @@ function salvarTarefa(){
     responsavel: _respSel.slice(),
     canais: _canalSel.slice(),
     prioridade: _prioSel,
+    reportar_para: _reportarSel,
+    prazo_dias: Math.max(1, parseInt((document.getElementById('t-prazo')||{}).value||2,10)),
     data: dataHoraAgora(),
     criada_por: USUARIO_LOGADO?USUARIO_LOGADO.email:'?',
     feita: false,
-    envios: [] // {canal, data, por, copia, obs}
+    envios: []
   };
   TAREFAS.unshift(novaTarefa);
   localStorage.setItem('3mv_tarefas',JSON.stringify(TAREFAS));
