@@ -1027,22 +1027,39 @@ function renderMeusLembretes(){
     const cls = t.feita ? 'normal' : (t._dias > 7 ? 'urgente' : (t._dias > 3 ? 'proximo' : 'normal'));
     const bgPulse = (!t.feita && t._dias > 7) ? 'animation:pulse 2s infinite;' : '';
     const prio = t.prioridade==='alta'?'🔴':(t.prioridade==='baixa'?'🟢':'🟡');
-    return '<div class="card '+cls+'" style="cursor:default;'+bgPulse+(t.feita?'opacity:0.6;':'')+'">'+
+    // Destinatário do lembrete (quem deve executar)
+    const respList = Array.isArray(t.responsavel) ? t.responsavel : [t.responsavel];
+    const destPra = (t.reportar_para === 'cliente' && t.cliente) ? ('👤 Cliente: '+t.cliente) : ('👥 '+respList.map(r=>'@'+r).join(' '));
+    const criadoPor = t.criado_por || t.usuario || '';
+    // Status de execução
+    const _idArg = JSON.stringify(t.id).replace(/"/g,'&quot;');
+    let acoes = '';
+    if(!t.feita){
+      if(t._dias>3) acoes += '<button class="btn-mini" style="background:'+(t._dias>7?'#fee2e2;color:#991b1b':'#fef3c7;color:#78350f')+';font-weight:700;" onclick="abrirDetalheAtraso('+_idArg+')">ℹ️ ('+t._dias+'d)</button>';
+      // Botão "Executei" — só pro responsável real (Marcelo, no caso desta tela)
+      acoes += '<button class="btn-mini" style="background:#10b981;color:white;font-weight:700;" onclick="lembreteResponderExecucao('+_idArg+')">✓ Executei</button>';
+      acoes += '<button class="btn-mini" style="background:#3b82f6;color:#fff;" onclick="lembreteNotificarRespondi('+_idArg+')" title="Avisar quem pediu que executou">📤 Avisar</button>';
+      acoes += '<button class="btn-mini" style="background:#e0e7ff;color:#3730a3;" onclick="abrirEditarTarefa('+_idArg+')">✏️</button>';
+    } else {
+      acoes += '<button class="btn-mini" onclick="reabrirLembrete('+_idArg+')">↺ Reabrir</button>';
+      acoes += '<button class="btn-mini" style="background:#e0e7ff;color:#3730a3;" onclick="abrirEditarTarefa('+_idArg+')">✏️</button>';
+    }
+    return '<div class="card '+cls+'" style="cursor:default;'+bgPulse+(t.feita?'opacity:0.7;':'')+'">'+
       '<div class="card-header">'+
         '<div class="card-nome">'+prio+' '+(t.texto||'(sem descrição)')+'</div>'+
-        '<div class="card-meta">'+
-          '<span class="badge '+(t.feita?'badge-verde':(t._dias>7?'badge-vermelho':t._dias>3?'badge-amarelo':'badge-verde'))+'">'+(t.feita?'✓ Feita':(t._dias+' dia'+(t._dias!==1?'s':'')))+'</span>'+
-          (t.cliente?'<span class="badge badge-azul">📍 '+(grupoDoCliente(t.cliente)||t.cliente)+'</span>':'')+
-          (t.industria?'<span class="badge" style="background:#e0e7ff;color:#3730a3;">🏭 '+t.industria+'</span>':'')+
-          (t.envios && t.envios.length>0?'<span class="badge badge-verde">✓ enviado '+t.envios.length+'x</span>':'')+
+        '<div style="padding:6px 14px 0;display:grid;gap:4px;font-size:11px;">'+
+          '<div><span style="color:var(--muted);font-weight:600;">📝 De:</span> <b style="color:#1e3a8a;">'+(criadoPor||'?')+'</b></div>'+
+          '<div><span style="color:var(--muted);font-weight:600;">🎯 Para:</span> <b style="color:#1e3a8a;">'+destPra+'</b></div>'+
+          (t.cliente && t.reportar_para !== 'cliente'?'<div><span style="color:var(--muted);font-weight:600;">📍 Cliente:</span> '+t.cliente+'</div>':'')+
+          (t.industria?'<div><span style="color:var(--muted);font-weight:600;">🏭 Indústria:</span> '+t.industria+'</div>':'')+
+        '</div>'+
+        '<div class="card-meta" style="padding-top:6px;">'+
+          '<span class="badge '+(t.feita?'badge-verde':(t._dias>7?'badge-vermelho':t._dias>3?'badge-amarelo':'badge-verde'))+'">'+(t.feita?'✓ Executado':(t._dias+'d aguardando'))+'</span>'+
+          (t.envios && t.envios.length>0?'<span class="badge badge-verde">📤 '+t.envios.length+'x</span>':'')+
         '</div>'+
       '</div>'+
-      '<div class="card-acoes" style="padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;">'+
-        (!t.feita && (t._dias>3) ? '<button class="btn-mini" style="background:'+(t._dias>7?'#fee2e2;color:#991b1b':'#fef3c7;color:#78350f')+';font-weight:700;" onclick="abrirDetalheAtraso('+t.id+')">ℹ️ Detalhe ('+t._dias+'d)</button>':'')+
-        (!t.feita ? '<button class="btn-mini" style="background:#10b981;color:white;font-weight:700;" onclick="efetivarLembrete('+t.id+')">✓ Efetivei</button>':'')+
-        '<button class="btn-mini" style="background:#e0e7ff;color:#3730a3;" onclick="abrirEditarTarefa('+t.id+')">✏️ Editar</button>'+
-        (t.feita ? '<button class="btn-mini" onclick="reabrirLembrete('+t.id+')">↺ Reabrir</button>':'')+
-      '</div>'+
+      (t.feita && t.executado_por ? '<div style="margin:0 14px;padding:8px 12px;background:#dcfce7;border-radius:8px;font-size:11px;color:#166534;"><b>✓ Executado por '+t.executado_por+'</b>'+(t.concluida_em?' em '+t.concluida_em:'')+(t.concluida_obs?'<br><i>Resposta: '+(t.concluida_obs||'').replace(/</g,'&lt;')+'</i>':'')+'</div>':'')+
+      '<div class="card-acoes" style="padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;">'+acoes+'</div>'+
     '</div>';
   }).join('');
 
@@ -1080,6 +1097,60 @@ function abrirDetalheAtraso(id){
   document.getElementById('modal-body').innerHTML = h;
   document.getElementById('modal-cliente').classList.add('aberto');
   document.body.style.overflow='hidden';
+}
+
+// Responder a execução: marca como executado + grava resposta do destinatário
+function lembreteResponderExecucao(id){
+  const t = (TAREFAS||[]).find(x => String(x.id)===String(id));
+  if(!t) return;
+  const resp = prompt(
+    '✓ Você está marcando como EXECUTADO:\n\n"'+(t.texto||'')+'"\n\n'+
+    'Como executou? (resposta vai pra quem pediu — opcional)',
+    ''
+  );
+  if(resp === null) return;
+  t.feita = true;
+  t.concluida_em = new Date().toISOString().slice(0,16).replace('T',' ');
+  t.concluida_obs = (resp||'').trim();
+  t.executado_por = (window.USUARIO_LOGADO && window.USUARIO_LOGADO.nome) || 'Marcelo';
+  t.respondida_em = t.concluida_em;
+  t.resposta_por = t.executado_por;
+  t._editadoEm = Date.now();
+  TAREFAS = TAREFAS.map(x => String(x.id)===String(id) ? t : x);
+  localStorage.setItem('3mv_tarefas', JSON.stringify(TAREFAS));
+  if(typeof showToast==='function') showToast('✓ Executado · resposta gravada');
+  renderMeusLembretes();
+  if(typeof renderTarefas==='function') try{ renderTarefas(); }catch(e){}
+  // Pergunta se quer avisar quem pediu
+  if(t.criado_por && t.criado_por !== t.executado_por && confirm('Avisar '+t.criado_por+' que você executou?')){
+    lembreteNotificarRespondi(id);
+  }
+}
+
+// Notificar (via WhatsApp/Email) que executou a tarefa — pra quem criou
+function lembreteNotificarRespondi(id){
+  const t = (TAREFAS||[]).find(x => String(x.id)===String(id));
+  if(!t) return;
+  const criador = t.criado_por || t.usuario || '';
+  const equipe = (typeof EQUIPE !== 'undefined' && EQUIPE) || (typeof EQUIPE_DEFAULT !== 'undefined' && EQUIPE_DEFAULT()) || [];
+  // Acha contato do criador
+  const contato = equipe.find(m => (m.nome||'').toUpperCase().includes((criador||'').toUpperCase().split(' ')[0]));
+  const msg = `✓ *Tarefa executada — 3MV*\n\n${t.texto}\n\n${t.cliente?'📍 Cliente: '+t.cliente+'\n':''}${t.industria?'🏭 Indústria: '+t.industria+'\n':''}📅 Pedida em ${t.data}\n👤 Executei: ${t.executado_por||'Marcelo'}\n${t.concluida_obs?'\n💬 *Resposta:* '+t.concluida_obs:''}`;
+  const escolha = confirm('Avisar '+(criador||'criador')+' que executou?\n\nOK = WhatsApp · Cancelar = Email');
+  if(escolha && contato && contato.whats){
+    window.open('https://wa.me/'+contato.whats+'?text='+encodeURIComponent(msg), '_blank');
+  } else if(!escolha && contato && contato.email){
+    window.location.href = 'mailto:'+contato.email+'?subject='+encodeURIComponent('[3MV] Tarefa executada')+'&body='+encodeURIComponent(msg);
+  } else {
+    alert('Sem contato cadastrado pra '+(criador||'o criador')+'. Configure via ⚙️ no painel desktop.');
+    return;
+  }
+  // Registra envio
+  t.envios = t.envios || [];
+  t.envios.push({canal: escolha?'whats':'email', quando: new Date().toISOString().slice(0,16).replace('T',' '), por: t.executado_por||'Marcelo', tipo:'resposta-execução'});
+  t._editadoEm = Date.now();
+  localStorage.setItem('3mv_tarefas', JSON.stringify(TAREFAS));
+  if(typeof showToast==='function') showToast('📤 Aviso enviado pra '+(criador||'criador'));
 }
 
 function efetivarLembrete(id){
