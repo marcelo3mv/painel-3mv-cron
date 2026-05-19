@@ -1920,6 +1920,19 @@ function entregasMobToggleDrill(key){
     renderEntregasMob(document.getElementById('busca-entregas')?.value||'', /*usarCache*/ true);
   });
 }
+// Helper de escape pra HTML attribute
+function _attrEsc(v){ return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Event delegation: cliques em [data-toggle-key] disparam toggle (mais robusto que onclick com escape)
+if(!window.__entregasDelegateInstalled__){
+  window.__entregasDelegateInstalled__ = true;
+  document.addEventListener('click', function(ev){
+    const el = ev.target && ev.target.closest && ev.target.closest('[data-toggle-key]');
+    if(!el) return;
+    if(el.getAttribute('data-stop-prop') === '1') ev.stopPropagation();
+    const key = el.getAttribute('data-toggle-key');
+    if(key) entregasMobToggleDrill(key);
+  });
+}
 // Heurística de grupo de cliente (fallback quando grupoDoCliente não encontra)
 function _entr_grupo(nome){
   if(!nome) return '(s/cli)';
@@ -2110,7 +2123,7 @@ function renderEntregasMob(filtro, usarCache){
             const abertoI = isOpen(keyI);
             const peds = I.pedidos.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
             const drillI = abertoI ? '<div style="padding:4px 8px 8px 12px;">'+peds.map(renderPedido).join('')+'</div>' : '';
-            drillF += '<div onclick="event.stopPropagation();entregasMobToggleDrill('+_ocArg(keyI)+')" style="padding:8px 8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #dbeafe;">'+
+            drillF += '<div data-toggle-key="'+_attrEsc(keyI)+'" data-stop-prop="1" style="padding:8px 8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #dbeafe;">'+
               '<div style="display:flex;align-items:center;gap:6px;font-size:12px;">'+
                 '<span style="background:#3b82f6;color:#fff;font-size:17px;font-weight:900;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 4px rgba(59,130,246,.25);transition:transform .08s;">'+(abertoI?'−':'+')+'</span>'+
                 '<span style="font-weight:700;color:#1e3a8a;">🏭 '+I.ind+'</span>'+
@@ -2125,7 +2138,7 @@ function renderEntregasMob(filtro, usarCache){
           });
           drillF += '</div>';
         }
-        drillG += '<div onclick="event.stopPropagation();entregasMobToggleDrill('+_ocArg(keyF)+')" style="padding:10px 14px 10px 22px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">'+
+        drillG += '<div data-toggle-key="'+_attrEsc(keyF)+'" data-stop-prop="1" style="padding:10px 14px 10px 22px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">'+
           '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">'+
             '<span style="background:#1d4ed8;color:#fff;font-size:18px;font-weight:900;width:34px;height:34px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(29,78,216,.3);transition:transform .08s;">'+(abertoF?'−':'+')+'</span>'+
             '<div style="min-width:0;">'+
@@ -2143,7 +2156,7 @@ function renderEntregasMob(filtro, usarCache){
       drillG += '</div>';
     }
     return '<div>'+
-      '<div class="cc-row" onclick="entregasMobToggleDrill('+_ocArg(keyG)+')" style="cursor:pointer;">'+
+      '<div class="cc-row" data-toggle-key="'+_attrEsc(keyG)+'" style="cursor:pointer;">'+
         '<div class="cc-info">'+
           '<div class="cc-cliente" style="display:flex;align-items:center;gap:10px;"><span style="background:#e85d04;color:#fff;font-size:20px;font-weight:900;width:36px;height:36px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(232,93,4,.35);transition:transform .08s;">'+(abertoG?'−':'+')+'</span><span style="flex:1;">'+labelG+'</span></div>'+
           '<div class="cc-meta">'+G.n+' ped · '+G.filiais.size+' filia'+(G.filiais.size>1?'is':'l')+(G.parc>0?' · '+G.parc+' parcial'+(G.parc>1?'is':''):'')+'</div>'+
