@@ -1039,7 +1039,7 @@ function renderMeusLembretes(){
     // Destinatário do lembrete (quem deve executar)
     const respList = Array.isArray(t.responsavel) ? t.responsavel : [t.responsavel];
     const destPra = (t.reportar_para === 'cliente' && t.cliente) ? ('👤 Cliente: '+t.cliente) : ('👥 '+respList.map(r=>'@'+r).join(' '));
-    const criadoPor = t.criado_por || t.usuario || '';
+    const criadoPor = t.criado_por || t.criada_por || t.usuario || '';
     // Status de execução
     const _idArg = JSON.stringify(t.id).replace(/"/g,'&quot;');
     let acoes = '';
@@ -1140,7 +1140,7 @@ function lembreteResponderExecucao(id){
 function lembreteNotificarRespondi(id){
   const t = (TAREFAS||[]).find(x => String(x.id)===String(id));
   if(!t) return;
-  const criador = t.criado_por || t.usuario || '';
+  const criador = t.criado_por || t.criada_por || t.usuario || '';
   const equipe = (typeof EQUIPE !== 'undefined' && EQUIPE) || (typeof EQUIPE_DEFAULT !== 'undefined' && EQUIPE_DEFAULT()) || [];
   // Acha contato do criador
   const contato = equipe.find(m => (m.nome||'').toUpperCase().includes((criador||'').toUpperCase().split(' ')[0]));
@@ -1552,11 +1552,12 @@ function renderTarefaItem(t, concluida){
     }
     acoes += '<span style="font-size:10px;color:var(--muted);font-weight:600;margin-left:6px;">'+t.concluida_em+'</span>';
   }
+  const criadoPor = t.criado_por || t.criada_por || t.usuario || '';
   return '<div class="tarefa-row">'
     +'<div class="tarefa-check'+(concluida?' done':'')+'" onclick="toggleTarefa('+t.id+')" style="cursor:pointer;font-size:22px;color:'+(concluida?'#059669':'#cbd5e1')+';font-weight:700;">'+(concluida?'✓':'○')+'</div>'
     +'<div class="tarefa-texto'+(concluida?' done':'')+'" style="flex:1;'+(concluida?'opacity:0.6;text-decoration:line-through;':'')+'">'
       +'<div style="font-weight:700;">'+prioIcon+' '+t.texto+'</div>'
-      +'<div style="font-size:11px;color:var(--muted);margin-top:3px;font-weight:600;">'+respDisplay+(t.cliente?' · 📋 '+t.cliente:'')+(t.industria?' · 🏭 '+t.industria:'')+' · '+t.data+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-top:3px;font-weight:600;">'+respDisplay+(t.cliente?' · 📋 '+t.cliente:'')+(t.industria?' · 🏭 '+t.industria:'')+' · '+t.data+(criadoPor?' · ✍️ '+criadoPor:'')+'</div>'
       +(acoes?'<div class="tarefa-acao-row">'+acoes+'</div>':'')
     +'</div></div>';
 }
@@ -1917,7 +1918,7 @@ function salvarTarefa(){
     reportar_para: _reportarSel,
     prazo_dias: Math.max(1, parseInt((document.getElementById('t-prazo')||{}).value||2,10)),
     data: dataHoraAgora(),
-    criada_por: USUARIO_LOGADO?USUARIO_LOGADO.email:'?',
+    criado_por: USUARIO_LOGADO ? (USUARIO_LOGADO.nome || USUARIO_LOGADO.email) : '?',
     feita: false,
     envios: []
   };
